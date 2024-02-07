@@ -899,5 +899,5 @@ function kernelExploit(){
 
 
 function run_hax() {
-	setTimeout(kernelExploit,500);
+	kernelExploit();
 }
