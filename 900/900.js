@@ -1693,7 +1693,7 @@ function runBinLoader(){
  mymenu.contentWindow.ChangeText("Bin Loader Ready. Send A Payload To Port 9020 Now");
 }
 
-function loadPayload(PLD){
+function loadPayload(){
 var req = new XMLHttpRequest();
  req.responseType = "arraybuffer";
  req.open('GET','goldhen.bin');
