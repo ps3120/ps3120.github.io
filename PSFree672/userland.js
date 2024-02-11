@@ -1206,9 +1206,6 @@ var stage2_ = function () {
 }
 
 function postExploit() {
-	try {
 	  stage2_();
-	} catch (e) {
-		alert(e);
-	}
+	
 }
