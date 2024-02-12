@@ -734,13 +734,13 @@ function kernelExploit() {
 }
 
 
- async function webkitExploit() {
+ async function webkitExploitt() {
  function die(msg) {
   alert(msg);
   undefinedFunction();
  }
  function debug_log(msg) {
- // print(msg);
+ print(msg);
  }
  function clear_log() {
  }
