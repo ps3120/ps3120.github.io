@@ -733,7 +733,7 @@ function kernelExploit() {
  runKEX();
 }
 
-async function webkitExploit()
+async function webkitExploit(){
  function die(msg) {
   alert(msg);
   undefinedFunction();
@@ -1676,5 +1676,3 @@ async function webkitExploit()
  window.p = prim;
  run_hax();
 }
-
-  
