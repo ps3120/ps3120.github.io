@@ -733,13 +733,13 @@ function kernelExploit() {
  runKEX();
 }
 
-async function webkitExploit(){
+ function webkitExploit(){
  function die(msg) {
   alert(msg);
-  //undefinedFunction();
+  undefinedFunction();
  }
  function debug_log(msg) {
- //print(msg);
+ print(msg);
  }
  function clear_log() {
  }
