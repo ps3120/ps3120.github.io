@@ -740,7 +740,7 @@ function kernelExploit() {
   undefinedFunction();
  }
  function debug_log(msg) {
-  print(msg);
+ // print(msg);
  }
  function clear_log() {
  }
