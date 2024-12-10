@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exploit Test</title>
+</head>
+<body>
+    <h1>Click to Execute Exploit</h1>
+    <button id="button">Execute Exploit</button>
+    <script type="module">
+        // Importa la funzione main da exploit.js
+        import { main } from './exploit.js';
+
+        // Collega la funzione main al click del bottone
+        document.getElementById('button').addEventListener('click', main);
+    </script>
+</body>
+</html>
