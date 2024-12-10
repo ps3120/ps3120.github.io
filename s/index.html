@@ -9,10 +9,19 @@
     <h1>Exploit Demo: WebKit UAF + ROP Chain + RW Test</h1>
     <p>Click the button to trigger the exploit.</p>
     <button id="button">Click me</button>
+
+    <!-- Include the exploit script -->
     <script type="module">
-        import { main } from './exploit.js';  // Import main function from exploit.js
+        // Log to check if script is loaded
+        console.log("Exploit script loaded");
+
+        // Import the main function from the exploit script
+        import { main } from './exploit.js';  
+
+        // Debug log to ensure the button click is working
         document.getElementById('button').addEventListener('click', () => {
-            main();  // Execute the main exploit function when button is clicked
+            console.log("Button clicked. Executing exploit...");
+            main();  // Execute the main function from exploit.js when button is clicked
         });
     </script>
 </body>
