@@ -1,27 +1,40 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Exploit Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 10px;
+        }
+        #startButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #startButton:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
 <body>
-    <h1>Exploit Demo: WebKit UAF + ROP Chain + RW Test</h1>
-    <p>Click the button to trigger the exploit.</p>
-    <button id="button">Click me</button>
+    <h1>Demo Exploit WebKit UAF</h1>
+    <p>Premi il pulsante per avviare l'exploit:</p>
+    <button id="startButton">Avvia Exploit</button>
 
-    <!-- Include the exploit script -->
-    <script type="module">
-        // Log to check if script is loaded
-        console.log("Exploit script loaded");
+    <!-- Carica il file exploit.js -->
+    <script src="exploit.js"></script>
 
-        // Import the main function from the exploit script
-        import { main } from './exploit.js';  
-
-        // Debug log to ensure the button click is working
-        document.getElementById('button').addEventListener('click', () => {
-            console.log("Button clicked. Executing exploit...");
-            main();  // Execute the main function from exploit.js when button is clicked
+    <script>
+        // Avvia l'exploit al click del pulsante
+        document.getElementById('startButton').addEventListener('click', function() {
+            main();  // Chiama la funzione main() definita in exploit.js
         });
     </script>
 </body>
