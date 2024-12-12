@@ -4,6 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Exploit WebKit</title>
+    <style>
+        #runExploit {
+            background-color: red;
+            color: white;
+            font-size: 20px;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+
+        #runExploit:active {
+            background-color: darkred;
+        }
+    </style>
     <script>
         const gadgets = {
             pop_rdi: 0x0000000000401234,
