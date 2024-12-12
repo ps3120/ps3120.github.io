@@ -1,41 +1,12 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exploit Demo</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            padding: 10px;
-        }
-        #startButton {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        #startButton:hover {
-            background-color: #45a049;
-        }
-    </style>
+    <title>Exploit Test</title>
 </head>
 <body>
-    <h1>Demo Exploit WebKit UAF</h1>
-    <p>Premi il pulsante per avviare l'exploit:</p>
-    <button id="startButton">Avvia Exploit</button>
-
-    <!-- Carica il file exploit.js -->
-    <script src="exploit.js"></script>
-
-    <script>
-        // Avvia l'exploit al click del pulsante
-        document.getElementById('startButton').addEventListener('click', function() {
-            main();  // Chiama la funzione main() definita in exploit.js
-        });
-    </script>
+    <button id="button">Avvia Exploit</button>
+    <script type="module" src="exploit.js"></script>
 </body>
 </html>
