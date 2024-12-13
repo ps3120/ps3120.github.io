@@ -40,17 +40,17 @@
         }
 
         async function main() {
-            const workerCode = `
+            const workerCode = 
                 let memoriaSimulataWorker = new ArrayBuffer(1024); // Memoria separata per il worker
                 let dataViewWorker = new DataView(memoriaSimulataWorker);
 
                 function fakeReadWorker(indirizzo) { // Funzioni specifiche per il worker
                   try {
                       let valore = dataViewWorker.getUint32(indirizzo, true);
-                      console.log(\`Worker: Lettura simulata da \${indirizzo}: 0x\${valore.toString(16)}\`);
+                      console.log(\"Worker: Lettura simulata da \${indirizzo}: 0x\${valore.toString(16)}\");
                       return valore;
                   } catch (e) {
-                      alert(\`SIMULAZIONE ERRORE CRITICO NEL WORKER: Tentativo di lettura da indirizzo non valido (\${indirizzo}). Simula accesso a memoria non allocata.\`);
+                      alert(\"SIMULAZIONE ERRORE CRITICO NEL WORKER: Tentativo di lettura da indirizzo non valido (\${indirizzo}). Simula accesso a memoria non allocata.\");
                       return 0
                   }
                 }
@@ -58,9 +58,9 @@
                 function fakeWriteWorker(indirizzo, valore) {
                     try {
                         dataViewWorker.setUint32(indirizzo, valore, true);
-                        console.log(\`Worker: Scrittura simulata di 0x\${valore.toString(16)} a \${indirizzo}\`);
+                        //console.log(\`Worker: Scrittura simulata di 0x\${valore.toString(16)} a \${indirizzo}\`);
                     } catch (e) {
-                        alert(\`SIMULAZIONE ERRORE CRITICO NEL WORKER: Tentativo di scrittura a indirizzo non valido (\${indirizzo}). Simula corruzione di memoria.\`);
+                        alert("\`SIMULAZIONE ERRORE CRITICO NEL WORKER: Tentativo di scrittura a indirizzo non valido (\${indirizzo}). Simula corruzione di memoria.\`");
                     }
                 }
 
@@ -89,7 +89,7 @@
                     }
                     postMessage("Messaggio di ritorno dal worker");
                 };
-            `;
+            ;
 
             const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
             const workerURL = URL.createObjectURL(workerBlob);
