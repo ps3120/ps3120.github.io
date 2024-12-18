@@ -1,121 +1,108 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Simulazione CVE-2023-28205</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PS4 Crash Test</title>
+<style>
+    body, html {
+        height: 100%;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+    button {
+        font-size: 30px;
+        padding: 15px 30px;
+        border: none;
+        background-color: #007BFF;
+        color: white;
+        cursor: pointer;
+        border-radius: 10px;
+        margin: 10px;
+    }
+    button:hover {
+        background-color: #0056b3;
+    }
+    #divMsg {
+        margin-top: 20px;
+        font-size: 20px;
+    }
+</style>
+<script>
+function log(message) {
+    document.getElementById('msg').innerHTML += `<p>${message}</p>`;
+}
+
+function stringOverflow() {
+    let largeString = "A".repeat(1e6); // Inizia con una stringa di grandi dimensioni
+    log("Iniziando string overflow...");
+    try {
+        while (true) {
+            largeString += largeString; // Raddoppia ripetutamente la stringa
+        }
+    } catch (e) {
+        log("Errore catturato: " + e.message);
+    }
+}
+
+function heapOverflow() {
+    let heapObjects = [];
+    log("Avvio overflow di heap...");
+    try {
+        while (true) {
+            heapObjects.push(new ArrayBuffer(1e6)); // Alloca blocchi da 1MB
+        }
+    } catch (e) {
+        log("Errore catturato: " + e.message);
+    }
+}
+
+function memoryExhaustion() {
+    let objects = [];
+    log("Avvio esaurimento memoria...");
+    try {
+        for (let i = 0; i < 1e7; i++) {
+            objects.push({ index: i, data: "A".repeat(1e4) }); // Riempie la memoria con oggetti
+        }
+    } catch (e) {
+        log("Memoria esaurita o errore catturato: " + e.message);
+    }
+}
+
+function groomHeap() {
+    let buffers = [];
+    log("Grooming heap...");
+    try {
+        for (let i = 0; i < 1024; i++) {
+            buffers.push(new ArrayBuffer(250000)); // Heap grooming con blocchi uniformi
+        }
+    } catch (e) {
+        log("Errore durante il grooming: " + e.message);
+    }
+}
+
+function triggerCrash() {
+    log("Tentativo di crash...");
+    setTimeout(() => stringOverflow(), 1000); // Sovraccarico stringhe dopo 1s
+    setTimeout(() => heapOverflow(), 2000);  // Sovraccarico heap dopo 2s
+    setTimeout(() => memoryExhaustion(), 3000); // Esaurimento memoria dopo 3s
+}
+</script>
 </head>
 <body>
-    <h1>Simulazione Use-After-Free (CVE-2023-28205)</h1>
-    <p>Questa è una SIMULAZIONE. Non è un exploit funzionante.</p>
-    <p>I risultati della simulazione (e potenziali errori simulati) saranno mostrati con degli alert.</p>
+<div style="position: fixed; bottom: 0; left: 0; font-size: small; color: black; padding: 10px; background-color: white;">
+    Creato per PS4 Test - Usa a tuo rischio
+</div>
 
-    <script>
-        let memoriaSimulata = new ArrayBuffer(1024);
-        let dataView = new DataView(memoriaSimulata);
+<button onclick="stringOverflow()">String Overflow</button>
+<button onclick="heapOverflow()">Heap Overflow</button>
+<button onclick="memoryExhaustion()">Memory Exhaustion</button>
+<button onclick="groomHeap()">Groom Heap</button>
+<button onclick="triggerCrash()">Trigger Full Crash</button>
 
-        function fakeRead(indirizzo) {
-            try {
-                let valore = dataView.getUint32(indirizzo, true);
-                console.log(`Lettura simulata da ${indirizzo}: 0x${valore.toString(16)}`);
-                return valore;
-            } catch (e) {
-                alert(`SIMULAZIONE ERRORE CRITICO: Tentativo di lettura da indirizzo non valido (${indirizzo}). Questo simula un potenziale accesso a memoria non allocata.`);
-                return 0; // Importante per evitare errori a cascata
-            }
-        }
-
-        function fakeWrite(indirizzo, valore) {
-            try {
-                dataView.setUint32(indirizzo, valore, true);
-                console.log(`Scrittura simulata di 0x${valore.toString(16)} a ${indirizzo}`);
-            } catch (e) {
-                alert(`SIMULAZIONE ERRORE CRITICO: Tentativo di scrittura a indirizzo non valido (${indirizzo}). Questo simula una potenziale corruzione di memoria.`);
-            }
-        }
-
-        function createDataStructure() {
-            const map = new Map();
-            const date = new Date();
-            map.set('date', date);
-            return { map };
-        }
-
-        async function main() {
-            const workerCode = 
-                let memoriaSimulataWorker = new ArrayBuffer(1024); // Memoria separata per il worker
-                let dataViewWorker = new DataView(memoriaSimulataWorker);
-
-                function fakeReadWorker(indirizzo) { // Funzioni specifiche per il worker
-                  try {
-                      let valore = dataViewWorker.getUint32(indirizzo, true);
-                      console.log(\"Worker: Lettura simulata da \${indirizzo}: 0x\${valore.toString(16)}\");
-                      return valore;
-                  } catch (e) {
-                      alert(\"SIMULAZIONE ERRORE CRITICO NEL WORKER: Tentativo di lettura da indirizzo non valido (\${indirizzo}). Simula accesso a memoria non allocata.\");
-                      return 0
-                  }
-                }
-
-                function fakeWriteWorker(indirizzo, valore) {
-                    try {
-                        dataViewWorker.setUint32(indirizzo, valore, true);
-                        //console.log(\`Worker: Scrittura simulata di 0x\${valore.toString(16)} a \${indirizzo}\`);
-                    } catch (e) {
-                        alert("\`SIMULAZIONE ERRORE CRITICO NEL WORKER: Tentativo di scrittura a indirizzo non valido (\${indirizzo}). Simula corruzione di memoria.\`");
-                    }
-                }
-
-                onmessage = async function(e) {
-                    let { map } = e.data;
-                    try {
-                        await new Promise(resolve => setTimeout(resolve, 10)); // SIMULAZIONE di race condition
-
-                        if (map && map.get) { //Verifica se map e get esistono
-                            let date = map.get('date');
-
-                            if (date) {
-                                console.log("Worker: getTime prima dell'operazione (simulata):", date.getTime());
-                                fakeWriteWorker(100, 0x41414141); // Simulazione di scrittura che POTREBBE corrompere
-                                console.log("Worker: getTime dopo l'operazione (simulata):", date.getTime());
-                            } else {
-                                alert("SIMULAZIONE: L'oggetto 'date' sembra essere stato liberato (use-after-free simulato)!"); // ALERT - Use After Free Simulato
-                            }
-                        } else {
-                            alert("SIMULAZIONE: L'oggetto map è inatteso! (Probabilmente è stato liberato)");
-                        }
-
-                    } catch (error) {
-                        alert(`SIMULAZIONE ERRORE: Errore nel worker durante la simulazione: ${error}`);
-                        console.error("Worker Error:", error)
-                    }
-                    postMessage("Messaggio di ritorno dal worker");
-                };
-            ;
-
-            const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
-            const workerURL = URL.createObjectURL(workerBlob);
-            const worker = new Worker(workerURL);
-
-            let data = createDataStructure();
-            worker.postMessage(data);
-
-            worker.onmessage = function(e) {
-                console.log("Main: Messaggio ricevuto dal worker:", e.data);
-                console.log("Main: Contenuto di memoriaSimulata:", new Uint8Array(memoriaSimulata));
-                try {
-                    if(data && data.map && data.map.get){
-                        console.log("Main: Tentativo di accesso a data.map.get('date').getTime()");
-                        console.log('Main: risultato getTime', data.map.get('date').getTime())
-                    } else {
-                        alert("SIMULAZIONE: L'oggetto map è inatteso nel main! (Probabilmente è stato liberato)");
-                    }
-                } catch (error) {
-                    alert(`SIMULAZIONE ERRORE: Errore nel main dopo il worker: ${error}`);
-                    console.error("Main Error:", error)
-                }
-            };
-        }
-
-        main();
-    </script>
+<div id="msg"></div>
 </body>
 </html>
