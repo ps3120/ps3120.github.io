@@ -1,68 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>WebKit PoC Exploit</title>
-    <style>
-        @font-face {
-            font-family: 'uaf';
-            src: url(a.ttf); /* File font da caricare */
-        }
-        body {
-            font-family: 'uaf';
-        }
-        button {
-            background-color: purple; /* Cambiato colore in viola */
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-            border-radius: 5px;
-        }
-    </style>
-</head>
-<body>
-    <h1>WebKit Exploit PoC</h1>
-    <button id="startExploit" onclick="startExploit()">Avvia Exploit</button>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Use-After-Free PoC</title>
     <script>
-        function forceGC() {
-            // Forza il Garbage Collector
-            let bigArray = [];
-            for (let i = 0; i < 10000; i++) {
-                bigArray.push(new Uint8Array(1024 * 1024));
+        // Simuliamo la classe ResourceUsageOverlay
+        class ResourceUsageOverlay {
+            constructor(page) {
+                this.page = page; // Riferimento alla pagina
+                this.initialize();
             }
-            bigArray = null;
-            alert("Garbage Collection forzata.");
-        }
 
-        function triggerUAF() {
-            let obj = { key: 123 };
-            let weakRef = new WeakRef(obj);
-
-            setTimeout(() => {
-                obj = null; // Rimuove il riferimento all'oggetto
-                forceGC();
-
+            // Funzione che simula l'initializzazione, potenzialmente vulnerabile
+            initialize() {
+                // Simuliamo una lambda che viene eseguita successivamente
                 setTimeout(() => {
-                    try {
-                        let invalid = weakRef.deref();
-                        if (!invalid) {
-                            alert("Use-After-Free avvenuto!");
-                        } else {
-                            alert("Oggetto ancora valido: " + JSON.stringify(invalid));
-                        }
-                    } catch (e) {
-                        alert("Errore rilevato: " + e.message);
+                    // Usando un oggetto che potrebbe essere stato liberato prematuramente
+                    alert("Accedendo a m_page: " + this.page);
+                    // Supponiamo che qui ci sia una vulnerabilità di tipo UAF
+                    if (this.page === null) {
+                        alert("UAF! m_page è stato liberato!");
+                    } else {
+                        alert("m_page ancora valido: " + this.page);
                     }
                 }, 100);
-            }, 100);
+            }
+
+            // Funzione che simula il ciclo di vita della pagina
+            releasePage() {
+                alert("Pagina liberata!");
+                this.page = null; // Simula la "distruzione" della pagina
+            }
         }
 
-        function startExploit() {
-            alert("Avvio exploit...");
-            triggerUAF();
-        }
+        // Creiamo un oggetto ResourceUsageOverlay
+        let page = { content: "Contenuto della pagina" };
+        let overlay = new ResourceUsageOverlay(page);
+
+        // Liberiamo la pagina prima che la lambda venga eseguita
+        setTimeout(() => {
+            overlay.releasePage();
+        }, 50);
+
     </script>
+</head>
+<body>
+    <h1>PoC Use-After-Free</h1>
+    <p>Questo esempio simula un Use-After-Free (UAF) nel contesto di un oggetto che accede a memoria liberata.</p>
 </body>
 </html>
