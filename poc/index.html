@@ -56,7 +56,7 @@
 
             setTimeout(() => {
                 try {
-                    alert("Use-After-Free rilevato! Creazione di oggetto falso in corso...");
+                    alert("Use-After-Free rilevato! Creazione oggetto falso in corso...");
                     let fakeObject = fakeobj(0x41414141);
                     alert("Oggetto falsificato creato con successo!");
                 } catch (e) {
