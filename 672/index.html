@@ -24,12 +24,8 @@ function awaitpl(){
 function pldone(){
   msgs.innerHTML="Payload Loaded";
 }
-function loadScript(){
- var xhr = new XMLHttpRequest();
- xhr.open('GET','672.js',false);
- xhr.send('');
- eval.call(top.window, xhr.responseText);
-}
+<script type=module src="./alert.mjs"></script>
+<script src="672.js"></script>
 </script>
 </body>
 </html>
