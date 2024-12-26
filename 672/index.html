@@ -1,0 +1,35 @@
+<html>
+<head>
+<title>6.72</title>
+<style>
+body{background-color:black;color:#CFB53B;font-size:28px;text-align:center;}
+.info{position:relative;top:50%;}
+.bottopmsg{position:absolute;bottom:20px;width:1500px;padding:5px 0 1px 0;}
+</style>
+
+</head>
+<br>
+<div class=IMG><img src="hen.png">
+<br><br><br>
+<div id="msgs" class="info">Loading, Please Wait ...</div>
+<div id=bottommsg class="msgs bottopmsg">(Recommended Cheat Manager)<br>(GoldHEN Cheats Manager by Damian Parrino)<br><br>Massive Thanks - Leeful - SiSTRo - ctn123 - Shinigami - Specter - ChendoChap - Sleirsgoevy - And Many More</div>
+<script>
+function allset(){
+ localStorage.HenLoaded="yes";sessionStorage.HenLoaded="yes";
+ msgs.innerHTML="PS4 Exploited And GoldHEN Loaded";
+}
+function awaitpl(){
+  msgs.innerHTML="GoldHEN Already Loaded & BinLoader Ready,<br>Send A Payload To Port 9021 Now";
+}
+function pldone(){
+  msgs.innerHTML="Payload Loaded";
+}
+function loadScript(){
+ var xhr = new XMLHttpRequest();
+ xhr.open('GET','672.js',false);
+ xhr.send('');
+ eval.call(top.window, xhr.responseText);
+}
+</script>
+</body>
+</html>
