@@ -1,23 +1,102 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Test StringTypeAdapter</title>
-    <script>
-        function checkSupport() {
-            try {
-                if (typeof StringTypeAdapter !== "undefined") {
-                    alert("StringTypeAdapter ESISTE nel browser!");
-                } else {
-                    alert("StringTypeAdapter NON è supportata.");
-                }
-            } catch (e) {
-                alert("Errore: " + e.message);
-            }
+    <title>Simple Pac-Man</title>
+    <style>
+        canvas {
+            border: 1px solid black;
         }
-    </script>
+    </style>
 </head>
 <body>
-    <h1>Test StringTypeAdapter</h1>
-    <button onclick="checkSupport()">Verifica</button>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Pac-Man properties
+        let pacman = {
+            x: 200,
+            y: 200,
+            radius: 20,
+            mouthAngle: 0,
+            speed: 3,
+            direction: 0
+        };
+
+        // Game state
+        let mouthOpening = true;
+        let keys = {};
+
+        // Handle keyboard input
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        function update() {
+            // Handle movement
+            if (keys['ArrowUp']) {
+                pacman.y -= pacman.speed;
+                pacman.direction = Math.PI / 2;
+            }
+            if (keys['ArrowDown']) {
+                pacman.y += pacman.speed;
+                pacman.direction = -Math.PI / 2;
+            }
+            if (keys['ArrowLeft']) {
+                pacman.x -= pacman.speed;
+                pacman.direction = Math.PI;
+            }
+            if (keys['ArrowRight']) {
+                pacman.x += pacman.speed;
+                pacman.direction = 0;
+            }
+
+            // Keep Pac-Man in bounds
+            pacman.x = Math.max(pacman.radius, Math.min(canvas.width - pacman.radius, pacman.x));
+            pacman.y = Math.max(pacman.radius, Math.min(canvas.height - pacman.radius, pacman.y));
+
+            // Animate mouth
+            if (mouthOpening) {
+                pacman.mouthAngle += 0.1;
+                if (pacman.mouthAngle >= 0.7) mouthOpening = false;
+            } else {
+                pacman.mouthAngle -= 0.1;
+                if (pacman.mouthAngle <= 0) mouthOpening = true;
+            }
+        }
+
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Pac-Man
+            ctx.beginPath();
+            ctx.fillStyle = 'yellow';
+            ctx.arc(
+                pacman.x,
+                pacman.y,
+                pacman.radius,
+                pacman.direction + pacman.mouthAngle,
+                pacman.direction + 2 * Math.PI - pacman.mouthAngle
+            );
+            ctx.lineTo(pacman.x, pacman.y);
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start the game
+        gameLoop();
+    </script>
 </body>
 </html>
