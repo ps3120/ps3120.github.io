@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Pac-Man Full Game</title>
+    <title>Pac-Man con Fantasmi e Frutta</title>
     <style>
         canvas {
             border: 1px solid black;
@@ -20,12 +20,12 @@
         const ctx = canvas.getContext('2d');
         const scoreDisplay = document.getElementById('score');
 
-        // Game constants
+        // Costanti
         const TILE_SIZE = 16;
         const MAZE_WIDTH = 28;
         const MAZE_HEIGHT = 31;
 
-        // Pac-Man properties
+        // Pac-Man
         let pacman = {
             x: 13.5 * TILE_SIZE,
             y: 23 * TILE_SIZE,
@@ -33,15 +33,34 @@
             speed: 2,
             direction: 0,
             mouthAngle: 0,
-            nextDirection: 0
+            nextDirection: 0,
+            lives: 3
         };
 
-        // Game state
+        // Fantasmi
+        const ghosts = [
+            { x: 13 * TILE_SIZE, y: 11 * TILE_SIZE, color: 'red', speed: 1.5 },
+            { x: 14 * TILE_SIZE, y: 11 * TILE_SIZE, color: 'pink', speed: 1.5 },
+            { x: 13 * TILE_SIZE, y: 12 * TILE_SIZE, color: 'cyan', speed: 1.5 },
+            { x: 14 * TILE_SIZE, y: 12 * TILE_SIZE, color: 'orange', speed: 1.5 }
+        ];
+
+        // Frutta
+        let fruit = {
+            x: 13.5 * TILE_SIZE,
+            y: 17 * TILE_SIZE,
+            active: false,
+            timer: 0,
+            duration: 500 // Frames di durata
+        };
+
+        // Stato del gioco
         let score = 0;
         let mouthOpening = true;
         let keys = {};
+        let gameOver = false;
 
-        // Simple maze layout (1 = wall, 0 = path/dot)
+        // Layout del labirinto
         const maze = [
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
             [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -53,9 +72,9 @@
             [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
             [1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1],
             [1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1],
-            [1,1,1,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1],
-            [1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1],
-            [1,1,1,1,1,1,0,1,1,0,1,0,0,0,0,0,0,1,0,1,1,0,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
+            [1,0,1,1,1,1,0,1,1,0,1,0,0,0,0,0,0,1,0,1,1,0,1,1,1,1,0,1],
             [1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
             [1,0,1,1,1,1,0,1,1,0,1,0,0,0,0,0,0,1,0,1,1,0,1,1,1,1,0,1],
             [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
@@ -76,7 +95,7 @@
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
         ];
 
-        // Handle keyboard input
+        // Input
         window.addEventListener('keydown', (e) => {
             keys[e.key] = true;
             switch(e.key) {
@@ -103,24 +122,70 @@
             const tileX = Math.floor(pacman.x / TILE_SIZE);
             const tileY = Math.floor(pacman.y / TILE_SIZE);
             if (maze[tileY][tileX] === 0) {
-                maze[tileY][tileX] = 2; // 2 means eaten
+                maze[tileY][tileX] = 2;
                 score += 10;
-                scoreDisplay.textContent = `Score: ${score}`;
+                if (Math.random() < 0.01 && !fruit.active) {
+                    fruit.active = true;
+                    fruit.timer = fruit.duration;
+                }
+            }
+        }
+
+        function eatFruit() {
+            if (fruit.active && 
+                Math.abs(pacman.x - fruit.x) < pacman.radius && 
+                Math.abs(pacman.y - fruit.y) < pacman.radius) {
+                fruit.active = false;
+                score += 100;
+            }
+        }
+
+        function moveGhost(ghost) {
+            const directions = [
+                { dx: ghost.speed, dy: 0 },
+                { dx: -ghost.speed, dy: 0 },
+                { dx: 0, dy: ghost.speed },
+                { dx: 0, dy: -ghost.speed }
+            ];
+            const dir = directions[Math.floor(Math.random() * directions.length)];
+            const nextX = ghost.x + dir.dx;
+            const nextY = ghost.y + dir.dy;
+            
+            if (canMove(nextX, nextY)) {
+                ghost.x = nextX;
+                ghost.y = nextY;
+            }
+        }
+
+        function checkCollision() {
+            for (let ghost of ghosts) {
+                if (Math.sqrt((pacman.x - ghost.x) ** 2 + (pacman.y - ghost.y) ** 2) < pacman.radius + 8) {
+                    pacman.lives--;
+                    pacman.x = 13.5 * TILE_SIZE;
+                    pacman.y = 23 * TILE_SIZE;
+                    ghosts.forEach(g => {
+                        g.x = 13.5 * TILE_SIZE;
+                        g.y = 11.5 * TILE_SIZE;
+                    });
+                    if (pacman.lives <= 0) gameOver = true;
+                    return;
+                }
             }
         }
 
         function update() {
-            // Check if we can move in next direction
+            if (gameOver) return;
+
+            // Movimento Pac-Man
             const nextX = pacman.x + Math.cos(pacman.nextDirection) * pacman.speed;
             const nextY = pacman.y - Math.sin(pacman.nextDirection) * pacman.speed;
-            
             if (canMove(nextX, nextY)) {
                 pacman.direction = pacman.nextDirection;
                 pacman.x = nextX;
                 pacman.y = nextY;
             }
 
-            // Animate mouth
+            // Animazione bocca
             if (mouthOpening) {
                 pacman.mouthAngle += 0.1;
                 if (pacman.mouthAngle >= 0.7) mouthOpening = false;
@@ -129,13 +194,27 @@
                 if (pacman.mouthAngle <= 0) mouthOpening = true;
             }
 
+            // Movimento fantasmi
+            ghosts.forEach(moveGhost);
+
+            // Collisione e raccolta
             eatDot();
+            eatFruit();
+            checkCollision();
+
+            // Gestione frutta
+            if (fruit.active) {
+                fruit.timer--;
+                if (fruit.timer <= 0) fruit.active = false;
+            }
+
+            scoreDisplay.textContent = `Score: ${score} | Lives: ${pacman.lives}`;
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw maze
+            // Disegna labirinto
             for (let y = 0; y < MAZE_HEIGHT; y++) {
                 for (let x = 0; x < MAZE_WIDTH; x++) {
                     if (maze[y][x] === 1) {
@@ -144,17 +223,21 @@
                     } else if (maze[y][x] === 0) {
                         ctx.fillStyle = 'white';
                         ctx.beginPath();
-                        ctx.arc(
-                            x * TILE_SIZE + TILE_SIZE/2,
-                            y * TILE_SIZE + TILE_SIZE/2,
-                            2, 0, Math.PI * 2
-                        );
+                        ctx.arc(x * TILE_SIZE + TILE_SIZE/2, y * TILE_SIZE + TILE_SIZE/2, 2, 0, Math.PI * 2);
                         ctx.fill();
                     }
                 }
             }
 
-            // Draw Pac-Man
+            // Disegna frutta
+            if (fruit.active) {
+                ctx.fillStyle = 'red';
+                ctx.beginPath();
+                ctx.arc(fruit.x, fruit.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Disegna Pac-Man
             ctx.beginPath();
             ctx.fillStyle = 'yellow';
             ctx.arc(
@@ -166,7 +249,22 @@
             );
             ctx.lineTo(pacman.x, pacman.y);
             ctx.fill();
-            ctx.closePath();
+
+            // Disegna fantasmi
+            ghosts.forEach(ghost => {
+                ctx.fillStyle = ghost.color;
+                ctx.beginPath();
+                ctx.arc(ghost.x, ghost.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+                // Corpo semplice
+                ctx.fillRect(ghost.x - 8, ghost.y, 16, 8);
+            });
+
+            if (gameOver) {
+                ctx.fillStyle = 'white';
+                ctx.font = '30px Arial';
+                ctx.fillText('GAME OVER', canvas.width/2 - 80, canvas.height/2);
+            }
         }
 
         function gameLoop() {
