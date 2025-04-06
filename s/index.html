@@ -1,279 +1,134 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Pac-Man con Fantasmi e Frutta</title>
-    <style>
-        canvas {
-            border: 1px solid black;
-        }
-        #score {
-            font-family: Arial, sans-serif;
-            font-size: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div id="score">Score: 0</div>
-    <canvas id="gameCanvas" width="448" height="496"></canvas>
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreDisplay = document.getElementById('score');
+<script>
+    async function readSDK() {
+        const fileInput = document.getElementById('elfFile');
+        const output = document.getElementById('output');
+        output.textContent = '';
 
-        // Costanti
-        const TILE_SIZE = 16;
-        const MAZE_WIDTH = 28;
-        const MAZE_HEIGHT = 31;
-
-        // Pac-Man
-        let pacman = {
-            x: 13.5 * TILE_SIZE,
-            y: 23 * TILE_SIZE,
-            radius: 8,
-            speed: 2,
-            direction: 0,
-            mouthAngle: 0,
-            nextDirection: 0,
-            lives: 3
-        };
-
-        // Fantasmi
-        const ghosts = [
-            { x: 13 * TILE_SIZE, y: 11 * TILE_SIZE, color: 'red', speed: 1.5 },
-            { x: 14 * TILE_SIZE, y: 11 * TILE_SIZE, color: 'pink', speed: 1.5 },
-            { x: 13 * TILE_SIZE, y: 12 * TILE_SIZE, color: 'cyan', speed: 1.5 },
-            { x: 14 * TILE_SIZE, y: 12 * TILE_SIZE, color: 'orange', speed: 1.5 }
-        ];
-
-        // Frutta
-        let fruit = {
-            x: 13.5 * TILE_SIZE,
-            y: 17 * TILE_SIZE,
-            active: false,
-            timer: 0,
-            duration: 500 // Frames di durata
-        };
-
-        // Stato del gioco
-        let score = 0;
-        let mouthOpening = true;
-        let keys = {};
-        let gameOver = false;
-
-        // Layout del labirinto
-        const maze = [
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
-            [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
-            [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
-            [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
-            [1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1],
-            [1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
-            [1,0,1,1,1,1,0,1,1,0,1,0,0,0,0,0,0,1,0,1,1,0,1,1,1,1,0,1],
-            [1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
-            [1,0,1,1,1,1,0,1,1,0,1,0,0,0,0,0,0,1,0,1,1,0,1,1,1,1,0,1],
-            [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1],
-            [1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1],
-            [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
-            [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
-            [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
-            [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
-            [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
-            [1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1],
-            [1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1],
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-        ];
-
-        // Input
-        window.addEventListener('keydown', (e) => {
-            keys[e.key] = true;
-            switch(e.key) {
-                case 'ArrowUp': pacman.nextDirection = Math.PI / 2; break;
-                case 'ArrowDown': pacman.nextDirection = -Math.PI / 2; break;
-                case 'ArrowLeft': pacman.nextDirection = Math.PI; break;
-                case 'ArrowRight': pacman.nextDirection = 0; break;
-            }
-        });
-
-        window.addEventListener('keyup', (e) => {
-            keys[e.key] = false;
-        });
-
-        function canMove(x, y) {
-            const tileX = Math.floor(x / TILE_SIZE);
-            const tileY = Math.floor(y / TILE_SIZE);
-            return tileX >= 0 && tileX < MAZE_WIDTH && 
-                   tileY >= 0 && tileY < MAZE_HEIGHT && 
-                   maze[tileY][tileX] !== 1;
+        if (!fileInput.files[0]) {
+            output.textContent = 'Seleziona un file ELF valido.';
+            return;
         }
 
-        function eatDot() {
-            const tileX = Math.floor(pacman.x / TILE_SIZE);
-            const tileY = Math.floor(pacman.y / TILE_SIZE);
-            if (maze[tileY][tileX] === 0) {
-                maze[tileY][tileX] = 2;
-                score += 10;
-                if (Math.random() < 0.01 && !fruit.active) {
-                    fruit.active = true;
-                    fruit.timer = fruit.duration;
-                }
-            }
-        }
+        const file = fileInput.files[0];
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = new Uint8Array(arrayBuffer);
+        const view = new DataView(buffer.buffer);
 
-        function eatFruit() {
-            if (fruit.active && 
-                Math.abs(pacman.x - fruit.x) < pacman.radius && 
-                Math.abs(pacman.y - fruit.y) < pacman.radius) {
-                fruit.active = false;
-                score += 100;
-            }
-        }
+        const PHT_OFFSET_OFFSET = 0x20;
+        const PHT_COUNT_OFFSET = 0x38;
+        const PHDR_ENTRY_SIZE = 0x38;
+        const PT_SCE_PROCPARAM = 0x61000001;
+        const PT_SCE_MODULE_PARAM = 0x61000002;
+        const SCE_PROCESS_PARAM_MAGIC = 0x4942524F;
+        const SCE_MODULE_PARAM_MAGIC = 0x3C13F4BF;
 
-        function moveGhost(ghost) {
-            const directions = [
-                { dx: ghost.speed, dy: 0 },
-                { dx: -ghost.speed, dy: 0 },
-                { dx: 0, dy: ghost.speed },
-                { dx: 0, dy: -ghost.speed }
-            ];
-            const dir = directions[Math.floor(Math.random() * directions.length)];
-            const nextX = ghost.x + dir.dx;
-            const nextY = ghost.y + dir.dy;
-            
-            if (canMove(nextX, nextY)) {
-                ghost.x = nextX;
-                ghost.y = nextY;
-            }
-        }
+        let phtOffset = Number(view.getBigUint64(PHT_OFFSET_OFFSET, true));
+        let phtCount = view.getUint16(PHT_COUNT_OFFSET, true);
 
-        function checkCollision() {
-            for (let ghost of ghosts) {
-                if (Math.sqrt((pacman.x - ghost.x) ** 2 + (pacman.y - ghost.y) ** 2) < pacman.radius + 8) {
-                    pacman.lives--;
-                    pacman.x = 13.5 * TILE_SIZE;
-                    pacman.y = 23 * TILE_SIZE;
-                    ghosts.forEach(g => {
-                        g.x = 13.5 * TILE_SIZE;
-                        g.y = 11.5 * TILE_SIZE;
-                    });
-                    if (pacman.lives <= 0) gameOver = true;
-                    return;
-                }
-            }
-        }
+        for (let i = 0; i < phtCount; i++) {
+            let phdrOffset = phtOffset + i * PHDR_ENTRY_SIZE;
+            let segmentType = view.getUint32(phdrOffset, true);
 
-        function update() {
-            if (gameOver) return;
+            if (segmentType === PT_SCE_PROCPARAM || segmentType === PT_SCE_MODULE_PARAM) {
+                let structOffset = Number(view.getBigUint64(phdrOffset + 0x8, true));
+                let magic = view.getUint32(structOffset, true);
 
-            // Movimento Pac-Man
-            const nextX = pacman.x + Math.cos(pacman.nextDirection) * pacman.speed;
-            const nextY = pacman.y - Math.sin(pacman.nextDirection) * pacman.speed;
-            if (canMove(nextX, nextY)) {
-                pacman.direction = pacman.nextDirection;
-                pacman.x = nextX;
-                pacman.y = nextY;
-            }
-
-            // Animazione bocca
-            if (mouthOpening) {
-                pacman.mouthAngle += 0.1;
-                if (pacman.mouthAngle >= 0.7) mouthOpening = false;
-            } else {
-                pacman.mouthAngle -= 0.1;
-                if (pacman.mouthAngle <= 0) mouthOpening = true;
-            }
-
-            // Movimento fantasmi
-            ghosts.forEach(moveGhost);
-
-            // Collisione e raccolta
-            eatDot();
-            eatFruit();
-            checkCollision();
-
-            // Gestione frutta
-            if (fruit.active) {
-                fruit.timer--;
-                if (fruit.timer <= 0) fruit.active = false;
-            }
-
-            scoreDisplay.textContent = `Score: ${score} | Lives: ${pacman.lives}`;
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Disegna labirinto
-            for (let y = 0; y < MAZE_HEIGHT; y++) {
-                for (let x = 0; x < MAZE_WIDTH; x++) {
-                    if (maze[y][x] === 1) {
-                        ctx.fillStyle = 'blue';
-                        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-                    } else if (maze[y][x] === 0) {
-                        ctx.fillStyle = 'white';
-                        ctx.beginPath();
-                        ctx.arc(x * TILE_SIZE + TILE_SIZE/2, y * TILE_SIZE + TILE_SIZE/2, 2, 0, Math.PI * 2);
-                        ctx.fill();
+                if ((segmentType === PT_SCE_PROCPARAM && magic !== SCE_PROCESS_PARAM_MAGIC) ||
+                    (segmentType === PT_SCE_MODULE_PARAM && magic !== SCE_MODULE_PARAM_MAGIC)) {
+                    // offset +8 fallback
+                    structOffset += 0x8;
+                    magic = view.getUint32(structOffset, true);
+                    if ((segmentType === PT_SCE_PROCPARAM && magic !== SCE_PROCESS_PARAM_MAGIC) ||
+                        (segmentType === PT_SCE_MODULE_PARAM && magic !== SCE_MODULE_PARAM_MAGIC)) {
+                        output.textContent += `[?] Segmento ${segmentType.toString(16)}: magic non valido, skip\n`;
+                        continue;
                     }
                 }
+
+                const oldPS5 = view.getUint32(structOffset + 0xC, true);
+                const oldPS4 = view.getUint32(structOffset + 0x8, true);
+
+                output.textContent += `
+Segmento 0x${segmentType.toString(16)}
+PS4 SDK: 0x${oldPS4.toString(16).padStart(8, '0')}
+PS5 SDK: 0x${oldPS5.toString(16).padStart(8, '0')}
+`;
             }
+        }
+    }
 
-            // Disegna frutta
-            if (fruit.active) {
-                ctx.fillStyle = 'red';
-                ctx.beginPath();
-                ctx.arc(fruit.x, fruit.y, 8, 0, Math.PI * 2);
-                ctx.fill();
-            }
+    async function patchFile() {
+        const fileInput = document.getElementById('elfFile');
+        const ps4sdk = parseInt(document.getElementById('ps4sdk').value, 16);
+        const ps5sdk = parseInt(document.getElementById('ps5sdk').value, 16);
+        const output = document.getElementById('output');
+        output.textContent = '';
 
-            // Disegna Pac-Man
-            ctx.beginPath();
-            ctx.fillStyle = 'yellow';
-            ctx.arc(
-                pacman.x,
-                pacman.y,
-                pacman.radius,
-                pacman.direction + pacman.mouthAngle,
-                pacman.direction + 2 * Math.PI - pacman.mouthAngle
-            );
-            ctx.lineTo(pacman.x, pacman.y);
-            ctx.fill();
+        if (!fileInput.files[0]) {
+            output.textContent = 'Seleziona un file ELF valido.';
+            return;
+        }
 
-            // Disegna fantasmi
-            ghosts.forEach(ghost => {
-                ctx.fillStyle = ghost.color;
-                ctx.beginPath();
-                ctx.arc(ghost.x, ghost.y, 8, 0, Math.PI * 2);
-                ctx.fill();
-                // Corpo semplice
-                ctx.fillRect(ghost.x - 8, ghost.y, 16, 8);
-            });
+        const file = fileInput.files[0];
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = new Uint8Array(arrayBuffer);
+        const view = new DataView(buffer.buffer);
 
-            if (gameOver) {
-                ctx.fillStyle = 'white';
-                ctx.font = '30px Arial';
-                ctx.fillText('GAME OVER', canvas.width/2 - 80, canvas.height/2);
+        const PHT_OFFSET_OFFSET = 0x20;
+        const PHT_COUNT_OFFSET = 0x38;
+        const PHDR_ENTRY_SIZE = 0x38;
+        const PT_SCE_PROCPARAM = 0x61000001;
+        const PT_SCE_MODULE_PARAM = 0x61000002;
+        const SCE_PROCESS_PARAM_MAGIC = 0x4942524F;
+        const SCE_MODULE_PARAM_MAGIC = 0x3C13F4BF;
+
+        let phtOffset = Number(view.getBigUint64(PHT_OFFSET_OFFSET, true));
+        let phtCount = view.getUint16(PHT_COUNT_OFFSET, true);
+        let patched = false;
+
+        for (let i = 0; i < phtCount; i++) {
+            let phdrOffset = phtOffset + i * PHDR_ENTRY_SIZE;
+            let segmentType = view.getUint32(phdrOffset, true);
+
+            if (segmentType === PT_SCE_PROCPARAM || segmentType === PT_SCE_MODULE_PARAM) {
+                let structOffset = Number(view.getBigUint64(phdrOffset + 0x8, true));
+                let magic = view.getUint32(structOffset, true);
+
+                if ((segmentType === PT_SCE_PROCPARAM && magic !== SCE_PROCESS_PARAM_MAGIC) ||
+                    (segmentType === PT_SCE_MODULE_PARAM && magic !== SCE_MODULE_PARAM_MAGIC)) {
+                    structOffset += 0x8;
+                    magic = view.getUint32(structOffset, true);
+                    if ((segmentType === PT_SCE_PROCPARAM && magic !== SCE_PROCESS_PARAM_MAGIC) ||
+                        (segmentType === PT_SCE_MODULE_PARAM && magic !== SCE_MODULE_PARAM_MAGIC)) {
+                        output.textContent += `[?] Segmento ${segmentType.toString(16)}: magic non valido, skip\n`;
+                        continue;
+                    }
+                }
+
+                const oldPS5 = view.getUint32(structOffset + 0xC, true);
+                const oldPS4 = view.getUint32(structOffset + 0x8, true);
+                view.setUint32(structOffset + 0xC, ps5sdk, true);
+                view.setUint32(structOffset + 0x8, ps4sdk, true);
+
+                output.textContent += `Segmento 0x${segmentType.toString(16)} patchato:
+PS4 SDK: 0x${oldPS4.toString(16).padStart(8, '0')} -> 0x${ps4sdk.toString(16).padStart(8, '0')}
+PS5 SDK: 0x${oldPS5.toString(16).padStart(8, '0')} -> 0x${ps5sdk.toString(16).padStart(8, '0')}
+`;
+
+                patched = true;
             }
         }
 
-        function gameLoop() {
-            update();
-            draw();
-            requestAnimationFrame(gameLoop);
+        if (patched) {
+            const blob = new Blob([buffer], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'patched_' + file.name;
+            a.textContent = 'Scarica file patchato';
+            output.appendChild(a);
+        } else {
+            output.textContent = 'Nessun segmento valido trovato per patching.';
         }
-
-        gameLoop();
-    </script>
-</body>
-</html>
+    }
+</script>
