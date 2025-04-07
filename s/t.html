@@ -1,136 +1,21 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>PS4 SELF Unpacker</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PS4 SELF Parser</title>
     <style>
-        body { font-family: monospace; margin: 20px; }
-        #output { white-space: pre-wrap; background: #111; color: #0f0; padding: 10px; }
-        #download { display: none; margin-top: 10px; }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+        #output { white-space: pre-wrap; }
     </style>
 </head>
 <body>
-    <input type="file" id="fileInput">
+    <h1>PS4 SELF Parser</h1>
+    <input type="file" id="selfFile" accept=".self" />
+    <button onclick="parseSELF()">Parse SELF File</button>
     <div id="output"></div>
-    <a id="download" download>Download ELF</a>
 
-<script>
-const output = document.getElementById('output');
-const downloadLink = document.getElementById('download');
-
-function log(text) {
-    output.textContent += text + '\n';
-}
-
-function parseSelfHeader(view, offset) {
-    const magic = String.fromCharCode(...new Uint8Array(view.buffer, offset, 4));
-    offset += 4;
-    const version = view.getUint8(offset++);
-    const mode = view.getUint8(offset++);
-    const endian = view.getUint8(offset++);
-    const attributes = view.getUint8(offset++);
-    
-    log('\n[SELF Header]');
-    log(`Magic: 0x${Array.from(magic).map(c => c.charCodeAt(0).toString(16).join('').toUpperCase()}`);
-    log(`Version: ${version}`);
-    log(`Mode: 0x${mode.toString(16).toUpperCase()}`);
-    log(`Endian: ${endian} (${endian === 1 ? 'Little Endian' : 'Unknown'})`);
-    log(`Attributes: 0x${attributes.toString(16).toUpperCase()}`);
-
-    offset += 2; // Skip padding
-    const contentType = view.getUint8(offset++);
-    const keyType = view.getUint8(offset++);
-    offset += 2; // Skip padding
-    const headerSize = view.getUint32(offset, true); offset += 4;
-    const metaSize = view.getUint32(offset, true); offset += 4;
-    const fileSize = view.getBigUint64(offset, true); offset += 8;
-    const entryCount = view.getUint16(offset, true); offset += 2;
-    const flag = view.getUint16(offset, true); offset += 2;
-    offset += 4; // Skip padding
-
-    log('\n[SELF Extended Header]');
-    log(`Content Type: 0x${contentType.toString(16).toUpperCase()}`);
-    log(`Key Type: 0x${keyType.toString(16).toUpperCase()}`);
-    log(`Header Size: 0x${headerSize.toString(16).toUpperCase()}`);
-    log(`Meta Size: ${metaSize} Bytes`);
-    log(`File Size: ${fileSize} Bytes`);
-    log(`Entry Count: ${entryCount}`);
-    log(`Flag: 0x${flag.toString(16).toUpperCase()}`);
-
-    return { entryCount, offset };
-}
-
-function parseSelfEntry(view, offset, entries, entryIndex) {
-    const props = view.getBigUint64(offset, true); offset += 8;
-    const fileOffset = view.getBigUint64(offset, true); offset += 8;
-    const fileSize = view.getBigUint64(offset, true); offset += 8;
-    const memSize = view.getBigUint64(offset, true); offset += 8;
-
-    log(`\n[SELF Entry #${entryIndex}]`);
-    log(`Properties: 0x${props.toString(16).toUpperCase()}`);
-
-    const properties = [
-        ['Order', 0, 0x1n], ['Encrypted', 1, 0x1n], ['Signed', 2, 0x1n],
-        ['Compressed', 3, 0x1n], ['Window Bits', 8, 0x7n], ['Has Block', 11, 0x1n],
-        ['Block Size', 12, 0xFn], ['Has Digest', 16, 0x1n], ['Has Extent', 17, 0x1n],
-        ['Has Meta', 20, 0x1n], ['Segment Index', 20, 0xFFFFn]
-    ];
-
-    properties.forEach(([name, shift, mask]) => {
-        let val = Number((props >> BigInt(shift)) & Number(mask);
-        if (name === 'Block Size') {
-            val = val ? (1 << (12 + val)) : 0x1000;
-            log(`    ${name}: 0x${val.toString(16).toUpperCase()}`);
-        } else {
-            log(`    ${name}: ${val}`);
-        }
-    });
-
-    log(`File Offset: 0x${fileOffset.toString(16).toUpperCase()}`);
-    log(`File Size: ${fileSize} Bytes`);
-    log(`Memory Size: ${memSize} Bytes`);
-
-    const entryData = new Uint8Array(view.buffer, Number(fileOffset), Number(fileSize));
-    entries.push(entryData);
-
-    return offset;
-}
-
-async function handleFile(file) {
-    output.textContent = '';
-    downloadLink.style.display = 'none';
-
-    const buffer = await file.arrayBuffer();
-    const view = new DataView(buffer);
-    let offset = 0;
-    const entries = [];
-
-    // Parse SELF header
-    let headerInfo = parseSelfHeader(view, offset);
-    offset = headerInfo.offset;
-
-    // Parse SELF entries
-    for (let i = 0; i < headerInfo.entryCount; i++) {
-        offset = parseSelfEntry(view, offset, entries, i);
-    }
-
-    // Create ELF file
-    const elfBuffer = new Uint8Array(buffer);
-    entries.forEach(entry => {
-        elfBuffer.set(entry, entry.byteOffset);
-    });
-
-    // Create download link
-    const blob = new Blob([elfBuffer], { type: 'application/octet-stream' });
-    downloadLink.href = URL.createObjectURL(blob);
-    downloadLink.download = file.name.replace(/\.self$/i, '.elf');
-    downloadLink.style.display = 'inline-block';
-    log('\nELF file ready for download!');
-}
-
-document.getElementById('fileInput').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) handleFile(file);
-});
-</script>
+    <script src="script.js"></script>
 </body>
 </html>
