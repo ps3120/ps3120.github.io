@@ -11,7 +11,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>PS5 SDK Version Patcher</h1>
+        <h1>PS5 SDK Version Patcher 2 </h1>
         <div class="form-group">
             <label>PS4 Version (hex): <input type="text" id="ps4Version" value="0x09040001"></label>
         </div>
@@ -19,7 +19,7 @@
             <label>PS5 SDK Version (hex): <input type="text" id="ps5Version" value="0x04000031"></label>
         </div>
         <div class="form-group">
-            <label><input type="checkbox" id="createBackup"> Create backup (.bak)</label>
+            <label><input type="checkbox" id="createBackup" checked> Create backup (.bak)</label>
         </div>
         <div class="form-group">
             <input type="file" id="fileInput" multiple>
@@ -54,7 +54,7 @@
             const createBackup = document.getElementById('createBackup').checked;
 
             for (const file of files) {
-                if (!executableExtensions.some(ext => file.name.endsWith(ext))) {
+                if (!executableExtensions.some(ext => file.name.toLowerCase().endsWith(ext))) {
                     log(`Skipping non-executable file: ${file.name}`);
                     continue;
                 }
@@ -65,6 +65,7 @@
                     
                     if (patchedData) {
                         if (createBackup) {
+                            // Create backup
                             const backupBlob = new Blob([arrayBuffer], {type: 'application/octet-stream'});
                             const backupUrl = URL.createObjectURL(backupBlob);
                             const a = document.createElement('a');
@@ -72,8 +73,10 @@
                             a.download = file.name + '.bak';
                             a.click();
                             URL.revokeObjectURL(backupUrl);
+                            log(`Created backup for: ${file.name}`);
                         }
 
+                        // Save patched file
                         const patchedBlob = new Blob([patchedData], {type: 'application/octet-stream'});
                         const patchedUrl = URL.createObjectURL(patchedBlob);
                         const a = document.createElement('a');
@@ -81,6 +84,7 @@
                         a.download = file.name;
                         a.click();
                         URL.revokeObjectURL(patchedUrl);
+                        log(`Successfully patched: ${file.name}`);
                     }
                 } catch (e) {
                     log(`Error processing ${file.name}: ${e.message}`);
@@ -91,6 +95,8 @@
         function patchElfFile(arrayBuffer, ps4Version, ps5Version, fileName) {
             const dataView = new DataView(arrayBuffer);
             const bytes = new Uint8Array(arrayBuffer);
+            let patchedBytes = new Uint8Array(arrayBuffer);
+            let patched = false;
 
             // Check ELF magic
             const elfMagic = bytes.slice(0, 4);
@@ -107,7 +113,6 @@
             const phtOffset = dataView.getBigUint64(0x20, true);
             const phtCount = dataView.getUint16(0x38, true);
 
-            let patched = false;
             for (let i = 0; i < phtCount; i++) {
                 const phdrOffset = phtOffset + BigInt(i * 0x38);
                 const segmentType = dataView.getUint32(Number(phdrOffset), true);
@@ -131,28 +136,26 @@
                 if ((segmentType === PT_SCE_PROCPARAM && paramMagic !== SCE_PROCESS_PARAM_MAGIC) ||
                     (segmentType === PT_SCE_MODULE_PARAM && paramMagic !== SCE_MODULE_PARAM_MAGIC)) {
                     if (segmentType === PT_SCE_MODULE_PARAM) {
-                        log(`[?] Invalid module param magic for ${fileName}, skipping`);
+                        log(`[!] Invalid module param magic for ${fileName}, skipping`);
                         continue;
                     } else {
                         throw new Error("Invalid process param magic");
                     }
                 }
 
-                // Create writable copy
-                const patchedBytes = new Uint8Array(arrayBuffer);
                 const patchedView = new DataView(patchedBytes.buffer);
 
                 // Patch PS5 SDK version
                 const ps5Offset = structStart + SCE_PARAM_PS5_SDK_OFFSET;
                 const originalPs5 = patchedView.getUint32(ps5Offset, true);
                 patchedView.setUint32(ps5Offset, ps5Version, true);
-                log(`Patched PS5 SDK from 0x${originalPs5.toString(16)} to 0x${ps5Version.toString(16)} in ${fileName}`);
+                log(`Patched PS5 SDK: 0x${originalPs5.toString(16)} → 0x${ps5Version.toString(16)} (${fileName})`);
 
                 // Patch PS4 SDK version
                 const ps4Offset = structStart + SCE_PARAM_PS4_SDK_OFFSET;
                 const originalPs4 = patchedView.getUint32(ps4Offset, true);
                 patchedView.setUint32(ps4Offset, ps4Version, true);
-                log(`Patched PS4 SDK from 0x${originalPs4.toString(16)} to 0x${ps4Version.toString(16)} in ${fileName}`);
+                log(`Patched PS4 SDK: 0x${originalPs4.toString(16)} → 0x${ps4Version.toString(16)} (${fileName})`);
 
                 patched = true;
                 break;
