@@ -1,21 +1,174 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PS4 SELF Parser</title>
+    <title>PS4 SELF Unpacker</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
-        #output { white-space: pre-wrap; }
+        body { font-family: monospace; margin: 20px; }
+        #output { white-space: pre-wrap; background: #111; color: #0f0; padding: 10px; }
+        #progress { margin: 10px 0; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <h1>PS4 SELF Parser</h1>
-    <input type="file" id="selfFile" accept=".self" />
-    <button onclick="parseSELF()">Parse SELF File</button>
+    <input type="file" id="fileInput">
+    <div id="progress" class="hidden">Processing... <span id="progressPercent">0</span>%</div>
     <div id="output"></div>
+    <a id="download" class="hidden" download>Download ELF</a>
 
-    <script src="script.js"></script>
+<script>
+const TYPES = {
+    0x0: 'ET_NONE', 0x1: 'ET_REL', 0x2: 'ET_EXEC', 0x3: 'ET_DYN',
+    0xFE00: 'ET_SCE_EXEC', 0xFE0C: 'ET_SCE_STUBLIB', 0xFE10: 'ET_SCE_DYNEXEC',
+    0x61000000: 'PT_SCE_DYNLIBDATA', 0x61000001: 'PT_SCE_PROCPARAM'
+};
+
+class SELFUnpacker {
+    constructor(buffer) {
+        this.view = new DataView(buffer);
+        this.offset = 0;
+        this.entries = [];
+        this.elfBuffer = null;
+        this.programHeaders = [];
+    }
+
+    read(fmt, size) {
+        const data = {};
+        let offset = this.offset;
+        
+        const reader = {
+            'I': () => { 
+                const val = this.view.getUint32(offset, true);
+                offset += 4;
+                return val;
+            },
+            'Q': () => {
+                const val = this.view.getBigUint64(offset, true);
+                offset += 8;
+                return val;
+            },
+            '4s': () => {
+                const val = new Uint8Array(this.view.buffer, offset, 4);
+                offset += 4;
+                return val;
+            }
+        };
+
+        fmt.match(/[IQ]|4s/g).forEach(type => {
+            data[type] = reader[type]();
+        });
+
+        this.offset = offset;
+        return data;
+    }
+
+    parseSelfHeader() {
+        const { '4s': magic, 'I': version } = this.read('4sI', 8);
+        if ([...magic].map(b => b.toString(16)).join('') !== '53454300') {
+            throw new Error('Invalid SELF file');
+        }
+        
+        this.read('II', 8); // Skip unused fields
+        const entryCount = this.read('I', 4).I;
+        return entryCount;
+    }
+
+    parseSelfEntry() {
+        const props = this.read('Q', 8).Q;
+        const fileOffset = Number(this.read('Q', 8).Q);
+        const fileSize = Number(this.read('Q', 8).Q);
+        this.read('Q', 8); // Skip memory size
+        
+        return {
+            props,
+            offset: fileOffset,
+            size: fileSize,
+            data: new Uint8Array(this.view.buffer, fileOffset, fileSize)
+        };
+    }
+
+    parseElfHeader() {
+        this.elfBuffer = new ArrayBuffer(this.view.buffer.byteLength);
+        new Uint8Array(this.elfBuffer).set(new Uint8Array(this.view.buffer));
+        
+        const elfView = new DataView(this.elfBuffer);
+        const type = elfView.getUint16(0x10, true);
+        const phoff = Number(elfView.getBigUint64(0x20, true));
+        const phentsize = elfView.getUint16(0x36, true);
+        const phnum = elfView.getUint16(0x38, true);
+        
+        return { type, phoff, phentsize, phnum };
+    }
+
+    processProgramHeaders(phoff, phentsize, phnum) {
+        const elfView = new DataView(this.elfBuffer);
+        
+        for(let i = 0; i < phnum; i++) {
+            const offset = phoff + (i * phentsize);
+            const type = elfView.getUint32(offset, true);
+            
+            if([0x61000000, 0x61000001].includes(type)) {
+                const fileSize = Number(elfView.getBigUint64(offset + 0x20, true));
+                const memSize = Number(elfView.getBigUint64(offset + 0x28, true));
+                
+                elfView.setBigUint64(offset + 0x20, BigInt(memSize), true);
+                elfView.setBigUint64(offset + 0x28, BigInt(memSize), true);
+            }
+        }
+    }
+
+    async unpack() {
+        try {
+            const entryCount = this.parseSelfHeader();
+            
+            // Process entries
+            for(let i = 0; i < entryCount; i++) {
+                const entry = this.parseSelfEntry();
+                this.entries.push(entry);
+            }
+
+            // Process ELF structure
+            const { type, phoff, phentsize, phnum } = this.parseElfHeader();
+            this.processProgramHeaders(phoff, phentsize, phnum);
+
+            return new Blob([this.elfBuffer], { type: 'application/octet-stream' });
+        } catch (error) {
+            throw new Error(`Unpack failed: ${error.message}`);
+        }
+    }
+}
+
+// UI Handling
+async function handleFile(file) {
+    const output = document.getElementById('output');
+    const progress = document.getElementById('progress');
+    const download = document.getElementById('download');
+    
+    output.textContent = '';
+    progress.classList.remove('hidden');
+    download.classList.add('hidden');
+
+    try {
+        const buffer = await file.arrayBuffer();
+        const unpacker = new SELFUnpacker(buffer);
+        
+        const blob = await unpacker.unpack();
+        
+        download.href = URL.createObjectURL(blob);
+        download.download = file.name.replace(/\.self$/i, '.elf');
+        download.classList.remove('hidden');
+        
+        output.textContent = `Successfully unpacked ${file.name}\nOutput ELF ready for download`;
+    } catch (error) {
+        output.textContent = `Error: ${error.message}`;
+    } finally {
+        progress.classList.add('hidden');
+    }
+}
+
+document.getElementById('fileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) handleFile(file);
+});
+</script>
 </body>
 </html>
