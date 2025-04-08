@@ -1,4 +1,4 @@
-<html>
+
 <head>
 <title>9.00</title>
 <style>
@@ -6,14 +6,16 @@ body{background-color:black;color:#CFB53B;font-size:28px;text-align:center;}
 .info{position:relative;top:50%;}
 .bottopmsg{position:absolute;bottom:20px;width:1500px;padding:5px 0 1px 0;}
 </style>
-<script type=module src="./alert.mjs"></script>
+<script>
+window.applicationCache.oncached=function(e){localStorage.cached="yes";setTimeout(webkitExploit,50);};
+</script>
 <script src="900.js"></script>
 </head>
+<body onload="if(localStorage.cached=='yes')setTimeout(webkitExploit,50);">
 <br>
 <div class=IMG><img src="hen.png">
 <br><br><br>
 <div  id="msgs" class="info">Running Webkit Exploit, Please Wait ...</div>
- 
-  
-
+<div id=bottommsg class="msgs bottopmsg">(Recommended Cheat Manager)<br>(GoldHEN Cheats Manager by Damian Parrino)<br><br>Massive Thanks - Leeful - SiSTRo - ctn123 - Shinigami - Specter - ChendoChap - Sleirsgoevy - And Many More</div>
+</body>
 </html>
