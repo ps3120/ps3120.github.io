@@ -912,4 +912,4 @@ function webkitExploit() {
  EndTimer();
  window.p = prim;
  run_hax();
-}
+}  
