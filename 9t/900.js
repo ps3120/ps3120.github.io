@@ -48,7 +48,9 @@ function awaitpl() {
 }
 
 function run_hax() {
- 
+ userland();
+ if (chain.syscall(23, 0).low != 0x0) {
+  localStorage.HenLoaded="no";
   kernelExploit();
   //alert("\n\nNow remove the USB drive then click OK to continue");
  }
