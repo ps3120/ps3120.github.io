@@ -2,24 +2,24 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>TypedArray Crash Test</title>
+  <title>TypedArray Crash Simulation</title>
 </head>
 <body>
-  <h1>TypedArray Immediate Crash</h1>
+  <h1> 2 TypedArray Crash Simulation</h1>
 
   <script>
-    let externalMemory = new Uint8Array([1, 2, 3, 4]);
+    let externalMemory = new Uint8Array(0x100);
 
-    function fakeDeallocator(buffer, context) {
-      alert("[deallocator] Deallocator chiamato!");
+    function fakeDeallocator(view, context) {
+      alert("[deallocator] Eseguo liberazione...");
 
-      // Sovrascrivi brutalmente la memoria!
-      for (let i = 0; i < buffer.length; i++) {
-        buffer[i] = null; // <<<<< Qui rompiamo completamente
-      }
-
-      // Libera il riferimento principale
+      // Elimina ogni riferimento
       externalMemory = null;
+
+      // Forza il GC
+      for (let i = 0; i < 10000; i++) {
+        let tmp = new ArrayBuffer(0x1000);
+      }
     }
 
     function createTypedArrayWithExternalBuffer(bytes, length, destructor, context) {
@@ -33,25 +33,16 @@
       };
     }
 
-    alert("Creazione TypedArray da memoria esterna...");
-    const handle = createTypedArrayWithExternalBuffer(externalMemory, 4, fakeDeallocator, "ps4Context");
+    alert("Creo il TypedArray...");
+    const handle = createTypedArrayWithExternalBuffer(externalMemory, 0x100, fakeDeallocator, "ps4test");
 
-    alert("Contenuto iniziale: " + handle.view.join(", "));
-
-    alert("Distruzione della memoria condivisa...");
+    alert("Distruggo...");
     handle.destroy();
 
-    // Heap spray - cerca di occupare la memoria liberata
-    let spray = [];
-    for (let i = 0; i < 10000; i++) {
-      spray.push(new ArrayBuffer(0x100));
-    }
+    alert("Provo ad accedere...");
+    handle.view[0] = 0x41; // <<< Qui può crashare
 
-    alert("Accesso dopo destroy...");
-    // FORZA il crash tentando di leggere o scrivere su dati invalidi
-    handle.view[0] = 42; // <<< SCRITTURA
-
-    alert("Se vedi questo alert, il crash non è avvenuto!");
+    alert("Se vedi questo alert, NON è crashato.");
   </script>
 </body>
 </html>
