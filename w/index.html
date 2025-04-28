@@ -1,123 +1,58 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>WebKit PS5 Module Test</title>
-    <style>
-        body { 
-            background: #000; 
-            color: #0f0;
-            font-family: courier;
-            padding: 20px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>PS4 Crash TypedArray UAF Test</title>
 </head>
 <body>
-    <h1>WebKit PS5 Module Namespace Test</h1>
-    
-    <button onclick="runTest()">Esegui Test</button>
-    <button onclick="resetTest()">Reset</button>
+  <h1>TypedArray UAF Simulation for PS4</h1>
 
-    <script>
-        let crashAttempted = false;
-        let malformedModule = null;
+  <script>
+    let externalMemory = new Uint8Array([1, 2, 3, 4]);
 
-        function createMalformedModule() {
-            try {
-                const envProxy = new Proxy({}, {
-                    get(target, prop) {
-                        if (prop === 'get') return () => null;
-                        return target[prop];
-                    }
-                });
+    function fakeDeallocator(buffer, context) {
+      alert("[deallocator] Deallocator chiamato!");
+      
+      // Sovrascrive i dati della memoria
+      for (let i = 0; i < buffer.length; i++) {
+        buffer[i] = 0xFF;
+      }
 
-                malformedModule = new Reflect.Module({}, envProxy);
-                
-                Reflect.set(malformedModule, Symbol.toStringTag, "Module");
-                malformedModule.__proto__ = new Proxy({}, {
-                    get(target, prop) {
-                        if (prop === 'environment') return null;
-                        return target[prop];
-                    }
-                });
-                
-                alert("Modulo malformato creato con successo!");
-                return true;
-            } catch(e) {
-                alert("ERRORE nella creazione del modulo:\n" + e);
-                return false;
-            }
+      // *** Simula "liberazione" ***
+      externalMemory = null;
+    }
+
+    function createTypedArrayWithExternalBuffer(bytes, length, destructor, context) {
+      const buffer = bytes.buffer;
+      const view = new Uint8Array(buffer, 0, length);
+      return {
+        view,
+        destroy() {
+          if (destructor) destructor(view, context);
         }
+      };
+    }
 
-        function triggerAccess() {
-            try {
-                const value = malformedModule.nonExistentExport;
-                alert("Accesso completato SENZA CRASH!");
-                return false;
-            } catch(e) {
-                alert("Errore durante l'accesso:\n" + e);
-                return false;
-            }
-        }
+    alert("Creazione TypedArray da memoria esterna...");
+    const handle = createTypedArrayWithExternalBuffer(externalMemory, 4, fakeDeallocator, "ps4Context");
 
-        function runTest() {
-            if(!crashAttempted) {
-                alert("Avvio test...");
-                
-                if(createMalformedModule()) {
-                    setTimeout(() => {
-                        const result = triggerAccess();
-                        
-                        setTimeout(() => {
-                            if(!result) {
-                                alert("Test completato senza crash evidente");
-                            }
-                        }, 2000);
-                    }, 100);
-                }
-                
-                crashAttempted = true;
-            }
-        }
+    alert("Contenuto iniziale: " + handle.view.join(", "));
 
-        function resetTest() {
-            malformedModule = null;
-            crashAttempted = false;
-            alert("Stato resettato!");
-        }
+    alert("Distruzione della memoria condivisa...");
+    handle.destroy();
 
-        function testJITStructure() {
-            const arr = [];
-            for(let i = 0; i < 100000; i++) {
-                arr.push({["prop"+i]: i});
-            }
-            alert("Test struttura JIT completato");
-        }
+    alert("Sostituzione dell'oggetto liberato...");
+    let spray = [];
+    for (let i = 0; i < 10000; i++) {
+      // Spruzza (spray) nuovi ArrayBuffer per cercare di riempire l'area liberata
+      spray.push(new ArrayBuffer(0x100));
+    }
 
-        setTimeout(() => {
-            alert("Avvio test struttura JIT...");
-            testJITStructure();
-        }, 5000);
+    alert("Accesso memoria dopo spray...");
+    // **Qui tentiamo di leggere valori corrotti**
+    let crash = handle.view[0];
 
-    </script>
-
-    <script>
-        function loadWasm() {
-            try {
-                const wasmCode = new Uint8Array([
-                    0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00
-                ]);
-                
-                new WebAssembly.Instance(new WebAssembly.Module(wasmCode));
-                alert("WebAssembly caricato!");
-            } catch(e) {
-                alert("Errore WebAssembly:\n" + e);
-            }
-        }
-        
-        setTimeout(() => {
-            alert("Avvio test WebAssembly...");
-            loadWasm();
-        }, 10000);
-    </script>
+    alert("Crash completato: valore letto " + crash);
+  </script>
 </body>
 </html>
