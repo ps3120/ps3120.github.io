@@ -2,23 +2,23 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>PS4 Crash TypedArray UAF Test</title>
+  <title>TypedArray Crash Test</title>
 </head>
 <body>
-  <h1>TypedArray UAF Simulation for PS4</h1>
+  <h1>TypedArray Immediate Crash</h1>
 
   <script>
     let externalMemory = new Uint8Array([1, 2, 3, 4]);
 
     function fakeDeallocator(buffer, context) {
       alert("[deallocator] Deallocator chiamato!");
-      
-      // Sovrascrive i dati della memoria
+
+      // Sovrascrivi brutalmente la memoria!
       for (let i = 0; i < buffer.length; i++) {
-        buffer[i] = 0xFF;
+        buffer[i] = null; // <<<<< Qui rompiamo completamente
       }
 
-      // *** Simula "liberazione" ***
+      // Libera il riferimento principale
       externalMemory = null;
     }
 
@@ -41,18 +41,17 @@
     alert("Distruzione della memoria condivisa...");
     handle.destroy();
 
-    alert("Sostituzione dell'oggetto liberato...");
+    // Heap spray - cerca di occupare la memoria liberata
     let spray = [];
     for (let i = 0; i < 10000; i++) {
-      // Spruzza (spray) nuovi ArrayBuffer per cercare di riempire l'area liberata
       spray.push(new ArrayBuffer(0x100));
     }
 
-    alert("Accesso memoria dopo spray...");
-    // **Qui tentiamo di leggere valori corrotti**
-    let crash = handle.view[0];
+    alert("Accesso dopo destroy...");
+    // FORZA il crash tentando di leggere o scrivere su dati invalidi
+    handle.view[0] = 42; // <<< SCRITTURA
 
-    alert("Crash completato: valore letto " + crash);
+    alert("Se vedi questo alert, il crash non è avvenuto!");
   </script>
 </body>
 </html>
