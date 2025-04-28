@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>TypedArray NoCopy Test</title>
+</head>
+<body>
+  <h1>TypedArray NoCopy Simulation</h1>
+
+  <script>
+    // Simula una memoria allocata esternamente
+    let externalMemory = new Uint8Array([1, 2, 3, 4]);
+
+    // Distruttore simulato
+    function fakeDeallocator(buffer, context) {
+      alert("[deallocator] Chiamato con contesto: " + context);
+      for (let i = 0; i < buffer.length; i++) {
+        buffer[i] = 0xFF; // sovrascrive i dati
+      }
+    }
+
+    function createTypedArrayWithExternalBuffer(bytes, length, destructor, context) {
+      const buffer = bytes.buffer; // condivisione della memoria
+      const view = new Uint8Array(buffer, 0, length);
+
+      return {
+        view,
+        destroy() {
+          if (destructor) destructor(view, context);
+        }
+      };
+    }
+
+    alert(" Creazione TypedArray da memoria esterna...");
+    const handle = createTypedArrayWithExternalBuffer(externalMemory, 4, fakeDeallocator, "testContext");
+
+    alert(" Contenuto iniziale: " + handle.view.join(", "));
+
+    alert(" Distruzione della memoria condivisa...");
+    handle.destroy();
+
+    alert(" Accesso dopo la distruzione:");
+    alert(" Valori dopo: " + handle.view.join(", ")); // Mostra i valori corrotti: 255, 255, 255, 255
+  </script>
+</body>
+</html>
