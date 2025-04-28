@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebKit PS5 Module Test</title>
+    <style>
+        body { 
+            background: #000; 
+            color: #0f0;
+            font-family: courier;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebKit PS5 Module Namespace Test</h1>
+    
+    <button onclick="runTest()">Esegui Test</button>
+    <button onclick="resetTest()">Reset</button>
+
+    <script>
+        let crashAttempted = false;
+        let malformedModule = null;
+
+        function createMalformedModule() {
+            try {
+                const envProxy = new Proxy({}, {
+                    get(target, prop) {
+                        if (prop === 'get') return () => null;
+                        return target[prop];
+                    }
+                });
+
+                malformedModule = new Reflect.Module({}, envProxy);
+                
+                Reflect.set(malformedModule, Symbol.toStringTag, "Module");
+                malformedModule.__proto__ = new Proxy({}, {
+                    get(target, prop) {
+                        if (prop === 'environment') return null;
+                        return target[prop];
+                    }
+                });
+                
+                alert("Modulo malformato creato con successo!");
+                return true;
+            } catch(e) {
+                alert("ERRORE nella creazione del modulo:\n" + e);
+                return false;
+            }
+        }
+
+        function triggerAccess() {
+            try {
+                const value = malformedModule.nonExistentExport;
+                alert("Accesso completato SENZA CRASH!");
+                return false;
+            } catch(e) {
+                alert("Errore durante l'accesso:\n" + e);
+                return false;
+            }
+        }
+
+        function runTest() {
+            if(!crashAttempted) {
+                alert("Avvio test...");
+                
+                if(createMalformedModule()) {
+                    setTimeout(() => {
+                        const result = triggerAccess();
+                        
+                        setTimeout(() => {
+                            if(!result) {
+                                alert("Test completato senza crash evidente");
+                            }
+                        }, 2000);
+                    }, 100);
+                }
+                
+                crashAttempted = true;
+            }
+        }
+
+        function resetTest() {
+            malformedModule = null;
+            crashAttempted = false;
+            alert("Stato resettato!");
+        }
+
+        function testJITStructure() {
+            const arr = [];
+            for(let i = 0; i < 100000; i++) {
+                arr.push({["prop"+i]: i});
+            }
+            alert("Test struttura JIT completato");
+        }
+
+        setTimeout(() => {
+            alert("Avvio test struttura JIT...");
+            testJITStructure();
+        }, 5000);
+
+    </script>
+
+    <script>
+        function loadWasm() {
+            try {
+                const wasmCode = new Uint8Array([
+                    0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00
+                ]);
+                
+                new WebAssembly.Instance(new WebAssembly.Module(wasmCode));
+                alert("WebAssembly caricato!");
+            } catch(e) {
+                alert("Errore WebAssembly:\n" + e);
+            }
+        }
+        
+        setTimeout(() => {
+            alert("Avvio test WebAssembly...");
+            loadWasm();
+        }, 10000);
+    </script>
+</body>
+</html>
