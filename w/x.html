@@ -15,7 +15,7 @@
     function fakeDeallocator(buffer, context) {
       alert("[deallocator] Chiamato con contesto: " + context);
       for (let i = 0; i < buffer.length; i++) {
-        buffer[i] = 0xFF; // sovrascrive i dati
+        buffer[i] = 0xF4; // sovrascrive i dati
       }
     }
 
