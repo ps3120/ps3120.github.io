@@ -1,69 +1,90 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Array Storage Exploit Demo</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 20px;
-        }
-        .warning {
-            color: red;
-            font-weight: bold;
-            margin: 20px 0;
-        }
-    </style>
+    <title>Demo Struttura JSC (Didattica)</title>
 </head>
 <body>
-    <h1>Array Storage Corruption Demo</h1>
-
-
-    <button onclick="runExploit()">Esegui Exploit</button>
-
     <script>
-        function runExploit() {
-            try {
-                // Fase 1: Creazione array in modalità sparse
-                let arr = [];
-                arr.length = 1000;
-                
-                // Fase 2: Riempiemento indici remoti
-                for(let i = 0; i < 10; i++) {
-                    arr[i * 100000] = `EVIL_${i}`;
+        // Simulazione di una transizione di struttura con race condition
+        class StructureSimulator {
+            constructor() {
+                this.properties = {};  // Tabella delle proprietà
+                this.isMaterializing = false;  // Simula "protectPropertyTableWhileTransitioning"
+            }
+
+            // Aggiungi una proprietà (simula transizione)
+            addProperty(key, value) {
+                if (this.isMaterializing) {
+                    console.warn("Tabella bloccata durante la materializzazione!");
+                    return;
                 }
+                this.properties[key] = value;
+            }
 
-                // Fase 3: Forza transizione a ArrayStorage
-                arr.push('trigger');
-                arr.pop();
+            // Materializza la tabella (con "protect" non gestito correttamente)
+            unsafeMaterialize() {
+                this.isMaterializing = true;
+                const tempTable = { ...this.properties };  // Copia non atomica
+                // Simula una pausa che espone la tabella parzialmente inizializzata
+                setTimeout(() => {
+                    this.isMaterializing = false;
+                }, 100);
+                return tempTable;
+            }
 
-                // Fase 4: Trigger della conversione pericolosa
-                for(let i = 0; i < 10000; i++) {
-                    arr[i] = 0xBAD0BEEF;  // Valore magico
-                    
-                    // Inserimento valore fuori bounds
-                    if(i === 9999) {
-                        arr[100000] = 0xDEADBEEF; // Oltre il limite
-                    }
-                }
-
-                // Fase 5: Verifica corruzione
-                alert(`Exploit completato! Valore a 100000: ${arr[100000]}`);
-                
-            } catch(e) {
-                alert(`Errore durante l'esecuzione: ${e}`);
+            // Appiattimento con barriere di memoria mancanti
+            flatten() {
+                const oldProps = this.properties;
+                this.properties = Object.fromEntries(Object.entries(oldProps));  // Copia
+                return oldProps;  // Espone la vecchia struttura
             }
         }
-    </script>
 
-    <h3>Spiegazione del Funzionamento:</h3>
-    <ol>
-        <li>Viene creato un array vuoto e forzato in modalità sparse</li>
-        <li>Elementi vengono inseriti a indici molto distanti (100k)</li>
-        <li>Operazioni push/pop forzano la transizione a ArrayStorage</li>
-        <li>Un loop aggiunge elementi per triggerare la crescita del vettore</li>
-        <li>L'accesso all'indice 100000 tenta di leggere memoria corrotta</li>
-    </ol>
+        // --------------------------
+        // Dimostrazione delle issue
+        // --------------------------
+        const simulator = new StructureSimulator();
+
+        // Worker 1: Modifica la struttura
+        const worker1 = new Worker(URL.createObjectURL(new Blob([`
+            let count = 0;
+            setInterval(() => {
+                postMessage({ type: 'add', key: 'prop' + count, value: count });
+                count++;
+            }, 10);
+        `], { type: 'text/javascript' }));
+
+        // Worker 2: Accesso concorrente
+        const worker2 = new Worker(URL.createObjectURL(new Blob([`
+            setInterval(() => {
+                postMessage({ type: 'materialize' });
+                postMessage({ type: 'flatten' });
+            }, 20);
+        `], { type: 'text/javascript' }));
+
+        // Gestione messaggi
+        worker1.onmessage = (e) => {
+            if (e.data.type === 'add') {
+                simulator.addProperty(e.data.key, e.data.value);
+            }
+        };
+
+        worker2.onmessage = (e) => {
+            if (e.data.type === 'materialize') {
+                const table = simulator.unsafeMaterialize();
+                console.log("Tabella materializzata:", Object.keys(table));
+            } else if (e.data.type === 'flatten') {
+                const old = simulator.flatten();
+                console.log("Struttura obsoleta:", Object.keys(old));
+            }
+        };
+
+        // Ferma dopo 5 secondi
+        setTimeout(() => {
+            worker1.terminate();
+            worker2.terminate();
+            console.log("Demo terminata. Controlla gli avvisi in console!");
+        }, 5000);
+    </script>
 </body>
 </html>
