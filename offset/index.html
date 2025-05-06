@@ -10,7 +10,9 @@
 </head>
 <body>
   <h1>PS5 Offset Finder (JS)</h1>
-  <input type="file" id="refFile"><br>
+  <label for="refFile">Reference binary (e.g. WebKit or kernel reference):</label><br>
+  <input type="file" id="refFile" accept="*/*"><br><br>
+  <label for="tgtFile">Target binary (new firmware dump):</label><br>
   <input type="file" id="tgtFile"><br>
   <label>Pattern length:<input id="len" type="number" value="32" min="8" max="128"></label><br>
   <button onclick="run()">Find Offsets</button>
