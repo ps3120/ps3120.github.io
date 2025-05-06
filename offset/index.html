@@ -1,90 +1,151 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PS5 Offset Finder</title>
   <style>
-    body{font-family:monospace;max-width:800px;margin:2em auto}
-    textarea{width:100%;height:300px}
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 2em auto; padding: 0 1em; }
+    input, select, button { margin: 0.5em 0; }
+    textarea { width: 100%; height: 300px; font-family: monospace; }
   </style>
 </head>
 <body>
-  <h1>PS5 Offset Finder (JS)</h1>
-  <label for="refFile">Reference binary (e.g. WebKit or kernel reference):</label><br>
-  <input type="file" id="refFile" accept="*/*"><br><br>
-  <label for="tgtFile">Target binary (new firmware dump):</label><br>
-  <input type="file" id="tgtFile"><br>
-  <label>Pattern length:<input id="len" type="number" value="32" min="8" max="128"></label><br>
-  <button onclick="run()">Find Offsets</button>
-  <textarea id="out"></textarea>
-  <script>
-    const REFS = {
-      OFFSET_wk_vtable_first_element: 0x00269B70,
-      OFFSET_wk_memset_import: 0x028D8DB0,
-      OFFSET_wk___stack_chk_guard_import: 0x028D8A90,
-      OFFSET_lk___stack_chk_guard: 0x0006D1D0,
-      OFFSET_lk_pthread_create_name_np: 0x00001C40,
-      OFFSET_lk_pthread_join: 0x000310A0,
-      OFFSET_lk_pthread_exit: 0x00021560,
-      OFFSET_lk__thread_list: 0x00064208,
-      OFFSET_lk_sleep: 0x00024920,
-      OFFSET_lk_sceKernelGetCurrentCpu: 0x00002770,
-      OFFSET_lc_memset: 0x00014D70,
-      OFFSET_lc_setjmp: 0x0005B420,
-      OFFSET_lc_longjmp: 0x0005B470,
-      OFFSET_WORKER_STACK_OFFSET: 0x0007FB88,
-      GADGET_RET: 0x00000042,
-      "pop rdi": 0x000A9D2E,
-      "pop rsi": 0x000463CC,
-      "pop rdx": 0x000F3571,
-      "pop rcx": 0x000016C2,
-      "pop r8": 0x00F537AF,
-      "pop r9": 0x00142136,
-      "pop rax": 0x0004D430,
-      "pop rsp": 0x001C9BB4,
-      "mov [rdi], rsi": 0x0036BF40,
-      "mov [rdi], rax": 0x000D2987,
-      "mov [rdi], eax": 0x000004D4,
-      infloop: 0x000172C1,
-      "shl rax, 4": 0x013AD166,
-      "cmp [rcx], eax": 0x00690582,
-      "sete al": 0x0001C273,
-      "seta al": 0x001F369A,
-      "setb al": 0x00041161,
-      "setg al": 0x001F36CE,
-      "setl al": 0x007C140C,
-      "shl rax, 3": 0x019B1DE3,
-      "add rax, rcx": 0x000DA1CE,
-      "mov rax, [rax]": 0x000B465C,
-      "inc dword [rax]": 0x00044BDA
+  <h1>PS5 Offset Finder (Browser JS)</h1>
+  <label for="refFile">Reference binary (e.g. firmware 5.50 dump):</label><br>
+  <input type="file" id="refFile" accept="*/*"><br>
+  <label for="targetFile">Target binary (new firmware dump):</label><br>
+  <input type="file" id="targetFile" accept="*/*"><br>
+  <label for="category">Category:</label><br>
+  <select id="category">
+    <option value="kernel">kernel</option>
+    <option value="libkernel">libkernel</option>
+    <option value="webkit">webkit</option>
+    <option value="all">all</option>
+  </select><br>
+  <label for="patternLength">Pattern length (bytes):</label><br>
+  <input type="number" id="patternLength" value="32" min="8" max="128"><br>
+  <button id="runBtn">Find Offsets</button>
+  <h2>Results</h2>
+  <textarea id="output" readonly></textarea>  <script>
+    // Grouped reference offsets
+    const OFFSETS = {
+      kernel: {
+        OFFSET_wk_vtable_first_element: 0x00269B70,
+        OFFSET_wk_memset_import:        0x028D8DB0,
+        OFFSET_wk___stack_chk_guard_import: 0x028D8A90,
+        OFFSET_lk___stack_chk_guard:     0x0006D1D0,
+        OFFSET_lk_pthread_create_name_np: 0x00001C40,
+        OFFSET_lk_pthread_join:           0x000310A0,
+        OFFSET_lk_pthread_exit:           0x00021560,
+        OFFSET_lk__thread_list:           0x00064208,
+        OFFSET_lk_sleep:                  0x00024920,
+        OFFSET_lk_sceKernelGetCurrentCpu: 0x00002770,
+        OFFSET_lc_memset:                 0x00014D70,
+        OFFSET_lc_setjmp:                 0x0005B420,
+        OFFSET_lc_longjmp:                0x0005B470,
+        OFFSET_WORKER_STACK_OFFSET:       0x0007FB88
+      },
+      libkernel: {
+        "pop rdi": 0x000A9D2E,
+        "pop rsi": 0x000463CC,
+        "pop rdx": 0x000F3571,
+        "pop rcx": 0x000016C2,
+        "pop r8":  0x00F537AF,
+        "pop r9":  0x00142136,
+        "pop rax": 0x0004D430,
+        "pop rsp": 0x001C9BB4
+      },
+      webkit: {
+        "mov [rdi], rsi": 0x0036BF40,
+        "mov [rdi], rax": 0x000D2987,
+        "mov [rdi], eax": 0x000004D4,
+        infloop:          0x000172C1,
+        "shl rax, 4":     0x013AD166,
+        "cmp [rcx], eax": 0x00690582,
+        "sete al":        0x0001C273,
+        "seta al":        0x001F369A,
+        "setb al":        0x00041161,
+        "setg al":        0x001F36CE,
+        "setl al":        0x007C140C,
+        "shl rax, 3":     0x019B1DE3,
+        "add rax, rcx":   0x000DA1CE,
+        "mov rax, [rax]": 0x000B465C,
+        "inc dword [rax]":0x00044BDA
+      }
     };
-    const SYC = {1:0x00034F5A,3:0x00034B20,29:0x00035F80};
-    function find(buf,pat){
-      const d=new Uint8Array(buf),p=new Uint8Array(pat),res=[];
-      for(let i=0;i+p.length<=d.length;i++){
-        let ok=true;for(let j=0;j<p.length;j++)if(d[i+j]!=p[j]){ok=false;break}
-        ok&&res.push(i);
+    // Syscall group
+    const SYSCALLS = {
+      1: 0x00034F5A,
+      2: 0x00036900,
+      3: 0x00034B20,
+      4: 0x00034A80,
+      5: 0x00035120
+      // add other syscalls as needed
+    };
+
+    function findPattern(buffer, pattern) {
+      const data = new Uint8Array(buffer);
+      const pat = new Uint8Array(pattern);
+      const positions = [];
+      for (let i = 0; i + pat.length <= data.length; i++) {
+        let ok = true;
+        for (let j = 0; j < pat.length; j++) {
+          if (data[i + j] !== pat[j]) { ok = false; break; }
+        }
+        if (ok) positions.push(i);
       }
-      return res;
+      return positions;
     }
-    async function run(){
-      const ref=await document.getElementById('refFile').files[0].arrayBuffer();
-      const tgt=await document.getElementById('tgtFile').files[0].arrayBuffer();
-      const L=+document.getElementById('len').value;
-      let o="Pattern length: "+L+"\n";
-      for(let k in REFS){
-        const off=REFS[k]; const pat=ref.slice(off,off+L);
-        const m=find(tgt,pat);
-        o+=m.length?`const ${k}=0x${m[0].toString(16)};\n`:`// ${k} not found\n`;
+
+    document.getElementById('runBtn').onclick = async () => {
+      const refFile = document.getElementById('refFile').files[0];
+      const tgtFile = document.getElementById('targetFile').files[0];
+      const category = document.getElementById('category').value;
+      const patLen = parseInt(document.getElementById('patternLength').value, 10);
+      const output = document.getElementById('output');
+      output.value = '';
+      if (!refFile || !tgtFile) { alert('Select both reference and target binaries'); return; }
+
+      const refBuf = await refFile.arrayBuffer();
+      const tgtBuf = await tgtFile.arrayBuffer();
+
+      output.value += `# Category: ${category}\n# Pattern length: ${patLen} bytes\n\n`;
+      // determine keys
+      let groups = [];
+      if (category === 'all') groups = ['kernel','libkernel','webkit'];
+      else groups = [category];
+
+      output.value += '# Offsets:\n';
+      for (const g of groups) {
+        for (const [name, off] of Object.entries(OFFSETS[g])) {
+          if (off + patLen > refBuf.byteLength) {
+            output.value += `# ${name}: out-of-range\n`;
+            continue;
+          }
+          const pat = refBuf.slice(off, off + patLen);
+          const matches = findPattern(tgtBuf, pat);
+          if (matches.length) {
+            output.value += `const uint64_t ${name} = 0x${matches[0].toString(16).toUpperCase().padStart(8,'0')};\n`;
+          } else {
+            output.value += `# ${name}: not found\n`;
+          }
+        }
       }
-      o+="\nSyscalls:\n";
-      for(let k in SYC){
-        const off=SYC[k];const pat=ref.slice(off,off+8);
-        const m=find(tgt,pat);
-        o+=m.length?`// syscall ${k}=0x${m[0].toString(16)}\n`:`// sys ${k} not found\n`;
+
+      output.value += '\n# Syscalls:\n';
+      for (const [sid, off] of Object.entries(SYSCALLS)) {
+        if (off + 8 > refBuf.byteLength) {
+          output.value += `# syscall ${sid}: out-of-range\n`;
+          continue;
+        }
+        const pat = refBuf.slice(off, off + 8);
+        const matches = findPattern(tgtBuf, pat);
+        if (matches.length) {
+          output.value += `// syscall ${sid} offset = 0x${matches[0].toString(16).toUpperCase().padStart(8,'0')}\n`;
+        } else {
+          output.value += `# syscall ${sid}: not found\n`;
+        }
       }
-      document.getElementById('out').value=o;
-    }
-  </script>
-</body>
+    };
+  </script></body>
 </html>
