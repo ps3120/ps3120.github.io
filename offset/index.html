@@ -1,26 +1,22 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Offset Finder PS5</n  <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 2em auto; padding: 0 1em; }
-    input, button { margin: 0.5em 0; }
-    textarea { width: 100%; height: 300px; font-family: monospace; }
+  <title>PS5 Offset Finder</title>
+  <style>
+    body{font-family:monospace;max-width:800px;margin:2em auto}
+    textarea{width:100%;height:300px}
   </style>
 </head>
 <body>
-  <h1>Offset Finder PS5 (Browser JS)</h1>
-  <label>Reference binary:</label><br>
-  <input type="file" id="refFile" accept="*/*"><br>
-  <label>Target binary:</label><br>
-  <input type="file" id="targetFile" accept="*/*"><br>
-  <label>Pattern length (bytes):</label><br>
-  <input type="number" id="patternLength" value="32" min="8" max="128"><br>
-  <button id="runBtn">Find Offsets</button>
-  <h2>Results</h2>
-  <textarea id="output" readonly></textarea>  <script>
-    // Reference offsets map (from firmware 5.50)
-    const REFERENCE_OFFSETS = {
+  <h1>PS5 Offset Finder (JS)</h1>
+  <input type="file" id="refFile"><br>
+  <input type="file" id="tgtFile"><br>
+  <label>Pattern length:<input id="len" type="number" value="32" min="8" max="128"></label><br>
+  <button onclick="run()">Find Offsets</button>
+  <textarea id="out"></textarea>
+  <script>
+    const REFS = {
       OFFSET_wk_vtable_first_element: 0x00269B70,
       OFFSET_wk_memset_import: 0x028D8DB0,
       OFFSET_wk___stack_chk_guard_import: 0x028D8A90,
@@ -36,78 +32,57 @@
       OFFSET_lc_longjmp: 0x0005B470,
       OFFSET_WORKER_STACK_OFFSET: 0x0007FB88,
       GADGET_RET: 0x00000042,
-      GADGET_POP_X0_PC: 0x000A9D2E,
-      GADGET_POP_X1_PC: 0x000463CC,
-      GADGET_MOV_X0_X1_RET: 0x000F3571
+      "pop rdi": 0x000A9D2E,
+      "pop rsi": 0x000463CC,
+      "pop rdx": 0x000F3571,
+      "pop rcx": 0x000016C2,
+      "pop r8": 0x00F537AF,
+      "pop r9": 0x00142136,
+      "pop rax": 0x0004D430,
+      "pop rsp": 0x001C9BB4,
+      "mov [rdi], rsi": 0x0036BF40,
+      "mov [rdi], rax": 0x000D2987,
+      "mov [rdi], eax": 0x000004D4,
+      infloop: 0x000172C1,
+      "shl rax, 4": 0x013AD166,
+      "cmp [rcx], eax": 0x00690582,
+      "sete al": 0x0001C273,
+      "seta al": 0x001F369A,
+      "setb al": 0x00041161,
+      "setg al": 0x001F36CE,
+      "setl al": 0x007C140C,
+      "shl rax, 3": 0x019B1DE3,
+      "add rax, rcx": 0x000DA1CE,
+      "mov rax, [rax]": 0x000B465C,
+      "inc dword [rax]": 0x00044BDA
     };
-
-    // Syscall map
-    const SYSCALL_MAP = {
-      0x001: 0x00034F5A,
-      0x003: 0x00034B20,
-      0x01D: 0x00035F80
-    };
-
-    function arrayBufferToHex(buffer) {
-      return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join(' ');
+    const SYC = {1:0x00034F5A,3:0x00034B20,29:0x00035F80};
+    function find(buf,pat){
+      const d=new Uint8Array(buf),p=new Uint8Array(pat),res=[];
+      for(let i=0;i+p.length<=d.length;i++){
+        let ok=true;for(let j=0;j<p.length;j++)if(d[i+j]!=p[j]){ok=false;break}
+        ok&&res.push(i);
+      }
+      return res;
     }
-
-    function findPattern(buffer, pattern) {
-      const data = new Uint8Array(buffer);
-      const pat = new Uint8Array(pattern);
-      const positions = [];
-      for (let i = 0; i + pat.length <= data.length; i++) {
-        let match = true;
-        for (let j = 0; j < pat.length; j++) {
-          if (data[i + j] !== pat[j]) { match = false; break; }
-        }
-        if (match) positions.push(i);
+    async function run(){
+      const ref=await document.getElementById('refFile').files[0].arrayBuffer();
+      const tgt=await document.getElementById('tgtFile').files[0].arrayBuffer();
+      const L=+document.getElementById('len').value;
+      let o="Pattern length: "+L+"\n";
+      for(let k in REFS){
+        const off=REFS[k]; const pat=ref.slice(off,off+L);
+        const m=find(tgt,pat);
+        o+=m.length?`const ${k}=0x${m[0].toString(16)};\n`:`// ${k} not found\n`;
       }
-      return positions;
+      o+="\nSyscalls:\n";
+      for(let k in SYC){
+        const off=SYC[k];const pat=ref.slice(off,off+8);
+        const m=find(tgt,pat);
+        o+=m.length?`// syscall ${k}=0x${m[0].toString(16)}\n`:`// sys ${k} not found\n`;
+      }
+      document.getElementById('out').value=o;
     }
-
-    document.getElementById('runBtn').onclick = async () => {
-      const refFile = document.getElementById('refFile').files[0];
-      const targetFile = document.getElementById('targetFile').files[0];
-      const patLen = parseInt(document.getElementById('patternLength').value, 10);
-      const output = document.getElementById('output');
-      output.value = '';
-      if (!refFile || !targetFile) { alert('Select both files'); return; }
-
-      const refBuf = await refFile.arrayBuffer();
-      const targetBuf = await targetFile.arrayBuffer();
-
-      output.value += `# Pattern length: ${patLen} bytes\n`;
-      output.value += `# Offset trovati per symbols:\n`;
-
-      for (const [name, off] of Object.entries(REFERENCE_OFFSETS)) {
-        if (off + patLen > refBuf.byteLength) {
-          output.value += `# ${name}: out-of-range\n`;
-          continue;
-        }
-        const pattern = refBuf.slice(off, off + patLen);
-        const matches = findPattern(targetBuf, pattern);
-        if (matches.length) {
-          for (const m of matches) output.value += `const uint64_t ${name} = 0x${m.toString(16).toUpperCase().padStart(8,'0')};\n`;
-        } else {
-          output.value += `# ${name}: non trovato\n`;
-        }
-      }
-
-      output.value += `\n# Syscall offsets:\n`;
-      for (const [sid, off] of Object.entries(SYSCALL_MAP)) {
-        if (off + 8 > refBuf.byteLength) {
-          output.value += `# Syscall ${sid}: out-of-range\n`;
-          continue;
-        }
-        const pattern = refBuf.slice(off, off + 8);
-        const matches = findPattern(targetBuf, pattern);
-        if (matches.length) {
-          for (const m of matches) output.value += `// Syscall ${sid} offset = 0x${m.toString(16).toUpperCase().padStart(8,'0')}\n`;
-        } else {
-          output.value += `# Syscall ${sid}: non trovato\n`;
-        }
-      }
-    };
-  </script></body>
+  </script>
+</body>
 </html>
