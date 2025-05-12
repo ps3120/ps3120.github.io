@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WebKit CVE-2023-38600 Test</title>
+</head>
+<body>
+  <pre id="output"></pre>
+  <script>
+    (function() {
+      const log = msg => {
+        document.getElementById('output').textContent += msg + '\n';
+      };
+
+      try {
+   
+        const buf = new ArrayBuffer(8);
+        const ta  = new Uint8Array(buf);
+
+        for (let i = 0; i < ta.length; i++) ta[i] = i;
+
+        log('Before copyWithin: ' + ta.join(', '));
+
+       
+        ta.copyWithin(0, 1, -1);
+
+        log('After  copyWithin: ' + ta.join(', '));
+        log('No crash: sembra che il fix sia presente.');
+      } catch (e) {
+        log('Exception: ' + e);
+      }
+    })();
+  </script>
+</body>
+</html>
