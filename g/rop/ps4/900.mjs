@@ -41,6 +41,12 @@ export let libkernel_base = null;
 // libSceLibcInternal.sprx
 export let libc_base = null;
 
+
+const ta_jop1 = `
+mov rdi, qword ptr [rsi + 0x18]
+mov rax, qword ptr [rdi]
+call qword ptr [rax + 0xb8]
+`;
 const ta_jop2 = `
 pop rsi
 jmp qword ptr [rax + 0x1c]
