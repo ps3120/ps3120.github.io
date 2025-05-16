@@ -1515,16 +1515,8 @@ async function loadPayload() {
         // 2. Allocazione memoria kernel-safe
         const PLD = req.response;
         const payload_size = PLD.byteLength;
-        const payload_buffer = chain.syscall(
-            477, // sys_mmap
-            0,
-            payload_size,
-            7, // PROT_READ|PROT_WRITE|PROT_EXEC
-            0x1002, // MAP_ANONYMOUS|MAP_PRIVATE
-            -1,
-            0
-        );
-
+     
+    var payload_buffer = chain.syscall(477, 0, PLD.byteLength*4 , 7, 0x1002, -1, 0);
         // 3. Copia precisa senza padding superfluo
         const payload_view = new Uint8Array(PLD);
         const kernel_buffer = p.array_from_address(payload_buffer, payload_size);
