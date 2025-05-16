@@ -1496,8 +1496,83 @@ async function get_patches(url) {
     return response.arrayBuffer();
 }
 
-
 async function loadPayload() {
+    try {
+        // 1. Configurazione della richiesta
+        const req = new XMLHttpRequest();
+        req.responseType = "arraybuffer";
+        
+        // 2. Caricamento asincrono con gestione errori
+        await new Promise((resolve, reject) => {
+            req.open('GET', 'goldhen.bin');
+            req.onload = () => resolve();
+            req.onerror = () => reject(new Error("Errore di rete"));
+            req.send();
+        });
+
+        // 3. Verifica stato HTTP
+        if (req.status !== 200) {
+            throw new Error(`Errore HTTP: ${req.status}`);
+        }
+
+        // 4. Allocazione memoria kernel-safe
+        const PLD = req.response;
+        const payloadSize = PLD.byteLength;
+        
+        
+        const payloadBuffer = chain.syscall(
+            'mmap',
+            0,
+            payloadSize, 
+            7,           // PROT_READ | PROT_WRITE | PROT_EXEC
+            0x1002,      // MAP_ANONYMOUS | MAP_PRIVATE
+            -1,
+            0
+        );
+
+        // 5. Controllo allocazione memoria
+        if (payloadBuffer.low === 0 && payloadBuffer.hi === 0) {
+            throw new Error("mmap failed: memoria non allocata");
+        }
+
+        // 6. Copia dati senza padding superfluo
+        const pl = p.array_from_address(payloadBuffer, payloadSize);
+        pl.set(new Uint8Array(PLD));
+
+        // 7. Creazione thread sicura
+        const pthread = p.malloc(0x10);
+        const result = chain.call(
+            libKernelBase.add32(0x00025510),
+            pthread,
+            0x0,
+            payloadBuffer,
+            0
+        );
+
+        // 8. Verifica creazione thread
+        if (result.low !== 0) {
+            throw new Error(`Errore pthread_create: 0x${result.toString(16)}`);
+        }
+
+        // 9. Pulizia memoria in caso di successo
+        chain.syscall('munmap', payloadBuffer, payloadSize);
+        
+        allset();
+
+    } catch (e) {
+        // 10. Gestione errori dettagliata
+        console.error("[PAYLOAD ERROR]", e);
+        alert(`ERRORE: ${e.message}`);
+        
+        // Pulizia memoria anche in caso di errore
+        if (payloadBuffer) {
+            chain.syscall('munmap', payloadBuffer, payloadSize);
+        }
+        
+        throw e;
+    }
+}
+async function loadPayload2() {
     try {
         // 1. Inizializza memory manager
         if (!mem?.buffer) {
