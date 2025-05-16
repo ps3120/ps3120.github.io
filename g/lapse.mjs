@@ -1501,7 +1501,7 @@ async function loadPayload() {
         // 1. Configurazione della richiesta
         const req = new XMLHttpRequest();
         req.responseType = "arraybuffer";
-        
+
         // 2. Caricamento asincrono con gestione errori
         await new Promise((resolve, reject) => {
             req.open('GET', 'goldhen.bin');
@@ -1518,16 +1518,12 @@ async function loadPayload() {
         // 4. Allocazione memoria kernel-safe
         const PLD = req.response;
         const payloadSize = PLD.byteLength;
-        
-        
+
         const payloadBuffer = chain.syscall(
-            'mmap',
-            0,
-            payloadSize, 
-            7,           // PROT_READ | PROT_WRITE | PROT_EXEC
-            0x1002,      // MAP_ANONYMOUS | MAP_PRIVATE
-            -1,
-            0
+            'mmap', 0, payloadSize,
+            7,       // PROT_READ | PROT_WRITE | PROT_EXEC
+            0x1002,  // MAP_ANONYMOUS | MAP_PRIVATE
+            -1, 0
         );
 
         // 5. Controllo allocazione memoria
@@ -1535,18 +1531,22 @@ async function loadPayload() {
             throw new Error("mmap failed: memoria non allocata");
         }
 
-        // 6. Copia dati senza padding superfluo
-        const pl = p.array_from_address(payloadBuffer, payloadSize);
-        pl.set(new Uint8Array(PLD));
+        // 6. Copia dati con padding a 4 byte
+        const rem = PLD.byteLength % 4;
+        const padLen = (4 - rem) % 4;
+        const padding = new Uint8Array(padLen);
+        const tmp = new Uint8Array(PLD.byteLength + padLen);
+        tmp.set(new Uint8Array(PLD), 0);
+        tmp.set(padding, PLD.byteLength);
+        const shellcode = new Uint32Array(tmp.buffer);
+        const pl = chain.array_from_address(payloadBuffer, shellcode.length * 4);
+        pl.set(shellcode);
 
-        // 7. Creazione thread sicura
+        // 7. Creazione thread sicura Creazione thread sicura
         const pthread = chain.malloc(0x10);
         const result = chain.call(
-            libKernelBase.add32(0x00025510),
-            pthread,
-            0x0,
-            payloadBuffer,
-            0
+            rop.libkernel_base.add32(0x00025510),
+            pthread, 0, payloadBuffer, 0
         );
 
         // 8. Verifica creazione thread
@@ -1554,21 +1554,13 @@ async function loadPayload() {
             throw new Error(`Errore pthread_create: 0x${result.toString(16)}`);
         }
 
-        // 9. Pulizia memoria in caso di successo
-        chain.syscall('munmap', payloadBuffer, payloadSize);
-        
-        allset();
+       
+       // chain.syscall('munmap', payloadBuffer, payloadSize);
 
     } catch (e) {
-        // 10. Gestione errori dettagliata
         console.error("[PAYLOAD ERROR]", e);
         alert(`ERRORE: ${e.message}`);
-        
-        // Pulizia memoria anche in caso di errore
-        if (payloadBuffer) {
-            chain.syscall('munmap', payloadBuffer, payloadSize);
-        }
-        
+        if (payloadBuffer) chain.syscall('munmap', payloadBuffer, payloadSize);
         throw e;
     }
 }
