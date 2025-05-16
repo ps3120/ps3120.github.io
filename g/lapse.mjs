@@ -1495,7 +1495,7 @@ async function get_patches(url) {
     }
     return response.arrayBuffer();
 }
-async function loadPayload() {
+async function loadPayload2() {
     try {
         const req = new XMLHttpRequest();
         req.responseType = "arraybuffer";
@@ -1548,6 +1548,49 @@ async function loadPayload() {
     }
 }
 
+async function loadPayload() {
+    try {
+        // 1. Usa fetch() invece di XMLHttpRequest per maggiore chiarezza
+        const response = await fetch('goldhen.bin');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const PLD = await response.arrayBuffer();
+
+        // 2. Corretta dimensione allocazione (rimosso *4)
+        const payload_size = PLD.byteLength;
+        const payload_buffer = chain.syscall('mmap',0,payload_size, 7, 0x1002,-1,0);
+
+        // 3. Verifica allocazione riuscita
+        if (payload_buffer < 0x10000) {
+            throw new Error(`mmap failed: ${hex(payload_buffer)}`);
+        }
+
+        // 4. Usa mem invece di p se disponibile
+        const kernel_buffer = new Uint8Array(mem.buffer, payload_buffer, payload_size);
+        kernel_buffer.set(new Uint8Array(PLD));
+
+        // 5. Creazione thread con controllo errori
+        const pthread = spawn_thread(new Chain()
+            .push_gadget('mov r15, rsp')       // Preserva stack pointer
+            .push_gadget('sub rsp, 0x20')      // Alloca spazio stack
+            .push_value(payload_buffer)        // Entry point
+            .push_gadget('call qword ptr [r15]') // Chiama payload
+            .push_gadget('add rsp, 0x20')      // Ripristina stack
+            .push_gadget('ret')
+        );
+
+        // 6. Attendi completamento con timeout
+        const join_result = chain.call('pthread_join', pthread, 0);
+        if (join_result !== 0) {
+            throw new Error(`Thread error: 0x${join_result.toString(16)}`);
+        }
+
+        alert("Payload eseguito con successo!");
+    } catch (e) {
+        console.error("[PAYLOAD ERROR]", e);
+        alert(`ERRORE: ${e.message}`);
+        throw e;
+    }
+}
 // 9.00 supported only
 async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     if (!is_ps4) {
