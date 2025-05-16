@@ -1517,6 +1517,11 @@ async function loadPayload() {
         const payload_size = PLD.byteLength;
      
     var payload_buffer = chain.syscall('mmap', 0, PLD.byteLength*4 , 7, 0x1002, -1, 0);
+   const p = {
+      array_from_address: (addr, size) => new Uint8Array(mem.buffer, addr, size),
+      malloc: (size) => chain.syscall('mmap', 0, size, 3, 0x1002, -1, 0),
+      read4: (addr) => new Uint32Array(mem.buffer, addr, 1)[0]
+    };
         // 3. Copia precisa senza padding superfluo
         const payload_view = new Uint8Array(PLD);
         const kernel_buffer = p.array_from_address(payload_buffer, payload_size);
