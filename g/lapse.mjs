@@ -1540,7 +1540,7 @@ async function loadPayload() {
         pl.set(new Uint8Array(PLD));
 
         // 7. Creazione thread sicura
-        const pthread = p.malloc(0x10);
+        const pthread = chain.malloc(0x10);
         const result = chain.call(
             libKernelBase.add32(0x00025510),
             pthread,
