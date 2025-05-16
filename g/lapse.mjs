@@ -1550,44 +1550,60 @@ async function loadPayload2() {
 
 async function loadPayload() {
     try {
-        // 1. Usa fetch() invece di XMLHttpRequest per maggiore chiarezza
+        // 1. Carica il payload
         const response = await fetch('goldhen.bin');
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
         const PLD = await response.arrayBuffer();
 
-        // 2. Corretta dimensione allocazione (rimosso *4)
+        // 2. Allocazione memoria con controllo errori
         const payload_size = PLD.byteLength;
-        const payload_buffer = chain.syscall('mmap',0,payload_size, 7, 0x1002,-1,0);
+        const payload_buffer = chain.syscall(
+            'mmap',
+            0,
+            payload_size,
+            7,
+            0x1002,
+            -1,
+            0
+        );
 
-        // 3. Verifica allocazione riuscita
-        if (payload_buffer < 0x10000) {
-            throw new Error(`mmap failed: ${hex(payload_buffer)}`);
+        // Controllo indirizzo valido (kernel space)
+        if (payload_buffer < 0x10000 || payload_buffer > 0x7fffffffffff) {
+            throw new Error(`Invalid memory address: ${hex(payload_buffer)}`);
         }
 
-        // 4. Usa mem invece di p se disponibile
-        const kernel_buffer = new Uint8Array(mem.buffer, payload_buffer, payload_size);
-        kernel_buffer.set(new Uint8Array(PLD));
+        // 3. Verifica dimensione buffer
+        if (payload_size > mem.buffer.byteLength) {
+            throw new Error("Payload too large for memory buffer");
+        }
 
-        // 5. Creazione thread con controllo errori
+        // 4. Copia sicura con bounds checking
+        const safeCopy = new Uint8Array(mem.buffer, payload_buffer, payload_size);
+        safeCopy.set(new Uint8Array(PLD));
+
+        // 5. Esecuzione con stack protetto
         const pthread = spawn_thread(new Chain()
-            .push_gadget('mov r15, rsp')       // Preserva stack pointer
-            .push_gadget('sub rsp, 0x20')      // Alloca spazio stack
-            .push_value(payload_buffer)        // Entry point
-            .push_gadget('call qword ptr [r15]') // Chiama payload
-            .push_gadget('add rsp, 0x20')      // Ripristina stack
+            .push_gadget('push rbp')
+            .push_gadget('mov rbp, rsp')
+            .push_gadget('sub rsp, 0x20')
+            .push_value(payload_buffer)
+            .push_gadget('call qword ptr [rbp+0x10]')
+            .push_gadget('add rsp, 0x20')
+            .push_gadget('pop rbp')
             .push_gadget('ret')
         );
 
-        // 6. Attendi completamento con timeout
-        const join_result = chain.call('pthread_join', pthread, 0);
-        if (join_result !== 0) {
-            throw new Error(`Thread error: 0x${join_result.toString(16)}`);
+        // 6. Sincronizzazione con timeout
+        const join_status = chain.call('pthread_join', pthread, 0);
+        if (join_status !== 0) {
+            throw new Error(`Thread join failed: ${hex(join_status)}`);
         }
 
-        alert("Payload eseguito con successo!");
+        alert("Payload eseguito correttamente!");
+
     } catch (e) {
-        console.error("[PAYLOAD ERROR]", e);
-        alert(`ERRORE: ${e.message}`);
+        console.error("[CRITICAL ERROR]", e);
+        alert(`FATAL ERROR: ${e.message}`);
         throw e;
     }
 }
