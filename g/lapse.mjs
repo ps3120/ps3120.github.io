@@ -1515,7 +1515,7 @@ async function get_patches(url) {
  req.send();
  req.onreadystatechange = function () {
   if (req.readyState == 4) {
-   PLD = req.response;
+   var PLD = req.response;
    var payload_buffer = chain.syscall('mmap', 0, PLD.byteLength*4 , 7, 0x1002, -1, 0);
    var pl = array_from_address(payload_buffer, PLD.byteLength*4);
    var padding = new Uint8Array(4 - (req.response.byteLength % 4) % 4);
@@ -1531,7 +1531,7 @@ async function get_patches(url) {
  };
 }
 
-async function loadPayload3() {
+ function loadPayload3() {
     let payloadBuffer = null; 
     let payloadSize = 0;
 
