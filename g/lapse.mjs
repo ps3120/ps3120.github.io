@@ -31,7 +31,27 @@ import { cstr, jstr } from './module/memtools.mjs';
 import { page_size, context_size } from './module/offset.mjs';
 import { Chain } from './module/chain.mjs';
 
+function array_from_address(addr, size) {
+    let view = new Uint32Array(0x1000);
+    let vec_addr = mt.get_view_vector(view); // otteniamo l'indirizzo del buffer
+    vec_addr.writePtr(addr);                 // view.buffer = addr
+    vec_addr.add(8).write32(size);           // view.length = size
+    vec_addr.add(0xC).write32(1);            // view.mode = WastefulTypedArray
 
+    nogc.push(view);
+    return view;
+}
+
+function malloc(size) {
+    let backing = new Uint8Array(0x10000 + size);
+    nogc.push(backing);
+
+    let vec_addr = mt.get_view_vector(backing);
+    let addr = vec_addr.readPtr();
+    addr.backing = backing;
+
+    return addr;
+}
 
 import {
     View1, View2, View4,
