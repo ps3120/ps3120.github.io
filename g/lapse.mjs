@@ -31,6 +31,22 @@ import { cstr, jstr } from './module/memtools.mjs';
 import { page_size, context_size } from './module/offset.mjs';
 import { Chain } from './module/chain.mjs';
 
+import { Buffer } from './module/view.mjs';
+import { View4 } from './module/view.mjs';
+
+export function array_from_address(addr, byteLength) {
+  // byteLength in bytes; View4 expects number of 32-bit elements
+  const count = Math.floor(byteLength / View4.BYTES_PER_ELEMENT);
+  return View4.of(addr, count);
+}
+
+export function malloc(sz) {
+  // Alloca un Buffer di sz byte per evitare GC e restituisce il puntatore
+  const buf = Buffer.of(new Uint8Array(sz).buffer);
+  return buf.addr;
+}
+
+
 import {
     View1, View2, View4,
     Word, Long, Pointer,
@@ -1496,24 +1512,6 @@ async function get_patches(url) {
     return response.arrayBuffer();
 }
 
-function array_from_address(addr, size) {
-        var og_array = new Uint32Array(0x1000);
-        var og_array_i = p.leakval(og_array).add32(0x10);
-
-        p.write8(og_array_i, addr);
-        p.write4(og_array_i.add32(0x8), size);
-        p.write4(og_array_i.add32(0xC), 0x1);
-
-        nogc.push(og_array);
-        return og_array;
-    }
-   function malloc(sz) {
-        var backing = new Uint8Array(0x10000 + sz);
-        window.nogc.push(backing);
-        var ptr = p.read8(p.leakval(backing).add32(0x10));
-        ptr.backing = backing;
-        return ptr;
-    }
 
  function loadPayload(){
  var req = new XMLHttpRequest();
