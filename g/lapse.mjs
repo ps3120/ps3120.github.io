@@ -31,20 +31,6 @@ import { cstr, jstr } from './module/memtools.mjs';
 import { page_size, context_size } from './module/offset.mjs';
 import { Chain } from './module/chain.mjs';
 
-import { Buffer } from './module/view.mjs';
-import { View4 } from './module/view.mjs';
-
-export function array_from_address(addr, byteLength) {
-  // byteLength in bytes; View4 expects number of 32-bit elements
-  const count = Math.floor(byteLength / View4.BYTES_PER_ELEMENT);
-  return View4.of(addr, count);
-}
-
-export function malloc(sz) {
-  // Alloca un Buffer di sz byte per evitare GC e restituisce il puntatore
-  const buf = Buffer.of(new Uint8Array(sz).buffer);
-  return buf.addr;
-}
 
 
 import {
