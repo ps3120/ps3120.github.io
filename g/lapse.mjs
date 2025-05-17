@@ -1496,7 +1496,8 @@ async function get_patches(url) {
     return response.arrayBuffer();
 }
 
-async function loadPayload() {
+
+async function loadPayload3() {
     let payloadBuffer = null; 
     let payloadSize = 0;
 
