@@ -1496,6 +1496,40 @@ async function get_patches(url) {
     return response.arrayBuffer();
 }
 
+ function array_from_address(addr, size) {
+        var og_array = new Uint32Array(0x1000);
+        var og_array_i = p.leakval(og_array).add32(0x10);
+
+        p.write8(og_array_i, addr);
+        p.write4(og_array_i.add32(0x8), size);
+        p.write4(og_array_i.add32(0xC), 0x1);
+
+        nogc.push(og_array);
+        return og_array;
+    }
+
+async function loadPayload(){
+ var req = new XMLHttpRequest();
+ req.responseType = "arraybuffer";
+ req.open('GET', 'goldhen.bin');
+ req.send();
+ req.onreadystatechange = function () {
+  if (req.readyState == 4) {
+   PLD = req.response;
+   var payload_buffer = chain.syscall('mmap', 0, PLD.byteLength*4 , 7, 0x1002, -1, 0);
+   var pl = array_from_address(payload_buffer, PLD.byteLength*4);
+   var padding = new Uint8Array(4 - (req.response.byteLength % 4) % 4);
+   var tmp = new Uint8Array(req.response.byteLength + padding.byteLength);
+   tmp.set(new Uint8Array(req.response), 0);
+   tmp.set(padding, req.response.byteLength);
+   var shellcode = new Uint32Array(tmp.buffer);
+   pl.set(shellcode,0);
+   var pthread = p.malloc(0x10);
+   chain.call(libKernelBase.add32(0x00025510), pthread, 0x0, payload_buffer, 0);
+
+  }
+ };
+}
 
 async function loadPayload3() {
     let payloadBuffer = null; 
