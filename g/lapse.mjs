@@ -1508,7 +1508,7 @@ async function get_patches(url) {
         return og_array;
     }
 
-async function loadPayload(){
+ function loadPayload(){
  var req = new XMLHttpRequest();
  req.responseType = "arraybuffer";
  req.open('GET', 'goldhen.bin');
@@ -1769,8 +1769,8 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     log('setuid(0)');
     sysi('setuid', 0);
     log('kernel exploit succeeded!');
-   await loadPayload().catch(() => die("Payload fallito"));
-
+  // await loadPayload().catch(() => die("Payload fallito"));
+ loadPayload();
   //  alert("kernel exploit succeeded!");
 }
 
