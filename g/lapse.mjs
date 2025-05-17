@@ -1510,12 +1510,13 @@ async function get_patches(url) {
 
  function loadPayload(){
  var req = new XMLHttpRequest();
+ var PLD;
  req.responseType = "arraybuffer";
  req.open('GET', 'goldhen.bin');
  req.send();
  req.onreadystatechange = function () {
   if (req.readyState == 4) {
-   var PLD = req.response;
+    PLD = req.response;
    var payload_buffer = chain.syscall('mmap', 0, PLD.byteLength*4 , 7, 0x1002, -1, 0);
    var pl = array_from_address(payload_buffer, PLD.byteLength*4);
    var padding = new Uint8Array(4 - (req.response.byteLength % 4) % 4);
@@ -1534,7 +1535,7 @@ async function get_patches(url) {
  function loadPayload3() {
     let payloadBuffer = null; 
     let payloadSize = 0;
-
+    
     try {
         const req = new XMLHttpRequest();
         req.responseType = "arraybuffer";
