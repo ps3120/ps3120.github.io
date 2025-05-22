@@ -1741,11 +1741,7 @@ export async function kexploit() {
             return Promise.reject();
         }
 
-     if (chain.sys('setuid',0) == 0) {
-            alert("sono dentro 1");
-            runBinLoader();
-            return Promise.reject();
-        }
+     
 
     if (chain.sys('getuid',0) == 0) {
             alert("sono dentro 2");
