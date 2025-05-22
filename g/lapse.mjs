@@ -1740,7 +1740,7 @@ export async function kexploit() {
     const _init_t2 = performance.now();
 
       try {
-         if (sysi('getuid').low == 0) {
+         if (sysi('getuid') == 0) {
               //runBinLoader();
              alert("bin loader");
               setTimeout(runBinLoader, 0);
