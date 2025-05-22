@@ -1740,7 +1740,7 @@ export async function kexploit() {
      try {
 
         if (chain.sys('getuid') == 0x0) {
-            alert("sono dentro");
+            alert(" bin loader");
             runBinLoader();
             return Promise.reject();
         }
