@@ -1732,7 +1732,6 @@ export async function kexploit() {
     await init();
     const _init_t2 = performance.now();
      if (localStorage.ExploitLoaded === "yes") {
-            alert(" bin loader");
             runBinLoader();
             return Promise.reject();
         }
