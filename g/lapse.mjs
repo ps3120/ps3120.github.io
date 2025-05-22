@@ -1671,12 +1671,6 @@ export async function kexploit() {
     await init();
     const _init_t2 = performance.now();
 
-    if (sysi('setuid', 0) == 0) {
-            log("Not running kexploit again.")
-            return;
-        }
-    }
-
     // fun fact:
     // if the first thing you do since boot is run the web browser, WebKit can
     // use all the cores
