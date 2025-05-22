@@ -1685,7 +1685,7 @@ export async function kexploit() {
     const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
-    if (chain.sys('setuid', 0).low == 0x0) {
+    if ( sysi('setuid', 0).low == 0) {
         log("non rilancio kexploit.");
          return;
     }
