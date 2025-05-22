@@ -1782,5 +1782,5 @@ call_nze(
     payload_loader,
     payload_buffer
 );
-  log('\GoldHEN Already Loaded, BinLoader Is Ready.<br>Send A Payload To Port 9020 Now');
+  log('\GoldHEN Already Loaded, BinLoader Is Ready.Send A Payload To Port 9020 Now');
 })
