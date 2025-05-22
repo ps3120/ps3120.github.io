@@ -1729,12 +1729,13 @@ function runBinLoader() {
 //
 // the exploit implementation also assumes that we are pinned to one core
 export async function kexploit() {
+      if ((sysi('getuid') != 0)) {
+        localStorage.ExploitLoaded="no"
+    }
     const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
-    if ((sysi('getuid') != 0)) {
-        localStorage.ExploitLoaded="no"
-    }
+  
     if (localStorage.ExploitLoaded === "yes" && sessionStorage.ExploitLoaded!="yes") {
             runBinLoader();
             return Promise.reject();
