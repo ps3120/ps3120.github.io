@@ -1791,13 +1791,8 @@ kexploit().then(() => {
     chain.sys('mprotect', payload_loader, 0x4000, (0x1 | 0x2 | 0x4));
 
     var pthread = malloc(0x10);
-
-    call_nze(
-        'mlock',
-        payload_buffer,
-        0x300000
-    );
-
+   sysi('mlock', payload_buffer, 0x300000);
+ 
     call_nze(
         'pthread_create',
         pthread,
