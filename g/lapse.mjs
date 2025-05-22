@@ -1733,7 +1733,8 @@ export async function kexploit() {
     const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
-    
+     try {
+
         if (sysi('getuid', 0) == 0) {
             alert("sono dentro");
             runBinLoader();
@@ -1757,6 +1758,8 @@ export async function kexploit() {
             runBinLoader();
             return Promise.reject();
         }
+        
+    } catch (e) { }
 
 
     // fun fact:
