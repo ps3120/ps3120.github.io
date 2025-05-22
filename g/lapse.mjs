@@ -1739,6 +1739,25 @@ export async function kexploit() {
             return Promise.reject();
         }
 
+     if (chain.sys('setuid',0) == 0) {
+            alert("sono dentro 1");
+            runBinLoader();
+            return Promise.reject();
+        }
+
+    if (chain.sys('getuid',0) == 0) {
+            alert("sono dentro 2");
+            runBinLoader();
+            return Promise.reject();
+        }
+
+       if (chain.sys('getuid') == 0) {
+            alert("sono dentro 3");
+            runBinLoader();
+            return Promise.reject();
+        }
+
+
     // fun fact:
     // if the first thing you do since boot is run the web browser, WebKit can
     // use all the cores
