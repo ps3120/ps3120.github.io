@@ -1612,6 +1612,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     log('setuid(0)');
     //sysi('setuid', 0);
     chain.sys('setuid',0);
+    log( chain.sys('getuid').low)
     log( chain.sys('getuid'))
     log('kernel exploit succeeded!');
     //alert("kernel exploit succeeded!");
