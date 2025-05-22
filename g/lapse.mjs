@@ -1741,9 +1741,7 @@ export async function kexploit() {
 
       try {
          if (sysi('getuid') == 0) {
-              //runBinLoader();
-             alert("bin loader");
-              setTimeout(runBinLoader, 0);
+              runBinLoader();
               return Promise.reject();
          }
       } catch (e) { }
