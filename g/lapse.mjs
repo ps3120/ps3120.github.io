@@ -1730,7 +1730,7 @@ function runBinLoader() {
 //
 // the exploit implementation also assumes that we are pinned to one core
 export async function kexploit() {
-      if (chain.sys('getuid'); != 0)) {
+      if (chain.sys('getuid') != 0)) {
         localStorage.ExploitLoaded="no"
     }
     const _init_t1 = performance.now();
