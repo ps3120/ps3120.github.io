@@ -1735,8 +1735,6 @@ function runBinLoader() {
 //
 // the exploit implementation also assumes that we are pinned to one core
 export async function kexploit() {
-
-   
     const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
