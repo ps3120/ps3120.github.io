@@ -1730,7 +1730,8 @@ export async function kexploit() {
 
      try {
          if (sysi('setuid', 0).low == 0) {
-              runBinLoader();
+              //runBinLoader();
+              setTimeout(runBinLoader, 0);
               return Promise.reject();
          }
       } catch (e) { }
