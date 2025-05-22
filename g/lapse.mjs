@@ -1727,17 +1727,18 @@ function runBinLoader() {
 //
 // the exploit implementation also assumes that we are pinned to one core
 export async function kexploit() {
-    
+
+     try {
+         if (sysi('setuid', 0).low == 0) {
+              runBinLoader();
+              return Promise.reject();
+         }
+      } catch (e) { }
+
     const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
-    try {
-        if (sysi('setuid', 0).low == 0) {
-            runBinLoader();
-            return Promise.reject();
-        }
-    } catch (e) { }
-
+ 
     // fun fact:
     // if the first thing you do since boot is run the web browser, WebKit can
     // use all the cores
