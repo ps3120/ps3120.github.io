@@ -1612,7 +1612,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     log('setuid(0)');
     sysi('setuid', 0);
     log('kernel exploit succeeded!');
-    sessionStorage.ExploitLoaded="yes"
+    localStorage.ExploitLoaded="yes"
     //alert("kernel exploit succeeded!");
 }
 
@@ -1731,7 +1731,7 @@ export async function kexploit() {
     const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
-     if (sessionStorage.ExploitLoaded === "yes") {
+     if (localStorage.ExploitLoaded === "yes") {
             alert(" bin loader");
             runBinLoader();
             return Promise.reject();
