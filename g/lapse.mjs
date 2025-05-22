@@ -1735,22 +1735,8 @@ export async function kexploit() {
     const _init_t2 = performance.now();
      try {
 
-        if (sysi('getuid', 0) == 0) {
+        if (chain.sys('getuid') == 0x0) {
             alert("sono dentro");
-            runBinLoader();
-            return Promise.reject();
-        }
-
-     
-
-    if (chain.sys('getuid',0) == 0) {
-            alert("sono dentro 2");
-            runBinLoader();
-            return Promise.reject();
-        }
-
-       if (chain.sys('getuid') == 0) {
-            alert("sono dentro 3");
             runBinLoader();
             return Promise.reject();
         }
