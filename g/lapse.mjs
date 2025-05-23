@@ -1741,7 +1741,7 @@ export async function kexploit() {
     
     if (localStorage.ExploitLoaded === "yes" && sessionStorage.ExploitLoaded!="yes") {
             runBinLoader();
-            return Promise.resolve(null);
+            return new Promise(() => {});
         }
 
     // fun fact:
