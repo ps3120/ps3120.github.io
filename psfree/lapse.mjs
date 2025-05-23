@@ -1828,8 +1828,4 @@ kexploit().then(() => {
         payload_buffer,
     );
 
-
-    
-
-
 })
