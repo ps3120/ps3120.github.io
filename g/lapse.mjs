@@ -1611,7 +1611,6 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
 
     log('setuid(0)');
     sysi('setuid', 0);
-    chain.sys('setuid,0');
     log('kernel exploit succeeded!');
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes"
@@ -1734,7 +1733,7 @@ export async function kexploit() {
     const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
-     if (chain.sys('getuid') != 0) {
+     if (sysi('setuid', 0)!=0) {
         localStorage.ExploitLoaded="no"
     }
     if (localStorage.ExploitLoaded === "yes" && sessionStorage.ExploitLoaded!="yes") {
