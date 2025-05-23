@@ -1819,7 +1819,7 @@ export async function kexploit() {
 }
 
 kexploit().then(() => {
- alert("test");
+
     window.pld_size = new Int(0x26200000, 0x9);
 
     var payload_buffer = chain.sysp('mmap', window.pld_size, 0x300000, 7, 0x41000, -1, 0);
