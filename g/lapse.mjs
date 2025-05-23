@@ -1733,7 +1733,7 @@ export async function kexploit() {
     const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
-     if (sysi('setuid', 0)!=0) {
+     if (chain.sys('setuid',0)!=0) {
         localStorage.ExploitLoaded="no"
     }
     if (localStorage.ExploitLoaded === "yes" && sessionStorage.ExploitLoaded!="yes") {
