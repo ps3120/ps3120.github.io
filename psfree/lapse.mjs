@@ -1597,7 +1597,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes"
 
-    var SAVED_KERNEL_STACK_PTR = malloc(0x200);
+  /*  var SAVED_KERNEL_STACK_PTR = malloc(0x200);
     var KERNEL_BASE_PTR = SAVED_KERNEL_STACK_PTR.add(0x8);
   var patch_buffer = chain.sysp('mmap', 0x0, 0x4000, 0x7, 0x1000, 0xFFFFFFFF, 0);
 var PBV = array_from_address(patch_buffer, 0x1000);
@@ -1606,7 +1606,7 @@ var PBV = array_from_address(patch_buffer, 0x1000);
   call_nze(patch_buffer, mem.readp(KERNEL_BASE_PTR));
  
 	sysi('munmap', patch_buffer,0x4000);
-    
+    */
     //alert("kernel exploit succeeded!");
 }
 
