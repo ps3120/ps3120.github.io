@@ -1673,7 +1673,7 @@ function malloc(sz) {
    function array_from_address(addr, size) {
     var og_array = new Uint32Array(0x1000);
     var og_array_i = mem.addrof(og_array).add(0x10);
-    mem.writep(og_array_i, addr);
+    mem.write8(og_array_i, addr);
     mem.write4(og_array_i.add(0x8), size);
     mem.write4(og_array_i.add(0xC), 0x1);
     nogc.push(og_array);
