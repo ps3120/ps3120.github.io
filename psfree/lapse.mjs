@@ -1598,16 +1598,16 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     sessionStorage.ExploitLoaded="yes"
     //alert("kernel exploit succeeded!");
 
-    var kbase = 0xFFFFFF8000200000;
+   
 
 function checkPatch(name, offset, size, expected) {
   var addr = kbase + offset;
   var actual = 0;
 
-  if (size == 1) actual = mem.read8(addr);
-  else if (size == 2) actual = mem.read16(addr);
-  else if (size == 4) actual = mem.read32(addr);
-
+  if (size == 1) actual = kmem.read8(addr);
+  else if (size == 2) actual = kmem.read16(addr);
+  else if (size == 4) actual = kmem.read32(addr);
+ 
   var msg = name + " → letto: 0x" + actual.toString(16) + ", atteso: 0x" + expected.toString(16);
   alert(msg);
 }
