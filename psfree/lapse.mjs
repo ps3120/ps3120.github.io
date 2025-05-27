@@ -1469,6 +1469,58 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
      kmem.write64(w_rthdr_p, 0);
      log('corrupt pointers cleaned');
 
+
+const patchList = {
+  enable_syscalls_1: [0x490,    4, 0x00000000],
+  enable_syscalls_2: [0x4B5,    2, 0x9090    ],
+  enable_syscalls_3: [0x4B9,    2, 0x9090    ],
+  enable_syscalls_4: [0x4C2,    1, 0xEB      ],
+  mmap_1:             [0x16632A, 1, 0x37      ],
+  mmap_2:             [0x16632D, 1, 0x37      ],
+  mprotect:           [0x80B8D,  4, 0x00000000],
+  dlsym_1:            [0x23B67F, 1, 0xEB      ],
+  dlsym_2:            [0x221B40, 4, 0xC3C03148],
+  setuid:             [0x1A06,   1, 0xEB      ],
+  prx:                [0x23AEC4, 2, 0xE990    ],
+  bzero:              [0x2713FD, 1, 0xEB      ],
+  pagezero:           [0x271441, 1, 0xEB      ],
+  memcpy:             [0x2714BD, 1, 0xEB      ],
+  pagecopy:           [0x271501, 1, 0xEB      ],
+  copyin:             [0x2716AD, 1, 0xEB      ],
+  copyinstr:          [0x271B5D, 1, 0xEB      ],
+  copystr:            [0x271C2D, 1, 0xEB      ],
+  veriPatch:          [0x626874, 2, 0x9090    ],
+  setcr0_patch:       [0x3ADE3B, 4, 0xC3C7220F],
+};
+    function checkAllPatches() {
+  for (const [name, meta] of Object.entries(patchList)) {
+    const [off, size, expected] = meta;
+    const absAddr = kbase.add(off);
+
+    let actual = 0;
+    switch (size) {
+      case 1:
+        actual = kmem.read32(absAddr) & 0xFF;   // read8 via read32 e maschera 0xFF
+        break;
+      case 2:
+        actual = kmem.read32(absAddr) & 0xFFFF; // read16 via read32 e maschera 0xFFFF
+        break;
+      case 4:
+        actual = kmem.read32(absAddr) >>> 0;    // read32
+        break;
+      default:
+        log.warn(`skip ${name}: size=${size} non supportato`);
+        continue;
+    }
+checkAllPatches();
+
+    const hexActual   = actual.toString(16).padStart(size * 2, '0');
+    const hexExpected = expected.toString(16).padStart(size * 2, '0');
+     log(`${name}: letto=0x${hexActual}  atteso=0x${hexExpected}`);
+    alert(`${name} → letto: 0x${hexActual}, atteso: 0x${hexExpected}`);
+  }
+}
+
     /*
     // REMOVE once restore kernel is ready for production
     // increase the ref counts to prevent deallocation
@@ -1596,46 +1648,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     log('kernel exploit succeeded!');
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes"
-function kread8(addr) {
- 
-    return kread64(addr).lo & 0xFF;
-}
 
-function kread16(addr) {
-    
-    return kread64(addr).lo & 0xFFFF;
-}
-
-function kread32(addr) {
-    
-    return kread64(addr).lo >>> 0;
-}
-function checkPatch(name, offset, size, expected) {
-    
- function intAdd32(intVal, offset32) {
-  // offset32 rientra in 32 bit, quindi possiamo:
-  const newLo = (intVal.lo + (offset32 >>> 0)) >>> 0;
-  // se carry oltre 0xffffffff, incrementiamo anche l’hi:
-  const carry = newLo < (offset32 >>> 0) ? 1 : 0;
-  const newHi = (intVal.hi + carry) >>> 0;
-  return new Int(newLo, newHi);
-}
- // var addr = kbase + offset;
-      const addr = intAdd32(kbase, offset);
-
-  var actual = 0;
-
-  if (size == 1) actual = kread8(addr);
-  else if (size == 2) actual = kread16(addr);
-  else if (size == 4) actual = kread32(addr);
- 
-  var msg = name + " → letto: 0x" + actual.toString(16) + ", atteso: 0x" + expected.toString(16);
-  alert(msg);
-}
-checkPatch("veri",  0x626874, 2, 0x9090);
-//checkPatch("syscall_2", 0x4B5, 2, 0x9090);
-//checkPatch("syscall_3", 0x4B9, 2, 0x9090);
-//checkPatch("syscall_4", 0x4C2, 1, 0xEB);
     //alert("kernel exploit succeeded!");
 
    
