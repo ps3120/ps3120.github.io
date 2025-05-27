@@ -1601,10 +1601,20 @@ function checkPatch(name, offset, size, expected) {
  
   var addr = kbase + offset;
   var actual = 0;
+function kread8(addr) {
+    return kread64(addr) & 0xFF;
+}
 
-  if (size == 1) actual = kmem.read8(addr);
-  else if (size == 2) actual = kmem.read16(addr);
-  else if (size == 4) actual = kmem.read32(addr);
+function kread16(addr) {
+    return kread64(addr) & 0xFFFF;
+}
+
+function kread32(addr) {
+    return kread64(addr) & 0xFFFFFFFF;
+}
+  if (size == 1) actual = read8(addr);
+  else if (size == 2) actual = read16(addr);
+  else if (size == 4) actual = read32(addr);
  
   var msg = name + " → letto: 0x" + actual.toString(16) + ", atteso: 0x" + expected.toString(16);
   alert(msg);
