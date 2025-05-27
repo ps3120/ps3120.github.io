@@ -1512,7 +1512,7 @@ const patchList = {
         log.warn(`skip ${name}: size=${size} non supportato`);
         continue;
     }
-checkAllPatches();
+
 
     const hexActual   = actual.toString(16).padStart(size * 2, '0');
     const hexExpected = expected.toString(16).padStart(size * 2, '0');
@@ -1520,7 +1520,7 @@ checkAllPatches();
     alert(`${name} → letto: 0x${hexActual}, atteso: 0x${hexExpected}`);
   }
 }
-
+checkAllPatches();
     /*
     // REMOVE once restore kernel is ready for production
     // increase the ref counts to prevent deallocation
