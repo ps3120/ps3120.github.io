@@ -1600,22 +1600,6 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
 
    
 
-function checkPatch(name, offset, size, expected) {
-  var addr = kbase + offset;
-  var actual = 0;
-
-  if (size == 1) actual = kmem.read8(addr);
-  else if (size == 2) actual = kmem.read16(addr);
-  else if (size == 4) actual = kmem.read32(addr);
- 
-  var msg = name + " → letto: 0x" + actual.toString(16) + ", atteso: 0x" + expected.toString(16);
-  alert(msg);
-}
-checkPatch("veri",  0x626874, 2, 0x9090);
-//checkPatch("syscall_2", 0x4B5, 2, 0x9090);
-//checkPatch("syscall_3", 0x4B9, 2, 0x9090);
-//checkPatch("syscall_4", 0x4C2, 1, 0xEB);
-
 }
 
 
@@ -1743,7 +1727,26 @@ export async function kexploit() {
     }
     
     if (localStorage.ExploitLoaded === "yes" && sessionStorage.ExploitLoaded!="yes") {
-            runBinLoader();
+           // runBinLoader();
+        
+function checkPatch(name, offset, size, expected) {
+     const off_kstr = 0x7f6f27;
+    const kbase = kernel_addr.sub(off_kstr);
+  var addr = kbase + offset;
+  var actual = 0;
+
+  if (size == 1) actual = kmem.read8(addr);
+  else if (size == 2) actual = kmem.read16(addr);
+  else if (size == 4) actual = kmem.read32(addr);
+ 
+  var msg = name + " → letto: 0x" + actual.toString(16) + ", atteso: 0x" + expected.toString(16);
+  alert(msg);
+}
+checkPatch("veri",  0x626874, 2, 0x9090);
+//checkPatch("syscall_2", 0x4B5, 2, 0x9090);
+//checkPatch("syscall_3", 0x4B9, 2, 0x9090);
+//checkPatch("syscall_4", 0x4C2, 1, 0xEB);
+
             return new Promise(() => {});
     }
 
