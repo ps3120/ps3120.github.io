@@ -1625,9 +1625,9 @@ function kread32(addr) {
     
     return kread64(addr).lo >>> 0;
 }
-  if (size == 1) actual = read8(addr);
-  else if (size == 2) actual = read16(addr);
-  else if (size == 4) actual = read32(addr);
+  if (size == 1) actual = kread8(addr);
+  else if (size == 2) actual = kread16(addr);
+  else if (size == 4) actual = kread32(addr);
  
   var msg = name + " → letto: 0x" + actual.toString(16) + ", atteso: 0x" + expected.toString(16);
   alert(msg);
