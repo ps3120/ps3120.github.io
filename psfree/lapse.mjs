@@ -1598,9 +1598,17 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     sessionStorage.ExploitLoaded="yes"
             
 function checkPatch(name, offset, size, expected) {
- 
+    
+ function intAdd32(intVal, offset32) {
+  // offset32 rientra in 32 bit, quindi possiamo:
+  const newLo = (intVal.lo + (offset32 >>> 0)) >>> 0;
+  // se carry oltre 0xffffffff, incrementiamo anche l’hi:
+  const carry = newLo < (offset32 >>> 0) ? 1 : 0;
+  const newHi = (intVal.hi + carry) >>> 0;
+  return new Int(newLo, newHi);
+}
  // var addr = kbase + offset;
-      const addr = kbase.add32(offset);
+      const addr = intAdd32(kbase, offset);
 
   var actual = 0;
 function kread8(addr) {
