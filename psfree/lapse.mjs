@@ -1596,21 +1596,6 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     log('kernel exploit succeeded!');
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes"
-            
-function checkPatch(name, offset, size, expected) {
-    
- function intAdd32(intVal, offset32) {
-  // offset32 rientra in 32 bit, quindi possiamo:
-  const newLo = (intVal.lo + (offset32 >>> 0)) >>> 0;
-  // se carry oltre 0xffffffff, incrementiamo anche l’hi:
-  const carry = newLo < (offset32 >>> 0) ? 1 : 0;
-  const newHi = (intVal.hi + carry) >>> 0;
-  return new Int(newLo, newHi);
-}
- // var addr = kbase + offset;
-      const addr = intAdd32(kbase, offset);
-
-  var actual = 0;
 function kread8(addr) {
  
     return kread64(addr).lo & 0xFF;
@@ -1625,6 +1610,21 @@ function kread32(addr) {
     
     return kread64(addr).lo >>> 0;
 }
+function checkPatch(name, offset, size, expected) {
+    
+ function intAdd32(intVal, offset32) {
+  // offset32 rientra in 32 bit, quindi possiamo:
+  const newLo = (intVal.lo + (offset32 >>> 0)) >>> 0;
+  // se carry oltre 0xffffffff, incrementiamo anche l’hi:
+  const carry = newLo < (offset32 >>> 0) ? 1 : 0;
+  const newHi = (intVal.hi + carry) >>> 0;
+  return new Int(newLo, newHi);
+}
+ // var addr = kbase + offset;
+      const addr = intAdd32(kbase, offset);
+
+  var actual = 0;
+
   if (size == 1) actual = kread8(addr);
   else if (size == 2) actual = kread16(addr);
   else if (size == 4) actual = kread32(addr);
