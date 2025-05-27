@@ -1602,15 +1602,18 @@ function checkPatch(name, offset, size, expected) {
   var addr = kbase + offset;
   var actual = 0;
 function kread8(addr) {
-    return kread64(addr) & 0xFF;
+ 
+    return kread64(addr).lo & 0xFF;
 }
 
 function kread16(addr) {
-    return kread64(addr) & 0xFFFF;
+    
+    return kread64(addr).lo & 0xFFFF;
 }
 
 function kread32(addr) {
-    return kread64(addr) & 0xFFFFFFFF;
+    
+    return kread64(addr).lo >>> 0;
 }
   if (size == 1) actual = read8(addr);
   else if (size == 2) actual = read16(addr);
