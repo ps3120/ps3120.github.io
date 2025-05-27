@@ -1611,11 +1611,10 @@ function checkPatch(name, offset, size, expected) {
   var msg = name + " → letto: 0x" + actual.toString(16) + ", atteso: 0x" + expected.toString(16);
   alert(msg);
 }
-
-checkPatch("syscall_1", 0x490, 4, 0x00000000);
-checkPatch("syscall_2", 0x4B5, 2, 0x9090);
-checkPatch("syscall_3", 0x4B9, 2, 0x9090);
-checkPatch("syscall_4", 0x4C2, 1, 0xEB);
+checkPatch("veri",  0x626874, 2, 0x9090);
+//checkPatch("syscall_2", 0x4B5, 2, 0x9090);
+//checkPatch("syscall_3", 0x4B9, 2, 0x9090);
+//checkPatch("syscall_4", 0x4C2, 1, 0xEB);
 
 }
 
