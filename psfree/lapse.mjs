@@ -1597,6 +1597,55 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes"
     //alert("kernel exploit succeeded!");
+
+const KBASE = 0xFFFFFF8000200000n;
+
+    const patches = [
+  { name: "enable_syscalls_1", off:  0x490n,   size: 4, expect: 0x00000000n    },
+  { name: "enable_syscalls_2", off:  0x4B5n,   size: 2, expect: 0x9090n        },
+  { name: "enable_syscalls_3", off:  0x4B9n,   size: 2, expect: 0x9090n        },
+  { name: "enable_syscalls_4", off:  0x4C2n,   size: 1, expect: 0xEBn          },
+  { name: "mmap_1",            off:  0x16632An,size: 1, expect: 0x37n          },
+  { name: "mmap_2",            off:  0x16632Dn,size: 1, expect: 0x37n          },
+  { name: "mprotect",          off:  0x80B8Dn, size: 4, expect: 0x00000000n    },
+  { name: "dlsym_1",           off:  0x23B67Fn, size: 1, expect: 0xEBn          },
+  { name: "dlsym_2",           off:  0x221B40n, size: 4, expect: 0xC3C03148n    },
+  { name: "setuid",            off:  0x1A06n,   size: 1, expect: 0xEBn          },
+  { name: "prx",               off:  0x23AEC4n, size: 2, expect: 0xE990n        },
+  { name: "bzero",             off:  0x2713FDn, size: 1, expect: 0xEBn          },
+  { name: "pagezero",          off:  0x271441n, size: 1, expect: 0xEBn          },
+  { name: "memcpy",            off:  0x2714BDn, size: 1, expect: 0xEBn          },
+  { name: "pagecopy",          off:  0x271501n, size: 1, expect: 0xEBn          },
+  { name: "copyin",            off:  0x2716ADn, size: 1, expect: 0xEBn          },
+  { name: "copyinstr",         off:  0x271B5Dn, size: 1, expect: 0xEBn          },
+  { name: "copystr",           off:  0x271C2Dn, size: 1, expect: 0xEBn          },
+  { name: "veriPatch",         off:  0x626874n, size: 2, expect: 0x9090n        },
+  { name: "setcr0_patch",      off:  0x3ADE3Bn, size: 4, expect: 0xC3C7220Fn    },
+
+
+        for (let p of patches) {
+  const addr = KBASE + p.off;
+  let actual;
+  switch (p.size) {
+    case 1:
+      actual = BigInt(mem.read8(addr));
+      break;
+    case 2:
+      actual = BigInt(mem.read16(addr));
+      break;
+    case 4:
+      actual = BigInt(mem.read32(addr));
+      break;
+    default:
+      log(`Size non supportata: ${p.size}`);
+      continue;
+           const result = (actual === p.expect) ? "OK" : "FAIL";
+   log(
+    `${p.name} @ 0x${addr.toString(16)}: letti 0x${actual.toString(16).padStart(p.size*2,"0")} ` +
+    `(atteso 0x${p.expect.toString(16).padStart(p.size*2,"0")}) → ${result}`
+  );
+  }
+
 }
 
 
