@@ -1623,7 +1623,7 @@ const KBASE = 0xFFFFFF8000200000n;
   { name: "setcr0_patch",      off:  0x3ADE3Bn, size: 4, expect: 0xC3C7220Fn    },
 
 
-        for (let p of patchesk) {
+ for (let p of patchesk) {
   const addr = KBASE + p.off;
   let actual;
   switch (p.size) {
@@ -1647,7 +1647,7 @@ const KBASE = 0xFFFFFF8000200000n;
   }
 
 }
-
+}
 
 
 // FUNCTIONS FOR STAGE: SETUP
