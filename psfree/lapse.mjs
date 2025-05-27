@@ -1599,7 +1599,9 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
             
 function checkPatch(name, offset, size, expected) {
  
-  var addr = kbase + offset;
+ // var addr = kbase + offset;
+      const addr = kbase.add32(offset);
+
   var actual = 0;
 function kread8(addr) {
  
