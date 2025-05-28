@@ -1600,22 +1600,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     sessionStorage.ExploitLoaded="yes"
     //alert("kernel exploit succeeded!");
 
-    const PATCH_ADDR1 = 0x462D29;
-const PATCH_ADDR2 = 0x462D41;
-
  
-const bytes = [0xC1, 0x98, 0xDE];
-
- 
-for (let i = 0; i < bytes.length; i++) {
-      kmem.write8(PATCH_ADDR1 + i, bytes[i]);
-}
-
- 
-   for (let i = 0; i < bytes.length; i++) {
-       kmem.write8(PATCH_ADDR2 + i, bytes[i]);
-     }
-}
 
 
 
