@@ -7,7 +7,7 @@ fetch('./payload.bin').then(res => {
   
     const padLength = (4 - (byteLen % 4)) % 4;
 
-    console.log("byteLen:", byteLen, "padLength:", padLength);
+    alert("byteLen:", byteLen, "padLength:", padLength);
 
   
     const alignedBuf = new ArrayBuffer(byteLen + padLength);
