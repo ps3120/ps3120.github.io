@@ -1676,19 +1676,7 @@ function setup(block_fd) {
     }
     aio_submit_cmd(AIO_CMD_READ, reqs1.addr, num_workers, block_id.addr);
 
-    {
-        const reqs1 = make_reqs1(1);
-        const timo = new Word(1);
-        const id = new Word();
-        aio_submit_cmd(AIO_CMD_READ, reqs1.addr, 1, id.addr);
-        chain.do_syscall_clear_errno(
-            'aio_multi_wait', id.addr, 1, _aio_errors_p, 1, timo.addr);
-        const err = chain.errno;
-        if (err !== 60) { // ETIMEDOUT
-            die(`SceAIO system not blocked. errno: ${err}`);
-        }
-        free_aios(id.addr, 1);
-    }
+ 
 
     log('heap grooming');
     // chosen to maximize the number of 0x80 malloc allocs per submission
