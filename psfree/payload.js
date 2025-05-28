@@ -3,7 +3,7 @@ fetch('./payload.bin').then(res => {
 
 
   
-    const byteLen   = arr.byteLength;
+  /*  const byteLen   = arr.byteLength;
   
     const padLength = (4 - (byteLen % 4)) % 4;
 
@@ -24,8 +24,8 @@ fetch('./payload.bin').then(res => {
 
     const totalLen = alignedBuf.byteLength;
 
-    window.pld = new Uint32Array(alignedBuf)
-       // window.pld = new Uint32Array(arr);
+    window.pld = new Uint32Array(alignedBuf)*/
+       window.pld = new Uint32Array(arr);
 
     })
 })
