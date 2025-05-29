@@ -1825,7 +1825,7 @@ var req = new XMLHttpRequest();
  req.send();
  req.onreadystatechange = function () {
   if (req.readyState == 4) {
-   PLD = req.response;
+   var PLD = req.response;
      var payload_buffer = chain.sysp('mmap', new Int(0x26200000, 0x9), 0x300000, 7, 0x41000, -1, 0);
 
    var pl = array_from_address(payload_buffer, PLD.byteLength*4);
