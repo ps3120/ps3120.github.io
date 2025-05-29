@@ -1806,7 +1806,9 @@ export async function kexploit() {
 
 
 kexploit().then(() => {
-
+ const PROT_READ = 1;
+    const PROT_WRITE = 2;
+    const PROT_EXEC = 4;
 
 var loader_addr = chain.sysp(
   'mmap',
