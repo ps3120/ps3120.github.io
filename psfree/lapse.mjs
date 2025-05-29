@@ -1515,9 +1515,9 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     log('add JIT capabilities');
     // TODO just set the bits for JIT privs
     // cr_sceCaps[0]
-    kmem.write64(p_ucred.add(0x60), -1);
+   // kmem.write64(p_ucred.add(0x60), -1);
     // cr_sceCaps[1]
-    kmem.write64(p_ucred.add(0x68), -1);
+ //   kmem.write64(p_ucred.add(0x68), -1);
 
     const buf = await get_patches('./kpatch/900.elf');
     // FIXME handle .bss segment properly
