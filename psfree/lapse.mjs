@@ -1815,7 +1815,7 @@ return og_array;
 
 kexploit().then(() => {
     
- const PROT_READ = 1;
+const PROT_READ = 1;
  const PROT_WRITE = 2;
  const PROT_EXEC = 4;
 
@@ -1829,10 +1829,10 @@ var loader_addr = chain.sysp(
   0
 );
 
-var tmpStubArray = array_from_address(loader_addr, 1);
+ var tmpStubArray = array_from_address(loader_addr, 1);
 tmpStubArray[0] = 0x00C3E7FF;
 
-var req = new XMLHttpRequest();
+ /*var req = new XMLHttpRequest();
  req.responseType = "arraybuffer";
  req.open('GET','payload.bin');
  req.send();
@@ -1863,8 +1863,8 @@ var req = new XMLHttpRequest();
 
 }
  };
-    
-/*var req = new XMLHttpRequest();
+    */
+var req = new XMLHttpRequest();
  req.responseType = "arraybuffer";
  req.open('GET','payload.bin');
  req.send();
@@ -1889,6 +1889,6 @@ var req = new XMLHttpRequest();
         payload_buffer,
     );	
 }
- };*/
+ };
     
 })
