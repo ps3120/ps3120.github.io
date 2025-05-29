@@ -1846,7 +1846,7 @@ var req = new XMLHttpRequest();
         'pthread_create',
         pthread,
         0,
-        shellcode,
+        pl,
         payload_buffer,
     );	
 }
