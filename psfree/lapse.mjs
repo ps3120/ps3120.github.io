@@ -248,9 +248,8 @@ function aio_multi_delete(ids, num_ids, sce_errs=_aio_errors_p) {
 //     u_int ,
 //     int states[]
 // );
-function aio_multi_poll(ids, , sce_errs=_aio_errors_p) {
-    sysi('aio_multi_poll', ids, , sce_errs);
-}
+function aio_multi_poll(ids, num_ids, sce_errs=_aio_errors_p) {
+    sysi('aio_multi_poll', ids, num_ids, sce_errs);
 
 // int
 // aio_multi_cancel(
@@ -258,7 +257,8 @@ function aio_multi_poll(ids, , sce_errs=_aio_errors_p) {
 //     u_int ,
 //     int states[]
 // );
-function aio_multi_cancel(ids, , sce_errs=_aio_errors_p) {
+function aio_multi_cancel(ids, num_ids, sce_errs=_aio_errors_p) {
+
     sysi('aio_multi_cancel', ids, num_ids, sce_errs);
 }
 
