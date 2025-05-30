@@ -1702,14 +1702,14 @@ export async function kexploit() {
             return new Promise(() => {});
       }
 
-
+  localStorage.ExploitLoaded = "no";
     // If setuid is successful, we dont need to run the kexploit again
   /* try {
         chain.sys('setuid', 0);
         }
     }
     catch (e) {
-        localStorage.ExploitLoaded = "no";
+        
     }
  */
     // fun fact:
