@@ -991,9 +991,25 @@ function make_aliased_pktopts(sds) {
         }
     }
 
+ 
     try {
         const zeroBuf = new Buffer(0x100);
-      
+        for (const sd of sds) {
+            try {
+                // 1) libera la struttura pktopts
+                setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
+                // 2) azzera ipv6_pktinfo
+                setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, zeroBuf, zeroBuf.size);
+                // 3) azzera ipv6_rthdr
+                setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, zeroBuf, 0);
+            } catch (e) {
+              
+            }
+            try {
+                close(sd);
+            } catch (e) {
+              
+            }
         }
     } catch (cleanupErr) {
         log(`Errore durante cleanup in make_aliased_pktopts: ${cleanupErr}`);
@@ -1001,6 +1017,7 @@ function make_aliased_pktopts(sds) {
 
     die('failed to make aliased pktopts');
 }
+
 
 function double_free_reqs1(
     reqs1_addr, kbuf_addr, target_id, evf, sd, sds,
