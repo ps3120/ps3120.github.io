@@ -1697,10 +1697,10 @@ export async function kexploit() {
     await init();
     const _init_t2 = performance.now();
 
-   if (localStorage.ExploitLoaded === "yes" && sessionStorage.ExploitLoaded!="yes") {
+  /* if (localStorage.ExploitLoaded === "yes" && sessionStorage.ExploitLoaded!="yes") {
            runBinLoader();
             return new Promise(() => {});
-      }
+      }*/
 
   localStorage.ExploitLoaded = "no";
     // If setuid is successful, we dont need to run the kexploit again
