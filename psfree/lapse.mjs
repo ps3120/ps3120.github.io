@@ -240,10 +240,8 @@ const _aio_errors_p = _aio_errors.addr;
 //     u_int num_ids,
 //     int sce_errors[]
 // );
-function aio_multi_delete(ids, , sce_errs=_aio_errors_p) {
-    sysi('aio_multi_delete', ids, , sce_errs);
-}
-
+function aio_multi_delete(ids, num_ids, sce_errs=_aio_errors_p) {
+    sysi('aio_multi_delete', ids, num_ids, sce_errs);
 // int
 // aio_multi_poll(
 //     SceKernelAioSubmitId ids[],
