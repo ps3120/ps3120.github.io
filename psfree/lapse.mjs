@@ -1696,10 +1696,7 @@ export async function kexploit() {
     await init();
     const _init_t2 = performance.now();
 
-    if(sessionStorage.getItem('binloader')){
-        runBinLoader();
-        return new Promise(() => {});
-    }
+ 
 
     // If setuid is successful, we dont need to run the kexploit again
     try {
