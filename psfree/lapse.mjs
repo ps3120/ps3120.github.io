@@ -1634,11 +1634,7 @@ try {
 } catch (e) {
     log(`Errore durante il cleanup delle risorse AIO: ${e}`);
 }
-for (const id of leak_ids) {
-        try {
-            close(id);
-        } catch (e) {}
-    }
+
     
 try {
     const [kpipe, pipe_save] = restore_info;
