@@ -1500,8 +1500,9 @@ var req = new XMLHttpRequest();
         loader_addr,
         payload_buffer,
     );	
-}
+    }
  };
+        })
 }
 
  
