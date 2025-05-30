@@ -993,22 +993,7 @@ function make_aliased_pktopts(sds) {
 
     try {
         const zeroBuf = new Buffer(0x100);
-        for (const sd of sds) {
-            try {
-                // 1) libera la struttura pktopts
-                setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
-                // 2) azzera ipv6_pktinfo
-                setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, zeroBuf, zeroBuf.size);
-                // 3) azzera ipv6_rthdr
-                setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, zeroBuf, 0);
-            } catch (e) {
-                // Se fallisce, proseguiamo comunque
-            }
-            try {
-                close(sd);
-            } catch (e) {
-                // Se chiudere fallisce, lo ignoriamo
-            }
+      
         }
     } catch (cleanupErr) {
         log(`Errore durante cleanup in make_aliased_pktopts: ${cleanupErr}`);
