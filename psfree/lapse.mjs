@@ -1613,13 +1613,14 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     kmem.write32(sysent_661.add(0x2c), sy_thrcnt);
 	
 	  // RIPRISTINO COMPLETO PRIMA DI USCIRE
-    const [kpipe, pipe_save, pktinfo_p, w_pktinfo] = restore_info;
+   /* const [kpipe, pipe_save, pktinfo_p, w_pktinfo] = restore_info;
     
     // Ripristino struttura pipe originale
     for (let off = 0; off < pipe_save.size; off += 8) {
         kmem.write64(kpipe.add(off), pipe_save.read64(off));
-    }
-    
+    }*/
+	const [kpipe, pktinfo_p, w_pktinfo] = restore_info;
+
     // Ripristino puntatori pktopts
     kmem.write64(pktinfo_p, 0);
     kmem.write64(w_pktinfo, 0);
