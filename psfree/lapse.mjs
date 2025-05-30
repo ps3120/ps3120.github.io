@@ -415,9 +415,14 @@ function set_rthdr(sd, buf, len) {
 }
 
 function free_rthdrs(sds) {
-    for (const sd of sds) {
-        setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, 0, 0);
-    }
+  try {
+        setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);   
+        setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, 0, 0);          
+        setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, 0, 0);           
+    } catch (e) {}
+    try {
+        close(sd); 
+    } catch (e) {}
 }
 
 function build_rthdr(buf, size) {
@@ -1629,7 +1634,12 @@ try {
 } catch (e) {
     log(`Errore durante il cleanup delle risorse AIO: ${e}`);
 }
-
+for (const id of leak_ids) {
+        try {
+            close(id);
+        } catch (e) {}
+    }
+    
 try {
     const [kpipe, pipe_save] = restore_info;
     for (let off = 0; off < pipe_save.size; off += 8) {
