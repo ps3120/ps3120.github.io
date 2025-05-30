@@ -1701,7 +1701,7 @@ export async function kexploit() {
     }
 
     // If setuid is successful, we dont need to run the kexploit again
-    try {
+   /* try {
         if (sysi('setuid', 0) == 0) {
             log("Not running kexploit again.");
             runBinLoader();
@@ -1709,7 +1709,7 @@ export async function kexploit() {
         }
     }
     catch (e) {}
-
+*/
     // fun fact:
     // if the first thing you do since boot is run the web browser, WebKit can
     // use all the cores
