@@ -104,15 +104,7 @@ const RTP_SET = 1;
 const RTP_PRIO_REALTIME = 2;
 
 
-function debug_aio_memory_state(sd, kmem, addr, label = "AIO") {
-    log(`--- ${label} memory dump ---`);
-    try {
-        const buf = new Buffer(0x80);
-        kmem.copyout(addr, buf.addr, buf.size);
-        hexdump(buf);
-    } catch (e) {
-        log(`Errore durante la lettura memoria AIO: ${e}`);
-    }
+
 
     
 // SceAIO has 2 SceFsstAIO workers for each SceAIO Parameter. each Parameter
@@ -186,6 +178,17 @@ function call_nze(...args) {
     }
 }
 
+
+function debug_aio_memory_state(sd, kmem, addr, label = "AIO") {
+    log(`--- ${label} memory dump ---`);
+    try {
+        const buf = new Buffer(0x80);
+        kmem.copyout(addr, buf.addr, buf.size);
+        hexdump(buf);
+    } catch (e) {
+        log(`Errore durante la lettura memoria AIO: ${e}`);
+    }
+    
 // #define SCE_KERNEL_AIO_STATE_NOTIFIED       0x10000
 //
 // #define SCE_KERNEL_AIO_STATE_SUBMITTED      1
