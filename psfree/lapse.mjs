@@ -902,6 +902,7 @@ function leak_kernel_addrs(sd_pair) {
 
         free_aios(leak_ids_p, leak_ids_len);
 
+        log("test2"_________);
      debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Post-free AIO");
 
         
@@ -915,6 +916,7 @@ function zero_out_memory(kmem, addr, size = 0x80) {
 
 debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Post-free AIO");
         
+        log("test2"_________);
     }
     if (reqs2_off === null) {
         die('could not leak a reqs2');
