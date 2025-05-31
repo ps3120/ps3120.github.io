@@ -901,6 +901,20 @@ function leak_kernel_addrs(sd_pair) {
         }
 
         free_aios(leak_ids_p, leak_ids_len);
+
+     debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Post-free AIO");
+
+        
+function zero_out_memory(kmem, addr, size = 0x80) {
+    const zero_buf = new Buffer(size);
+    zero_buf.fill(0);
+    kmem.copyin(zero_buf.addr, addr, size);
+    log(`✅ Pulita memoria a ${addr} (${size} bytes)`);
+}
+        zero_out_memory(kmem, reqs1_addr);
+
+debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Post-free AIO");
+        
     }
     if (reqs2_off === null) {
         die('could not leak a reqs2');
