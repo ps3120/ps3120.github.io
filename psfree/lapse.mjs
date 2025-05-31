@@ -1513,9 +1513,16 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
 
 
 
-    
-   sysi('mmap', 'mmap_GPU', 0, 0x2000000, 7, 0x1000, -1, 0);
-    kmem.write64(kbase.add(0x1107f00 + 8), sy_call);
+   try {
+         
+        const gpuMemSize = 0x2000000;
+        const gpuMem = sysi('mmap', 'mmap_GPU', 0, gpuMemSize, 7 | 0x500, 0x1000, -1, 0);
+         
+        const libSceGnm = sysi('sys_dynlib', 'dynlib_load_prx', cstr("/common/lib/libSceGnmDriver.sprx"));
+        log(`Loaded graphics driver: ${libSceGnm}`);
+    } catch (e) {
+        log("GPU init failed, games may not work");
+    }
 
 
     
@@ -1808,9 +1815,10 @@ export async function kexploit() {
     for (const sd of sds) {
         close(sd);
     }
-
-    sysi('munmap', exec_addr, map_size);
-   sysi('munmap', write_addr, map_size);
+ chain.syscall('sys_ctx', 3, 0);
+      for (const res of gpuResources) {
+            sysi('munmap', res.addr, res.size);
+        }
 }
 
 
