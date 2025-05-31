@@ -1609,12 +1609,16 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     sessionStorage.ExploitLoaded="yes";
    //alert("kernel exploit succeeded!");
 
-     sysi('munmap', exec_addr, map_size);
+  try{   sysi('munmap', exec_addr, map_size);
   sysi('munmap', write_addr, map_size);
   close(exec_fd);
   close(write_fd);
 }
+     catch (e) {
+         alert("errore dopo ");
+     }
 
+}
 
 
 // FUNCTIONS FOR STAGE: SETUP
@@ -1778,7 +1782,7 @@ export async function kexploit() {
     aio_multi_wait(block_id.addr, 1);
     aio_multi_delete(block_id.addr, block_id.length);
 
-         if (pktopts_sds) {
+      try{   if (pktopts_sds) {
       close(pktopts_sds[0]);
       close(pktopts_sds[1]);
     }
@@ -1791,7 +1795,8 @@ export async function kexploit() {
         for (const sd of sds) {
       close(sd);
     }
-
+         }
+      catch (e) {alert("errore alli'inizio");}
         const t2 = performance.now();
         const ftime = t2 - t1;
         const init_time = _init_t2 - _init_t1;
