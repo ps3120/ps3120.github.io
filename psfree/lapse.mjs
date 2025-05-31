@@ -63,16 +63,43 @@ const [is_ps4, version] = (() => {
 })();
 
 
-function reset_gpu_context() {
+
+function init_gpu(kmem) {
     try {
-         
-        chain.syscall('sys_ctx', 1, 0);  // SYS_CTX_GPU_INIT
-        chain.syscall('sys_ctx', 3, 0);  // SYS_CTX_GPU_RESET
-        log("GPU context reset successfully");
-    } catch (e) {
-        log("GPU reset failed, using fallback: " + e);
        
-        chain.syscall('sys_ctx', 0, 0x10000000);
+        const gnmHandle = chain.sysi('dynlib_load_prx', 
+            cstr("/common/lib/libSceGnmDriver.sprx"),
+            0, 0
+        );
+        
+        // 2. Ottieni l'indirizzo di GnmDriver
+        const procParam = kmem.read64(kmem.read64(kbase.add(0x19BB000))[0]);
+        const gnmDriver = kmem.read64(procParam.add(0x160));
+        
+        // 3. Inizializza il driver
+        const initFunc = gnmDriver.add(0x28);
+        chain.push_call(initFunc);
+        chain.run();
+        
+        log("GPU driver initialized");
+    } catch (e) {
+        log("GPU init error: " + e);
+    }
+}
+
+
+function safe_gpu_reset() {
+    try {
+        // 1. Reset del contesto
+        chain.syscall('sys_ctx', 3, 0);  // SYS_CTX_GPU_RESET
+        
+        // 2. Re-inizializzazione
+        chain.syscall('sys_ctx', 1, 0);  // SYS_CTX_GPU_INIT
+        
+        // 3. Ripristino stato
+        chain.syscall('sys_ctx', 0, 0x10000000);  // SYS_CTX_GPU_SET
+    } catch (e) {
+        log("GPU reset error: " + e);
     }
 }
 
@@ -1515,28 +1542,6 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
         throw RangeError('kernel patching unsupported');
     }
 
-  try {
-         
-        const gpuMem = chain.sysp('mmap_GPU', 
-            0,                          // indirizzo
-            0x2000000,                  // dimensione
-            0x7,                        // PROT_READ | PROT_WRITE | PROT_EXEC
-            0x1000 | 0x200000,          // MAP_ANONYMOUS | MAP_GPU
-            -1,                         // fd
-            0                           // offset
-        );
-        log(`GPU memory allocated at: ${gpuMem}`);
-
-        // CARICAMENTO DRIVER IN MODO SICURO
-        const gnmHandle = chain.sysp('dynlib_load_prx', 
-            cstr("/common/lib/libSceGnmDriver.sprx"),
-            0, 0
-        );
-        log(`Graphics driver handle: ${gnmHandle}`);
-    } catch (e) {
-        log("GPU initialization skipped: " + e);
-    }
-    
     log('change sys_aio_submit() to sys_kexec()');
     // sysent[661] is unimplemented so free for use
     const offset_sysent_661 = 0x1107f00;
@@ -1632,6 +1637,13 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
 
     log('setuid(0)');
     sysi('setuid', 0);
+
+
+    init_gpu(kmem);
+
+    chain.syscall('sys_ctx', 1, 0);
+
+    
     log('kernel exploit succeeded!');
     log('restore sys_aio_submit()');
     kmem.write32(sysent_661, sy_narg);
@@ -1811,16 +1823,6 @@ export async function kexploit() {
         log('init time: ' + (init_time) / 1000);
         log('time to init: ' + (_init_t1 - t1) / 1000);
         log('time - init time: ' + (ftime - init_time) / 1000);
-
-     reset_gpu_context();
-        
-      if (jitResources.exec_addr && jitResources.map_size) {
-            sysi('munmap', jitResources.exec_addr, jitResources.map_size);
-        }
-        if (jitResources.write_addr && jitResources.map_size) {
-            sysi('munmap', jitResources.write_addr, jitResources.map_size);
-        }
-        
     }
     close(block_fd);
     free_aios2(groom_ids.addr, groom_ids.length);
@@ -1829,7 +1831,8 @@ export async function kexploit() {
     for (const sd of sds) {
         close(sd);
     }
-    nogc = [];
+    safe_gpu_reset();
+
 }
 
 
