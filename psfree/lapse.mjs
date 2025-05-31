@@ -1514,7 +1514,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
 
 
     
-   sysi('sysmman', 'mmap_GPU', 0, 0x2000000, 7, 0x1000, -1, 0);
+   sysi('mmap', 'mmap_GPU', 0, 0x2000000, 7, 0x1000, -1, 0);
     kmem.write64(kbase.add(0x1107f00 + 8), sy_call);
 
 
@@ -1627,7 +1627,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
    //alert("kernel exploit succeeded!");
 
     
-    const gpu_mem = sysi('sysmman', 'query_GPU');
+    const gpu_mem = sysi('mmap', 'query_GPU');
    if (gpu_mem === 0) {
     log("ERRORE: Memoria GPU non allocata");
    }
