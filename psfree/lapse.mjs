@@ -1683,7 +1683,9 @@ function runBinLoader() {
 
 
 function debug_aio_memory_state(sd, kmem, addr, label = "AIO") {
-    log(`--- ${label} memory dump ---`);
+    //log(`--- ${label} memory dump ---`);
+
+    log(`___________________TEST___________________________________`);
     try {
         const buf = new Buffer(0x80);
         kmem.copyout(addr, buf.addr, buf.size);
@@ -1691,6 +1693,8 @@ function debug_aio_memory_state(sd, kmem, addr, label = "AIO") {
     } catch (e) {
         log(`Errore durante la lettura memoria AIO: ${e}`);
     }
+   log(`___________________TEST___________________________________`);
+    
 }
 
 // overview:
