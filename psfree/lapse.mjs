@@ -1701,14 +1701,13 @@ export async function kexploit() {
            runBinLoader();
             return new Promise(() => {});
       }
-
-     try {
-        chain.sys('setuid', 0);
-        }
     
-    catch (e) {
+    try {
+       chain.sys('setuid', 0);
+    } catch (e) {
         localStorage.ExploitLoaded = "no";
     }
+    
  
     // fun fact:
     // if the first thing you do since boot is run the web browser, WebKit can
