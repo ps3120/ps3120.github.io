@@ -62,6 +62,20 @@ const [is_ps4, version] = (() => {
     return [is_ps4, version];
 })();
 
+
+function reset_gpu_context() {
+    try {
+         
+        chain.syscall('sys_ctx', 1, 0);  // SYS_CTX_GPU_INIT
+        chain.syscall('sys_ctx', 3, 0);  // SYS_CTX_GPU_RESET
+        log("GPU context reset successfully");
+    } catch (e) {
+        log("GPU reset failed, using fallback: " + e);
+       
+        chain.syscall('sys_ctx', 0, 0x10000000);
+    }
+}
+
 // sys/socket.h
 const AF_UNIX = 1;
 const AF_INET = 2;
@@ -1476,16 +1490,6 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     kmem.write32(worker_sock, kmem.read32(worker_sock) + 1);
     // +2 since we have to take into account the fget_write()'s reference
     kmem.write32(pipe_file.add(0x28), kmem.read32(pipe_file.add(0x28)) + 2);*/
-
-
-
-     kmem.write64(proc.add(0x30), 0);   
-     kmem.write64(proc.add(0x38), 0);
-
-
-
-
-
     
     return [kbase, kmem, p_ucred, [kpipe, pipe_save, pktinfo_p, w_pktinfo]];
 }
@@ -1511,21 +1515,27 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
         throw RangeError('kernel patching unsupported');
     }
 
-
-
-   try {
+  try {
          
-        const gpuMemSize = 0x2000000;
-        const gpuMem = sysi('mmap', 'mmap_GPU', 0, gpuMemSize, 7 | 0x500, 0x1000, -1, 0);
-         
-        const libSceGnm = sysi('sys_dynlib', 'dynlib_load_prx', cstr("/common/lib/libSceGnmDriver.sprx"));
-        log(`Loaded graphics driver: ${libSceGnm}`);
+        const gpuMem = chain.sysp('mmap_GPU', 
+            0,                          // indirizzo
+            0x2000000,                  // dimensione
+            0x7,                        // PROT_READ | PROT_WRITE | PROT_EXEC
+            0x1000 | 0x200000,          // MAP_ANONYMOUS | MAP_GPU
+            -1,                         // fd
+            0                           // offset
+        );
+        log(`GPU memory allocated at: ${gpuMem}`);
+
+        // CARICAMENTO DRIVER IN MODO SICURO
+        const gnmHandle = chain.sysp('dynlib_load_prx', 
+            cstr("/common/lib/libSceGnmDriver.sprx"),
+            0, 0
+        );
+        log(`Graphics driver handle: ${gnmHandle}`);
     } catch (e) {
-        log("GPU init failed, games may not work");
+        log("GPU initialization skipped: " + e);
     }
-
-
-    
     
     log('change sys_aio_submit() to sys_kexec()');
     // sysent[661] is unimplemented so free for use
@@ -1632,12 +1642,6 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes";
    //alert("kernel exploit succeeded!");
-
-    
-    const gpu_mem = sysi('mmap', 'query_GPU');
-   if (gpu_mem === 0) {
-    log("ERRORE: Memoria GPU non allocata");
-   }
 }
 
 
@@ -1807,6 +1811,13 @@ export async function kexploit() {
         log('init time: ' + (init_time) / 1000);
         log('time to init: ' + (_init_t1 - t1) / 1000);
         log('time - init time: ' + (ftime - init_time) / 1000);
+
+     reset_gpu_context();
+        
+        // Deallocazione memoria in ordine inverso
+        sysi('munmap', write_addr, map_size);
+        sysi('munmap', exec_addr, map_size);
+        
     }
     close(block_fd);
     free_aios2(groom_ids.addr, groom_ids.length);
@@ -1815,10 +1826,7 @@ export async function kexploit() {
     for (const sd of sds) {
         close(sd);
     }
- chain.syscall('sys_ctx', 3, 0);
-      for (const res of gpuResources) {
-            sysi('munmap', res.addr, res.size);
-        }
+    nogc = [];
 }
 
 
