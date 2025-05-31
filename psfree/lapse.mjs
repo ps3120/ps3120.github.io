@@ -103,6 +103,18 @@ const MAP_FIXED = 0x10;
 const RTP_SET = 1;
 const RTP_PRIO_REALTIME = 2;
 
+
+function debug_aio_memory_state(sd, kmem, addr, label = "AIO") {
+    log(`--- ${label} memory dump ---`);
+    try {
+        const buf = new Buffer(0x80);
+        kmem.copyout(addr, buf.addr, buf.size);
+        hexdump(buf);
+    } catch (e) {
+        log(`Errore durante la lettura memoria AIO: ${e}`);
+    }
+
+    
 // SceAIO has 2 SceFsstAIO workers for each SceAIO Parameter. each Parameter
 // has 3 queue groups: 4 main queues, 4 wait queues, and one unused queue
 // group. queue 0 of each group is currently unused. queue 1 has the lowest
@@ -1823,6 +1835,8 @@ export async function kexploit() {
         log('\nSTAGE: Get arbitrary kernel read/write');
         const [kbase, kmem, p_ucred, restore_info] = make_kernel_arw(
             pktopts_sds, dirty_sd, reqs1_addr, kernel_addr, sds);
+
+        debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Post-free AIO");
 
 
              globalThis._kmem = kmem;
