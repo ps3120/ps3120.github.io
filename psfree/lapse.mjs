@@ -1824,6 +1824,8 @@ var loader_addr = chain.sysp(
   -1,
   0
 );
+ var tmpStubArray = array_from_address(loader_addr, 1);
+ tmpStubArray[0] = 0x00C3E7FF;
 
  var req = new XMLHttpRequest();
  req.responseType = "arraybuffer";
