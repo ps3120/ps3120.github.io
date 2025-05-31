@@ -1814,9 +1814,12 @@ export async function kexploit() {
 
      reset_gpu_context();
         
-        // Deallocazione memoria in ordine inverso
-        sysi('munmap', write_addr, map_size);
-        sysi('munmap', exec_addr, map_size);
+      if (jitResources.exec_addr && jitResources.map_size) {
+            sysi('munmap', jitResources.exec_addr, jitResources.map_size);
+        }
+        if (jitResources.write_addr && jitResources.map_size) {
+            sysi('munmap', jitResources.write_addr, jitResources.map_size);
+        }
         
     }
     close(block_fd);
