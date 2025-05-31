@@ -1796,7 +1796,7 @@ export async function kexploit() {
       close(sd);
     }
          }
-      catch (e) {alert("errore alli'inizio");}
+      catch (e) {alert("errore all'inizio");}
         const t2 = performance.now();
         const ftime = t2 - t1;
         const init_time = _init_t2 - _init_t1;
@@ -1806,7 +1806,7 @@ export async function kexploit() {
         log('time to init: ' + (_init_t1 - t1) / 1000);
         log('time - init time: ' + (ftime - init_time) / 1000);
     }
-    close(block_fd);
+    
     free_aios2(groom_ids.addr, groom_ids.length);
     aio_multi_wait(block_id.addr, 1);
     aio_multi_delete(block_id.addr, block_id.length);
