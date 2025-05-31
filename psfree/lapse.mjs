@@ -1684,11 +1684,20 @@ function runBinLoader() {
 }
 
         
-function zero_out_memory(kmem, addr, size = 0x80) {
-    const zero_buf = new Buffer(size);
-    zero_buf.fill(0);
-    kmem.copyin(zero_buf.addr, addr, size);
-    log(`✅ Pulita memoria a ${addr} (${size} bytes)`);
+function zero_out_aio_only(kmem, addr) {
+  const totalSize = 0x80;      // dimensione completa di un aio_entry
+  const skip      = 8;         // non tocchiamo i primi 8 byte
+  const toZero    = totalSize - skip; // 0x80 - 8 = 120 byte
+
+   
+  const zero_buf = new Buffer(toZero);
+  zero_buf.fill(0);
+
+  
+  const target = addr.add(skip);
+  kmem.copyin(zero_buf.addr, target, toZero);
+
+  log(`✅ Azzerrati ${toZero} byte di AIO a partire da 0x${target.toString(16)}`);
 }
     
 
@@ -1794,7 +1803,7 @@ export async function kexploit() {
 
   log('___________________TEST___________________________________');
         debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "prima");
-       zero_out_memory(kmem, reqs1_addr);
+      zero_out_aio_only(kmem, reqs1_addr);
     debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Dopo pulizia");
 
 
