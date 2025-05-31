@@ -1480,7 +1480,7 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     // +2 since we have to take into account the fget_write()'s reference
     kmem.write32(pipe_file.add(0x28), kmem.read32(pipe_file.add(0x28)) + 2);*/
     
-    return [kbase, kmem, p_ucred,pipes, [kpipe, pipe_save, pktinfo_p, w_pktinfo]];
+    return [kbase, kmem, p_ucred, [kpipe, pipe_save, pktinfo_p, w_pktinfo]];
 }
 
 // FUNCTIONS FOR STAGE: PATCH KERNEL
