@@ -1703,9 +1703,8 @@ export async function kexploit() {
       }
 
      try {
-        if (sysi('setuid', 0) != 0)
-        {alert("hi");}
-        //chain.sys('setuid', 0);
+         
+         chain.sys('setuid', 0);
         }
     
     catch (e) {
