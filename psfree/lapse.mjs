@@ -1625,6 +1625,12 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes";
    //alert("kernel exploit succeeded!");
+
+    
+    const gpu_mem = sysi('sysmman', 'query_GPU');
+   if (gpu_mem === 0) {
+    log("ERRORE: Memoria GPU non allocata");
+   }
 }
 
 
