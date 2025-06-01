@@ -1615,6 +1615,8 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     sessionStorage.ExploitLoaded="yes";
    //alert("kernel exploit succeeded!");
 
+    chain.reset();
+
     try {
     log("Pulizia puntatori pktopts...");
     kmem.write64(m_pktopts2.add(0x10), 0); // ip6po_pktinfo
