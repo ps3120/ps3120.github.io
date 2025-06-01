@@ -1838,10 +1838,7 @@ export async function kexploit() {
             pktopts_sds, dirty_sd, reqs1_addr, kernel_addr, sds);
         
             log('__________________TEST________________________');
-      kbase = kbase_val;
-      kmem = kmem_val;
-      p_ucred = p_ucred_val;
-     restore_info = restore_info_val;
+     
 
    
   debug_aio_memory_state(kmem, reqs1_addr, "AIO – prima della pulizia");
