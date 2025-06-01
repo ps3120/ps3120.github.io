@@ -1698,7 +1698,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
    
   debug_aio_memory_state(kmem2, reqs1_addr2, "AIO – prima della pulizia");
 
-            zero_out_aio(kmem2, reqs1_addr2);
+        //    zero_out_aio(kmem2, reqs1_addr2);
 
          debug_aio_memory_state(kmem2, reqs1_addr2, "AIO – dopo la pulizia");
         
