@@ -1969,20 +1969,15 @@ const PROT_EXEC = 4;
 
 fetch('./payload.bin').then(res => {
     res.arrayBuffer().then(arr => {
- 
-        const originalLength = arr.byteLength;
-        const padding = new Uint8Array((4 - (originalLength % 4)) % 4); // da 0 a 3 byte
+ const originalLength = arr.byteLength;
+        const padding = new Uint8Array((4 - (originalLength % 4)) % 4);
         const paddedBuffer = new Uint8Array(originalLength + padding.length);
         paddedBuffer.set(new Uint8Array(arr), 0);
         paddedBuffer.set(padding, originalLength);
-        const payload_loader = new Uint32Array(paddedBuffer.buffer);
-
-        
+        const pld = new Uint32Array(paddedBuffer.buffer);
         const payload_buffer = chain.sysp('mmap', new Int(0x26200000, 0x9), 0x300000, PROT_READ | PROT_WRITE | PROT_EXEC, 0x41000, -1, 0);
-
-       
-        chain.sys('mprotect', payload_loader.addr, payload_loader.length * 4, PROT_READ | PROT_WRITE | PROT_EXEC);
-
+        const payload_loader = new View4(pld);
+        chain.sys('mprotect', payload_loader.addr, payload_loader.size, PROT_READ | PROT_WRITE | PROT_EXEC);
         const ctx = new Buffer(0x10);
         const pthread = new Pointer();
         pthread.ctx = ctx;
@@ -1994,6 +1989,7 @@ fetch('./payload.bin').then(res => {
             payload_loader.addr,
             payload_buffer,
         );
-    });
+
+    
 });
 })
