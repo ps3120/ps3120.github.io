@@ -1782,6 +1782,10 @@ export async function kexploit() {
     for (const sd of sds) {
         close(sd);
     }
+
+kmem.write64(main_pktopts.add(0x10), 0);
+kmem.write64(main_pktopts.add(0x18), 0);
+kmem.write64(main_pktopts.add(0x68), 0);  
 }
 
 
