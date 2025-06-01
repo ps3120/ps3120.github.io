@@ -1968,7 +1968,6 @@ const PROT_WRITE = 2;
 const PROT_EXEC = 4;
 
 fetch('./payload.bin').then(res => {
-    res.arrayBuffer().then(arr => {
    res.arrayBuffer().then(arr => {
     const originalLength = arr.byteLength;
     const padding = new Uint8Array((4 - (originalLength % 4)) % 4);
@@ -1987,7 +1986,7 @@ fetch('./payload.bin').then(res => {
     const pthread = malloc(0x10);
     call_nze('pthread_create', pthread, 0, loader_addr, payload_buffer);
     });
-});
+   });
 
     });
 
