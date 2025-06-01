@@ -1616,6 +1616,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
    //alert("kernel exploit succeeded!");
 
     chain.reset();
+    chain.stack.fill(0);
 
     try {
     log("Pulizia puntatori pktopts...");
