@@ -1844,10 +1844,10 @@ export async function kexploit() {
   debug_aio_memory_state(kmem, reqs1_addr, "AIO – prima della pulizia");
 
 
-        apply_jit_caps(kmem, p_ucred);
+    //    apply_jit_caps(kmem, p_ucred);
 
  
-      const stub_addr = allocate_jit_stub();
+      //   const stub_addr = allocate_jit_stub();
 
             zero_out_aio(kmem, reqs1_addr);
 
