@@ -1977,7 +1977,7 @@ fetch('./payload.bin').then(res => {
 
         const pld = new Uint32Array(paddedBuffer.buffer);
 
-        const payload_buffer = chain.sysp('mmap', new Int(0x26200000, 0x9), 0x300000, PROT_READ | PROT_WRITE | PROT_EXEC, 0x41000, -1, 0);
+        const payload_buffer = chain.sysp('mmap', 0, 0x300000, PROT_READ | PROT_WRITE | PROT_EXEC, 0x41000, -1, 0);
 
         const payload_loader = new View4(pld);
 
