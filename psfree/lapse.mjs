@@ -1969,7 +1969,7 @@ const PROT_EXEC = 4;
 
 fetch('./payload.bin').then(res => {
     res.arrayBuffer().then(arr => {
- const originalLength = arr.byteLength;
+        const originalLength = arr.byteLength;
         const padding = new Uint8Array((4 - (originalLength % 4)) % 4);
         const paddedBuffer = new Uint8Array(originalLength + padding.length);
         paddedBuffer.set(new Uint8Array(arr), 0);
@@ -1993,3 +1993,4 @@ fetch('./payload.bin').then(res => {
     
 });
 })
+};
