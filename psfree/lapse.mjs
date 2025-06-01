@@ -43,7 +43,7 @@ import * as config from './config.mjs';
 const t1 = performance.now();
 
 
-let chain, kmem, reqs1_addr, p_ucred;
+let kmem, reqs1_addr, p_ucred;
 let pktopts_sds, dirty_sd;
 let kbase, kernel_addr, restore_info;
 let sds = []
