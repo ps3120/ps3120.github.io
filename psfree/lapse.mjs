@@ -76,14 +76,23 @@ function allocate_jit_stub() {
 }
 
 function zero_out_aio(kmem, addr) {
-  try {
+
+      try {
+    for (let off = 8; off < 0x80; off += 8) {
+      kmemLocal.write64(addr.add(off), 0);
+    }
+    log(`✅ AIO @ 0x${addr.toString(16)}: byte 0x08–0x7F azzerati`);
+  } catch (e) {
+    log(`❌ Errore in zero_out_aio_skip_first: ${e}`);
+  }
+ /* try {
     const zero = new Buffer(0x80);
     zero.fill(0);
     kmem.copyin(zero.addr, addr, zero.size);
     log(`✅ AIO @ 0x${addr.toString(16)} azzerato`);
   } catch (e) {
     log(`❌ Errore durante zero_out_aio: ${e}`);
-  }
+  }*/
 }
 
 function debug_aio_memory_state(kmem, addr, label = "AIO") {
