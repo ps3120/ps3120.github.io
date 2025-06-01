@@ -1968,17 +1968,16 @@ const PROT_WRITE = 2;
 const PROT_EXEC = 4;
 
 fetch('./payload.bin').then(res => {
-  const originalLength = arr.byteLength;
-    const padding = new Uint8Array((4 - (originalLength % 4)) % 4);
-    const padded = new Uint8Array(originalLength + padding.length);
-    padded.set(new Uint8Array(arr), 0);
-    padded.set(padding, originalLength);
+    res.arrayBuffer().then(arr => {
+        const originalLength = arr.byteLength;
+        const padding = new Uint8Array((4 - (originalLength % 4)) % 4);
+        const paddedBuffer = new Uint8Array(originalLength + padding.length);
+        paddedBuffer.set(new Uint8Array(arr), 0);
+        paddedBuffer.set(padding, originalLength);
 
-    const pld = new Uint32Array(padded.buffer);
-});
-});
+        const pld = new Uint32Array(paddedBuffer.buffer);
 
-   const payload_buffer = chain.sysp('mmap', new Int(0x26200000, 0x9), 0x300000, PROT_READ | PROT_WRITE | PROT_EXEC, 0x41000, -1, 0);
+        const payload_buffer = chain.sysp('mmap',0, 0x300000, PROT_READ | PROT_WRITE | PROT_EXEC, 0x41000, -1, 0);
 
         const payload_loader = new View4(pld);
 
@@ -1995,5 +1994,5 @@ fetch('./payload.bin').then(res => {
             payload_loader.addr,
             payload_buffer,
         );
-
+    });
 });
