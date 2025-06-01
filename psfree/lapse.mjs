@@ -232,15 +232,24 @@ async function init() {
     chain = new Chain();
 
 // PS4 9.00
-const pthread_offsets = new Map(Object.entries({
+/*const pthread_offsets = new Map(Object.entries({
     'pthread_create' : 0x25510,
     'pthread_join' : 0xafa0,
     'pthread_barrier_init' : 0x273d0,
     'pthread_barrier_wait' : 0xa320,
     'pthread_barrier_destroy' : 0xfea0,
     'pthread_exit' : 0x77a0,
-}));
+}));*/
 
+    const pthread_offsets = new Map(Object.entries({
+    'pthread_create' : 0x0000,
+    'pthread_join' : 0x0000,
+    'pthread_barrier_init' : 0x0000,
+    'pthread_barrier_wait' : 0x0000,
+    'pthread_barrier_destroy' : 0x0000,
+    'pthread_exit' : 0x0000,
+}));  
+    
     rop.init_gadget_map(rop.gadgets, pthread_offsets, rop.libkernel_base);
 }
 
@@ -1329,7 +1338,8 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
 
     // Only For PS4 9.00
 
-    const off_kstr = 0x7f6f27;
+   // const off_kstr = 0x7f6f27;
+    const off_kstr = 0x00000;
     const kbase = kernel_addr.sub(off_kstr);
     log(`kernel base: ${kbase}`);
 
