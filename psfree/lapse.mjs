@@ -419,23 +419,36 @@ function set_rthdr(sd, buf, len) {
 }
 
 function free_rthdrs(sds) {
-for (const sd of sds) {
-    try {
-        setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
-        setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO,       0, 0);
-        setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR,         0, 0);
-    } catch (e) {
-        log(`⚠️ Errore setsockopt su socket ${sd}: ${e}`);
+for (let i = 0; i < sds.length; i++) {
+        const sd = sds[i];
+        if (typeof sd === 'number' && sd > 0) {
+            try {
+                setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
+            } catch (e) {
+                log(`⚠️ Errore setsockopt(IPV6_2292PKTOPTIONS) su socket ${sd}: ${e}`);
+            }
+            try {
+                setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, 0, 0);
+            } catch (e) {
+                log(`⚠️ Errore setsockopt(IPV6_PKTINFO) su socket ${sd}: ${e}`);
+            }
+            try {
+                setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, 0, 0);
+            } catch (e) {
+                log(`⚠️ Errore setsockopt(IPV6_RTHDR) su socket ${sd}: ${e}`);
+            }
+            try {
+                close(sd);
+                log(`✅ Socket ${sd} chiuso correttamente`);
+            } catch (e) {
+                log(`⚠️ Errore durante la chiusura del socket ${sd}: ${e}`);
+            }
+        } else {
+            log(`⚠️ Socket ${sd} non valido o già chiuso`);
+        }
     }
-
-    try {
-        close(sd);
-    } catch (e) {
-        log(`⚠️ Errore close() su socket ${sd}: ${e}`);
-    }
-}
-log("✅ Tentato di chiudere tutti i socket in `sds`");
-
+    log("✅ Cleanup completo dei socket eseguito");
+  
 }
 
 function build_rthdr(buf, size) {
