@@ -1672,8 +1672,7 @@ try {
     sessionStorage.ExploitLoaded="yes";
    //alert("kernel exploit succeeded!");
 
-    chain.reset();
-    chain.stack.fill(0);
+    
 
     try {
     log("Pulizia puntatori pktopts...");
