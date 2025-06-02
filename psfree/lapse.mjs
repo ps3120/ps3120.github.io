@@ -421,8 +421,6 @@ function set_rthdr(sd, buf, len) {
 function free_rthdrs(sds) {
     for (const sd of sds) {
         setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, 0, 0);
-        setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
-        setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, 0, 0);
     }
 }
 
