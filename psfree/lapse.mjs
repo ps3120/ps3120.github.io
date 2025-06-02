@@ -1539,7 +1539,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
 
   //__________PATCH KERNEL__________
 
-
+/*
     
 //veriPatch
  kmem.write16(kbase.add(0x626874), 0x9090);
@@ -1596,9 +1596,12 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
  
 
 
-
-
   //__________PATCH KERNEL__________
+
+
+    */
+
+
     
    /* const buf = await get_patches('./kpatch/900.elf');
     // FIXME handle .bss segment properly
