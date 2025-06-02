@@ -1532,7 +1532,70 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     // cr_sceCaps[1]
     kmem.write64(p_ucred.add(0x68), -1);
 
-    const buf = await get_patches('./kpatch/900.elf');
+  //__________PATCH KERNEL__________
+
+
+    
+//veriPatch
+ kmem.write16(kbase.add(0x626874), 0x9090);
+ //bcopy        
+ kmem.write8(kbase.add(0x0ACD), 0xEB);
+    // bzero       
+  kmem.write8(kbase.add(0x2713FD), 0xEB);
+
+  // pagezero    
+  kmem.write8(kbase.add(0x271441), 0xEB);
+
+  // memcpy     
+  kmem.write8(kbase.add(0x2714BD), 0xEB);
+
+  //  pagecopy    
+  kmem.write8(kbase.add(0x271501), 0xEB);
+
+  //  copyin      
+  kmem.write8(kbase.add(0x2716AD), 0xEB);
+
+  //  copyinstr   
+  kmem.write8(kbase.add(0x271B5D), 0xEB);
+
+  //  copystr     
+  kmem.write8(kbase.add(0x271C2D), 0xEB);
+
+  // patch amd64_syscall() 
+  kmem.write32(kbase.add(0x490),   0x00000000);
+  kmem.write8 (kbase.add(0x4C2),   0xEB);
+  kmem.write16(kbase.add(0x4B9),   0x9090);
+  kmem.write16(kbase.add(0x4B5),   0x9090);
+
+  //  patch sys_setuid() 
+  kmem.write8(kbase.add(0x1A06),   0xEB);
+
+  // patch vm_map_protect() 
+  kmem.write32(kbase.add(0x80B8D), 0x00000000);
+
+  // patch “prx”
+  kmem.write16(kbase.add(0x23AEC4), 0xE990);
+
+  // patch sys_dynlib_dlsym()
+  kmem.write8 (kbase.add(0x23B67F), 0xEB);
+  kmem.write32(kbase.add(0x221B40), 0xC3C03148);
+
+  // patch sys_mmap()
+  kmem.write8(kbase.add(0x16632A), 0x37);
+  kmem.write8(kbase.add(0x16632D), 0x37);
+
+  //  patch sysent[11]
+  kmem.write32(kbase.add(0x1100520),     0x00000002);
+  kmem.write64(kbase.add(0x1100520 + 8), kbase.add(0x4C7AD));
+  kmem.write32(kbase.add(0x1100520 + 0x2C), 0x00000001);
+ 
+
+
+
+
+  //__________PATCH KERNEL__________
+    
+   /* const buf = await get_patches('./kpatch/900.elf');
     // FIXME handle .bss segment properly
     // assume start of loadable segments is at offset 0x1000
     const patches = new View1(await buf, 0x1000);
@@ -1545,7 +1608,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
         die('patch file size is zero');
     }
     map_size = map_size+page_size & -page_size;
-
+*/
     const prot_rwx = 7;
     const prot_rx = 5;
     const prot_rw = 3;
