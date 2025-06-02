@@ -419,18 +419,23 @@ function set_rthdr(sd, buf, len) {
 }
 
 function free_rthdrs(sds) {
+for (const sd of sds) {
     try {
-    for (const sd of sds) {
-        
         setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
         setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO,       0, 0);
         setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR,         0, 0);
-        close(sd);
+    } catch (e) {
+        log(`⚠️ Errore setsockopt su socket ${sd}: ${e}`);
     }
-    log("✅ Tutti i socket in `sds` sono stati chiusi");
-} catch (e) {
-    log(`⚠️ Errore chiusura socket residui: ${e}`);
-   }
+
+    try {
+        close(sd);
+    } catch (e) {
+        log(`⚠️ Errore close() su socket ${sd}: ${e}`);
+    }
+}
+log("✅ Tentato di chiudere tutti i socket in `sds`");
+
 }
 
 function build_rthdr(buf, size) {
