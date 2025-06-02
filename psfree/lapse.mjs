@@ -1451,6 +1451,13 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
             this.rw_buf.write64(0, value);
             this.copyin(this.rw_buf.addr, addr, 8);
         }
+        
+       write16(addr, value) {
+            this.rw_buf.write16(0, value);
+            this.copyin(this.rw_buf.addr, addr, 2);
+       }
+
+        
     }
     const kmem = new KernelMemory(main_sd, worker_sd, pipes, kpipe);
 
