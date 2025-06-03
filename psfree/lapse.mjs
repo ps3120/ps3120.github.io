@@ -1705,7 +1705,7 @@ export async function kexploit() {
              return new Promise(() => {});  
           }
         }
-    catch () { }
+    catch { }
     
     // fun fact:
     // if the first thing you do since boot is run the web browser, WebKit can
