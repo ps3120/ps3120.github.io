@@ -1726,8 +1726,9 @@ export async function kexploit() {
     const _init_t2 = performance.now();
 
   try {
-    if (sysi("setuid", 0) != 0) {
-              localStorage.ExploitLoaded = "no";
+    if (sysi("setuid", 0) == 0) {
+            //  localStorage.ExploitLoaded = "no";
+         runBinLoader();
     }
   } catch {  }
     
