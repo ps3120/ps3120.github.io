@@ -1809,7 +1809,7 @@ function array_from_address(addr, size) {
     return og_array;
 }
 
-    kexploit().then(() => {
+    kexploit().then((shouldLoadPayload) => {
 	    if (shouldLoadPayload) {
 		    fetch('./payload.bin').then(res => res.arrayBuffer()).then(arr => {
 			    const originalLength = arr.byteLength;
