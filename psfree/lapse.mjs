@@ -1147,7 +1147,7 @@ function double_free_reqs1(
         states[1] = -1;
         poll_aio(target_ids, states);
         log(`target states: ${hex(states[0])}, ${hex(states[1])}`);
-
+        let shouldLoadPayload = true;
         const SCE_KERNEL_ERROR_ESRCH = 0x80020003;
         let success = true;
         if (states[0] !== SCE_KERNEL_ERROR_ESRCH) {
@@ -1698,7 +1698,6 @@ export async function kexploit() {
     const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
-    let shouldLoadPayload = true;
 
 
 try {
