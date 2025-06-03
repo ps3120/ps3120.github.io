@@ -1713,6 +1713,7 @@ export async function kexploit() {
     if (sysi("setuid", 0) == 0) {
       log("Kernel already patched, skipping kexploit");
        runBinLoader();
+       return new Promise(() => {});
     }
   } catch {  }
 
