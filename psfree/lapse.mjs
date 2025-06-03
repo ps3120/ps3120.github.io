@@ -1147,7 +1147,7 @@ function double_free_reqs1(
         states[1] = -1;
         poll_aio(target_ids, states);
         log(`target states: ${hex(states[0])}, ${hex(states[1])}`);
-        let shouldLoadPayload = true;
+       
         const SCE_KERNEL_ERROR_ESRCH = 0x80020003;
         let success = true;
         if (states[0] !== SCE_KERNEL_ERROR_ESRCH) {
@@ -1698,7 +1698,7 @@ export async function kexploit() {
     const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
-
+    let shouldLoadPayload = true;
 
 try {
     if (sysi("setuid", 0) == 0) {
@@ -1809,11 +1809,11 @@ function array_from_address(addr, size) {
     return og_array;
 }
 
-if (shouldLoadPayload) {
     kexploit().then(() => {
-        fetch('./payload.bin').then(res => res.arrayBuffer()).then(arr => {
-            const originalLength = arr.byteLength;
-			const paddingLength = (4 - (originalLength % 4)) % 4;
+	    if (shouldLoadPayload) {
+		    fetch('./payload.bin').then(res => res.arrayBuffer()).then(arr => {
+			    const originalLength = arr.byteLength;
+			    const paddingLength = (4 - (originalLength % 4)) % 4;
 			const paddedBuffer = new Uint8Array(originalLength + paddingLength);
 			paddedBuffer.set(new Uint8Array(arr), 0);
             if (paddingLength) paddedBuffer.set(new Uint8Array(paddingLength), originalLength);
@@ -1827,6 +1827,6 @@ if (shouldLoadPayload) {
 			pthread.ctx = ctx;
 			call_nze('pthread_create', pthread.addr, 0, payload_buffer, 0);
 	    });
+	}
 
     })
-}
