@@ -1698,12 +1698,13 @@ export async function kexploit() {
     const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
+    let shouldLoadPayload = true;
+
 
 try {
     if (sysi("setuid", 0) == 0) {
         runBinLoader();
-        return true;
-       //return new Promise(() => {});
+        shouldLoadPayload = false;
     }
   } catch {  }
 
@@ -1809,24 +1810,24 @@ function array_from_address(addr, size) {
     return og_array;
 }
 
-kexploit().then(() => {
-fetch('./payload.bin').then(res => res.arrayBuffer()).then(arr => {
-   
-    const originalLength = arr.byteLength;
-    const paddingLength = (4 - (originalLength % 4)) % 4;
-    const paddedBuffer = new Uint8Array(originalLength + paddingLength);
-    paddedBuffer.set(new Uint8Array(arr), 0);
-    if (paddingLength) paddedBuffer.set(new Uint8Array(paddingLength), originalLength);
-    const shellcode = new Uint32Array(paddedBuffer.buffer);
-    const payload_buffer = chain.sysp('mmap', 0, paddedBuffer.length, PROT_READ | PROT_WRITE | PROT_EXEC, 0x41000, -1, 0);
-    const native_view = array_from_address(payload_buffer, shellcode.length);
-    native_view.set(shellcode);
-    chain.sys('mprotect', payload_buffer, paddedBuffer.length, PROT_READ | PROT_WRITE | PROT_EXEC);
-    const ctx = new Buffer(0x10);
-    const pthread = new Pointer();
-    pthread.ctx = ctx;
+if (shouldLoadPayload) {
+    kexploit().then(() => {
+        fetch('./payload.bin').then(res => res.arrayBuffer()).then(arr => {
+            const originalLength = arr.byteLength;
+			const paddingLength = (4 - (originalLength % 4)) % 4;
+			const paddedBuffer = new Uint8Array(originalLength + paddingLength);
+			paddedBuffer.set(new Uint8Array(arr), 0);
+            if (paddingLength) paddedBuffer.set(new Uint8Array(paddingLength), originalLength);
+			const shellcode = new Uint32Array(paddedBuffer.buffer);
+			const payload_buffer = chain.sysp('mmap', 0, paddedBuffer.length, PROT_READ | PROT_WRITE | PROT_EXEC, 0x41000, -1, 0);
+			const native_view = array_from_address(payload_buffer, shellcode.length);
+			native_view.set(shellcode);
+			chain.sys('mprotect', payload_buffer, paddedBuffer.length, PROT_READ | PROT_WRITE | PROT_EXEC);
+			const ctx = new Buffer(0x10);
+			const pthread = new Pointer();
+			pthread.ctx = ctx;
+			call_nze('pthread_create', pthread.addr, 0, payload_buffer, 0);
+	    });
 
-    call_nze('pthread_create', pthread.addr, 0, payload_buffer, 0);
-});
-
-})
+    })
+}
