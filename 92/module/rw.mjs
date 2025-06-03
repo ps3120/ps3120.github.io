@@ -1,4 +1,4 @@
-/* Copyright (C) 2023 anonymous
+/* Copyright (C) 2023-2025 anonymous
 
 This file is part of PSFree.
 
@@ -29,7 +29,7 @@ import { Int, lohi_from_one } from './int64.mjs';
 export class BufferView extends Uint8Array {
     constructor(...args) {
         super(...args);
-        this._dview = new DataView(this.buffer);
+        this._dview = new DataView(this.buffer, this.byteOffset);
     }
 
     read16(offset) {
@@ -56,7 +56,7 @@ export class BufferView extends Uint8Array {
     }
 
     write64(offset, value) {
-        const values = lohi_from_one(value)
+        const values = lohi_from_one(value);
         this._dview.setUint32(offset, values[0], true);
         this._dview.setUint32(offset + 4, values[1], true);
     }
@@ -128,8 +128,8 @@ export function write64(u8_view, offset, value) {
         throw TypeError('write64 value must be an Int');
     }
 
-    let low = value.low;
-    let high = value.high;
+    let low = value.lo;
+    let high = value.hi;
 
     for (let i = 0; i < 4; i++) {
         u8_view[offset + i]  = (low >>> i*8) & 0xff;

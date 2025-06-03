@@ -1,4 +1,4 @@
-/* Copyright (C) 2023-2024 anonymous
+/* Copyright (C) 2023-2025 anonymous
 
 This file is part of PSFree.
 

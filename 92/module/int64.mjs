@@ -1,4 +1,4 @@
-/* Copyright (C) 2023-2024 anonymous
+/* Copyright (C) 2023-2025 anonymous
 
 This file is part of PSFree.
 
@@ -31,7 +31,7 @@ export function lohi_from_one(low) {
     }
 
     if (check_not_in_range(low)) {
-        throw TypeError('low not a 32-bit integer');
+        throw TypeError(`low not a 32-bit integer: ${low}`);
     }
 
     return [low >>> 0, low < 0 ? -1 >>> 0 : 0];
@@ -41,26 +41,26 @@ export function lohi_from_one(low) {
 export class Int {
     constructor(low, high) {
         if (high === undefined) {
-            this._u32 = lohi_from_one(low);
+            this._u32 = new Uint32Array(lohi_from_one(low));
             return;
         }
 
         if (check_not_in_range(low)) {
-            throw TypeError('low not a 32-bit integer');
+            throw TypeError(`low not a 32-bit integer: ${low}`);
         }
 
         if (check_not_in_range(high)) {
-            throw TypeError('high not a 32-bit integer');
+            throw TypeError(`high not a 32-bit integer: ${high}`);
         }
 
-        this._u32 = [low >>> 0, high >>> 0];
+        this._u32 = new Uint32Array([low, high]);
     }
 
-    get low() {
+    get lo() {
         return this._u32[0];
     }
 
-    get high() {
+    get hi() {
         return this._u32[1];
     }
 
@@ -118,14 +118,14 @@ export class Int {
 
     toString(is_pretty=false) {
         if (!is_pretty) {
-            const low = this.low.toString(16).padStart(8, '0');
-            const high = this.high.toString(16).padStart(8, '0');
+            const low = this.lo.toString(16).padStart(8, '0');
+            const high = this.hi.toString(16).padStart(8, '0');
             return '0x' + high + low;
         }
-        let high = this.high.toString(16).padStart(8, '0');
+        let high = this.hi.toString(16).padStart(8, '0');
         high = high.substring(0, 4) + '_' + high.substring(4);
 
-        let low = this.low.toString(16).padStart(8, '0');
+        let low = this.lo.toString(16).padStart(8, '0');
         low = low.substring(0, 4) + '_' + low.substring(4);
 
         return '0x' + high + '_' + low;
