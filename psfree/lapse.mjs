@@ -1725,12 +1725,12 @@ export async function kexploit() {
     await init();
     const _init_t2 = performance.now();
 
-     try {
-        chain.sys('setuid', 0);
-        }
-    catch (e) {
-        localStorage.ExploitLoaded = "no";
+  try {
+    if (sysi("setuid", 0) != 0) {
+              localStorage.ExploitLoaded = "no";
     }
+  } catch {  }
+    
     
      if (localStorage.ExploitLoaded === "yes" && sessionStorage.ExploitLoaded!="yes") {
            runBinLoader();
