@@ -1,38 +1,84 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-
-  <style>
-    body { background: #000; color: #0f0; font-family: monospace; padding: 1rem; }
-    #log { white-space: pre-wrap; }
-  </style>
+  <title>Search redis.conf on PS4</title>
 </head>
 <body>
-  <h1>Verifica libKernel</h1>
-  <div id="log"></div>
-  <script>
-    function log(msg) {
-      document.getElementById('log').textContent += msg + "\n";
-    }
+<h1>Ricerca redis.conf in corso...</h1>
+<script>
+(async () => {
+  const p = window.ps4 || window.payload || window; // adattare in base all'ambiente exploit
 
-    window.onload = function() {
-      log("🚀 Pagina caricata, provo a controllare libKernel...");
-      if (typeof libKernel === "undefined") {
-        log("❌ libKernel è undefined. L’exploit NON è attivo in questa tab.");
-        log("   → Senza libKernel, tutte le chiamate di rete falliranno senza alcun messaggio.");
-      } else {
-        log("✅ libKernel esiste! Posso chiamare sceNetSocket, ecc.");
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
+  function log(msg) {
+    const el = document.createElement("div");
+    el.textContent = msg;
+    document.body.appendChild(el);
+  }
+
+  // Funzione asincrona per leggere directory e cercare file redis.conf
+  async function findRedisConf(dir) {
+    let results = [];
+    try {
+      const entries = await p.readdir(dir);
+      if (!entries) return [];
+
+      for (const entry of entries) {
+        const path = dir + "/" + entry;
+        if (entry === "redis.conf") {
+          results.push(path);
+          log("Trovato: " + path);
+        }
+        // Proviamo a scendere se entry è una directory
         try {
-          var testFd = libKernel.sceNetSocket("x", 2, 1, 6);
-          log("   sceNetSocket ha restituito fd = " + testFd);
-          libKernel.sceNetClose(testFd);
-        } catch (e) {
-          log("⚠️ Ho trovato libKernel ma la chiamata a sceNetSocket ha lanciato: " + e);
+          const subentries = await p.readdir(path);
+          if (subentries) {
+            const subresults = await findRedisConf(path);
+            results = results.concat(subresults);
+          }
+        } catch(e) {
+          // Non è directory o permesso negato
         }
       }
+    } catch(e) {
+      // Directory non accessibile
     }
-  </script>
+    return results;
+  }
+
+  // Funzione per scrivere file su PS4
+  async function writeFile(path, content) {
+    try {
+      const f = await p.open(path, "w");
+      await p.write(f, content);
+      await p.close(f);
+      log("File scritto: " + path);
+    } catch(e) {
+      log("Errore scrittura file: " + e);
+    }
+  }
+
+  log("Inizio ricerca...");
+  const roots = ["/", "/data", "/mnt", "/system_data", "/user"];
+  let found = [];
+
+  for (const root of roots) {
+    log("Scansione in: " + root);
+    const res = await findRedisConf(root);
+    found = found.concat(res);
+  }
+
+  if (found.length === 0) {
+    log("Nessun redis.conf trovato");
+  } else {
+    const content = found.join("\n");
+    await writeFile("/data/redis_conf_paths.txt", content);
+    log("Ricerca completata, risultati salvati in /data/redis_conf_paths.txt");
+  }
+})();
+</script>
 </body>
 </html>
