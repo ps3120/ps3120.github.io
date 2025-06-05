@@ -1,54 +1,38 @@
 <!DOCTYPE html>
-<html lang="it">
+<html>
 <head>
-    <meta charset="UTF-8" />
-    <title>WebRTC / MediaStream Checker</title>
+  <meta charset="utf-8">
+
+  <style>
+    body { background: #000; color: #0f0; font-family: monospace; padding: 1rem; }
+    #log { white-space: pre-wrap; }
+  </style>
 </head>
 <body>
-    <h2>Controllo WebRTC / Media APIs</h2>
-    <button id="checkBtn">Verifica Disponibilità</button>
+  <h1>Verifica libKernel</h1>
+  <div id="log"></div>
+  <script>
+    function log(msg) {
+      document.getElementById('log').textContent += msg + "\n";
+    }
 
-    <script>
-        document.getElementById("checkBtn").addEventListener("click", () => {
-            const rtcSupport = !!(window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection);
-            alert("RTCPeerConnection supportato? " + rtcSupport);
+    window.onload = function() {
+      log("🚀 Pagina caricata, provo a controllare libKernel...");
+      if (typeof libKernel === "undefined") {
+        log("❌ libKernel è undefined. L’exploit NON è attivo in questa tab.");
+        log("   → Senza libKernel, tutte le chiamate di rete falliranno senza alcun messaggio.");
+      } else {
+        log("✅ libKernel esiste! Posso chiamare sceNetSocket, ecc.");
 
-            const getUserMediaSupport = !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function");
-            alert("getUserMedia supportato? " + getUserMediaSupport);
-
-            const mediaRecorderSupport = typeof window.MediaRecorder === "function";
-            alert("MediaRecorder supportato? " + mediaRecorderSupport);
-
-            const testCanvas = document.createElement("canvas");
-            const captureStreamSupport = typeof testCanvas.captureStream === "function";
-            alert("canvas.captureStream() supportato? " + captureStreamSupport);
-
-            const speechRecogSupport = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-            alert("SpeechRecognition supportato? " + speechRecogSupport);
-
-            if (rtcSupport) {
-                try {
-                    const pc = new (window.RTCPeerConnection || window.webkitRTCPeerConnection)();
-                    alert("RTCPeerConnection creato.");
-                    pc.close();
-                } catch (e) {
-                    alert("Errore creando RTCPeerConnection: " + e.name);
-                }
-            }
-
-            if (captureStreamSupport) {
-                const c2 = document.createElement("canvas");
-                alert("Chiamo c2.captureStream()");
-                try {
-                    const ms = c2.captureStream(0);
-                    alert("captureStream ha restituito un MediaStream.");
-                } catch (e) {
-                    alert("captureStream ha fallito: " + e.name);
-                }
-            }
-
-            alert("Controllo completato.");
-        });
-    </script>
+        try {
+          var testFd = libKernel.sceNetSocket("x", 2, 1, 6);
+          log("   sceNetSocket ha restituito fd = " + testFd);
+          libKernel.sceNetClose(testFd);
+        } catch (e) {
+          log("⚠️ Ho trovato libKernel ma la chiamata a sceNetSocket ha lanciato: " + e);
+        }
+      }
+    }
+  </script>
 </body>
 </html>
