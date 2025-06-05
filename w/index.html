@@ -3,10 +3,21 @@
 <head>
   <meta charset="utf-8">
   <title>PS4 Redis Dump</title>
+  <style>
+    body { background: #000; color: #0f0; font-family: monospace; padding: 1rem; }
+    #log { white-space: pre-wrap; }
+  </style>
 </head>
 <body>
 
+  <div id="log">⏳ Avvio in corso…</div>
+
   <script>
+    function log(msg) {
+      const pre = document.getElementById('log');
+      pre.textContent += msg + "\n";
+    }
+
     var sceNetSocket  = libKernel.sceNetSocket;
     var sceNetConnect = libKernel.sceNetConnect;
     var sceNetSend    = libKernel.sceNetSend;
@@ -15,39 +26,34 @@
     var inet_addr     = libKernel.inet_addr;
     var htons         = libKernel.htons;
 
-    const AF_UNIX = 1;
-    const AF_INET = 2;
-    const AF_INET6 = 28;
-    const SOCK_STREAM = 1;
+    // Costanti di dominio/protocollo
+    const AF_UNIX    = 1;
+    const AF_INET    = 2;
+    const AF_INET6   = 28;
+    const SOCK_STREAM= 1;
     const SOCK_DGRAM = 2;
     const SOL_SOCKET = 0xffff;
-    const SO_REUSEADDR = 4;
-    const SO_LINGER = 0x80;
-
-    const IPPROTO_TCP = 6;
-    const IPPROTO_UDP = 17;
+    const SO_REUSEADDR=4;
+    const SO_LINGER  = 0x80;
+    const IPPROTO_TCP= 6;
+    const IPPROTO_UDP= 17;
     const IPPROTO_IPV6 = 41;
-
-    const TCP_INFO = 0x20;
-    const size_tcp_info = 0xec;
-
+    const TCP_INFO   = 0x20;
+    const size_tcp_info=0xec;
     const TCPS_ESTABLISHED = 4;
-
     const IPV6_2292PKTOPTIONS = 25;
     const IPV6_PKTINFO = 46;
     const IPV6_NEXTHOP = 48;
-    const IPV6_RTHDR = 51;
+    const IPV6_RTHDR  = 51;
     const IPV6_TCLASS = 61;
-
     const CPU_LEVEL_WHICH = 3;
     const CPU_WHICH_TID = 1;
-
     const MAP_SHARED = 1;
-    const MAP_FIXED = 0x10;
-
-    const RTP_SET = 1;
+    const MAP_FIXED  = 0x10;
+    const RTP_SET    = 1;
     const RTP_PRIO_REALTIME = 2;
 
+    // Conversioni UTF-8 ↔ Uint8Array
     function utf8ToUint8Array(str) {
       return new TextEncoder().encode(str);
     }
@@ -55,113 +61,167 @@
       return new TextDecoder("utf-8").decode(new Uint8Array(arr));
     }
 
+    // Costruisce un frame RESP da ["CMD","ARG1",...]
     function buildRESP(argsArray) {
       var parts = "*" + argsArray.length + "\r\n";
       for (var i = 0; i < argsArray.length; i++) {
-        var arg = argsArray[i];
-        parts += "$" + arg.length + "\r\n" + arg + "\r\n";
+        var a = argsArray[i];
+        parts += "$" + a.length + "\r\n" + a + "\r\n";
       }
       return parts;
     }
 
-    function sendAndReceive(fd, reqString) {
-      var totalSent = 0;
-      var buf = utf8ToUint8Array(reqString);
-      while (totalSent < buf.length) {
-        var sent = sceNetSend(fd, buf.subarray(totalSent), buf.length - totalSent, 0);
-        if (sent < 0) return;
-        totalSent += sent;
+    function sendAndReceive(fd, req) {
+
+      var sentTotal = 0;
+      var buf = utf8ToUint8Array(req);
+      while (sentTotal < buf.length) {
+        var s = sceNetSend(fd, buf.subarray(sentTotal), buf.length - sentTotal, 0);
+        if (s < 0) {
+          log("❌ send() error: " + s);
+          return null;
+        }
+        sentTotal += s;
       }
-      var responseBytes = [];
-      var tmpBuf = new Uint8Array(4096);
+
+      var respBytes = [];
+      var tmp = new Uint8Array(4096);
       while (true) {
-        var r = sceNetRecv(fd, tmpBuf, tmpBuf.length, 0);
+        var r = sceNetRecv(fd, tmp, tmp.length, 0);
         if (r === 0 || r < 0) break;
-        for (var i = 0; i < r; i++) responseBytes.push(tmpBuf[i]);
-        if (r < tmpBuf.length) break;
+        for (var i = 0; i < r; i++) respBytes.push(tmp[i]);
+        if (r < tmp.length) break;
       }
-      return uint8ArrayToUtf8(responseBytes);
+      return uint8ArrayToUtf8(respBytes);
     }
 
     function execShell(cmd) {
       try { return os.execute(cmd); }
-      catch (e) { return ""; }
+      catch(e) { return ""; }
     }
 
     function startRedisDump() {
-      console.clear();
+      log("✅ Exploit avviato. Provo a dumpare Redis…");
+
+      // 1) Crea directory /data/redis se non esiste
       execShell("mkdir -p /data/redis/ 2>/dev/null");
-      var redis_fd = sceNetSocket("redis_client", AF_INET, SOCK_STREAM, IPPROTO_TCP);
-      if (redis_fd < 0) return;
-      var sockaddr = new Uint8Array(16);
-      sockaddr[0] = AF_INET & 0xff;
-      sockaddr[1] = (AF_INET >> 8) & 0xff;
-      var port_be = htons(6379);
-      sockaddr[2] = port_be & 0xff;
-      sockaddr[3] = (port_be >> 8) & 0xff;
+
+      // 2) Crea socket TCP verso 127.0.0.1:6379
+      var fd = sceNetSocket("redis_client", AF_INET, SOCK_STREAM, IPPROTO_TCP);
+      if (fd < 0) {
+        log("❌ Errore sceNetSocket: " + fd);
+        return;
+      }
+      log("🛠 socket creato: fd=" + fd);
+
+      // Prepara sockaddr_in per 127.0.0.1:6379
+      var sa = new Uint8Array(16);
+      sa[0] = AF_INET & 0xff;
+      sa[1] = (AF_INET >> 8) & 0xff;
+      var p_be = htons(6379);
+      sa[2] = p_be & 0xff; sa[3] = (p_be >> 8) & 0xff;
       var ip_be = inet_addr("127.0.0.1");
-      sockaddr[4] = (ip_be >> 24) & 0xff;
-      sockaddr[5] = (ip_be >> 16) & 0xff;
-      sockaddr[6] = (ip_be >> 8) & 0xff;
-      sockaddr[7] = ip_be & 0xff;
-      var ret = sceNetConnect(redis_fd, sockaddr, 16);
-      if (ret < 0) return;
-      var respDir = sendAndReceive(redis_fd, buildRESP(["CONFIG","GET","dir"]));
-      var respDB  = sendAndReceive(redis_fd, buildRESP(["CONFIG","GET","dbfilename"]));
-      function parseConfigValue(respText) {
-        var lines = respText.split("\r\n");
-        for (var i = 0; i < lines.length; i++) {
-          if (!lines[i].match(/^\*[0-9]+/) &&
-              !lines[i].match(/^\$[0-9]+/) &&
-              lines[i] !== "dir" &&
-              lines[i] !== "dbfilename") {
-            return lines[i];
+      sa[4] = (ip_be >> 24) & 0xff;
+      sa[5] = (ip_be >> 16) & 0xff;
+      sa[6] = (ip_be >>  8) & 0xff;
+      sa[7] = ip_be & 0xff;
+
+      // 3) Connect
+      var rc = sceNetConnect(fd, sa, 16);
+      if (rc < 0) {
+        log("❌ Errore sceNetConnect: " + rc);
+        return;
+      }
+      log("🔗 Connesso a Redis su 127.0.0.1:6379");
+
+      // 4) Leggi CONFIG GET dir e dbfilename
+      var rDir = sendAndReceive(fd, buildRESP(["CONFIG","GET","dir"]));
+      if (rDir === null) return;
+      log("→ CONFIG GET dir:\n" + rDir);
+
+      var rDB = sendAndReceive(fd, buildRESP(["CONFIG","GET","dbfilename"]));
+      if (rDB === null) return;
+      log("→ CONFIG GET dbfilename:\n" + rDB);
+
+      function parseVal(txt) {
+        var L = txt.split("\r\n");
+        for (var i=0;i<L.length;i++) {
+          if (!L[i].match(/^\*[0-9]+/) &&
+              !L[i].match(/^\$[0-9]+/) &&
+              L[i] !== "dir" && L[i] !== "dbfilename") {
+            return L[i];
           }
         }
         return null;
       }
-      var currentDir    = parseConfigValue(respDir);
-      var currentDbfile = parseConfigValue(respDB);
-      var desiredDir    = "/data/redis";
-      var desiredDbfile = "dump.rdb";
-      if (currentDir !== desiredDir) {
-        sendAndReceive(redis_fd, buildRESP(["CONFIG","SET","dir",desiredDir]));
-        currentDir = desiredDir;
+      var curDir    = parseVal(rDir);
+      var curDbfile = parseVal(rDB);
+      log("📂 Redis usa dir="+curDir+", dbfilename="+curDbfile);
+
+      // 5) Se serve, cambio dir/dbfilename in /data/redis/dump.rdb
+      var wantDir    = "/data/redis";
+      var wantDbfile = "dump.rdb";
+      if (curDir !== wantDir) {
+        log("⟳ Cambio dir→ " + wantDir);
+        sendAndReceive(fd, buildRESP(["CONFIG","SET","dir",wantDir]));
+        curDir = wantDir;
       }
-      if (currentDbfile !== desiredDbfile) {
-        sendAndReceive(redis_fd, buildRESP(["CONFIG","SET","dbfilename",desiredDbfile]));
-        currentDbfile = desiredDbfile;
+      if (curDbfile !== wantDbfile) {
+        log("⟳ Cambio dbfilename→ " + wantDbfile);
+        sendAndReceive(fd, buildRESP(["CONFIG","SET","dbfilename",wantDbfile]));
+        curDbfile = wantDbfile;
       }
-      sendAndReceive(redis_fd, buildRESP(["SAVE"]));
+
+      // 6) Eseguo SAVE
+      log("⟳ Eseguo SAVE per creare dump in " + wantDir + "/" + wantDbfile);
+      var rSave = sendAndReceive(fd, buildRESP(["SAVE"]));
+      log("→ SAVE:\n" + rSave);
+
+      // 7) (Opzionale) SCAN + DUMP chiavi
       function scanOnce(fd, cursor) {
-        var req  = buildRESP(["SCAN", cursor]);
-        var resp = sendAndReceive(fd, req);
-        var lines = resp.split("\r\n");
-        var nextCursor = lines[2];
-        var keys = [];
-        for (var i = 4; i < lines.length; i += 2) {
-          if (lines[i] && !lines[i].match(/^\*(\d+)/) && !lines[i].match(/^\$(\d+)/)) {
-            keys.push(lines[i]);
+        var r = sendAndReceive(fd, buildRESP(["SCAN", cursor]));
+        if (r === null) return { next:"0", keys:[] };
+        var L = r.split("\r\n");
+        var nxt = L[2];
+        var ks = [];
+        for (var i=4;i<L.length;i+=2) {
+          if (L[i] && !L[i].match(/^\*[\d]+/) && !L[i].match(/^\$[\d]+/)) {
+            ks.push(L[i]);
           }
         }
-        return { nextCursor: nextCursor, keys: keys };
+        return { next: nxt, keys: ks };
       }
       function dumpKey(fd, key) {
-        var req  = buildRESP(["DUMP", key]);
-        var resp = sendAndReceive(fd, req);
-        var firstLine = resp.split("\r\n")[0];
-        if (!firstLine.startsWith("$")) return;
-        var byteLen = parseInt(firstLine.slice(1));
+        var rr = sendAndReceive(fd, buildRESP(["DUMP", key]));
+        if (rr === null) return;
+        var fl = rr.split("\r\n")[0];
+        if (!fl.startsWith("$")) {
+          log("⚠️ DUMP "+key+" ERR: "+rr.replace(/\r\n/g," "));
+          return;
+        }
+        var len = parseInt(fl.slice(1));
+        log("🔑 Key '"+key+"' → "+len+" byte");
       }
+
+      log("");
+      log("🔍 Inizio SCAN + DUMP chiavi (se presenti)");
+
       var cursor = "0";
       do {
-        var result = scanOnce(redis_fd, cursor);
-        cursor = result.nextCursor;
-        for (var i = 0; i < result.keys.length; i++) {
-          dumpKey(redis_fd, result.keys[i]);
+        var R = scanOnce(fd, cursor);
+        cursor = R.next;
+        for (var i=0;i<R.keys.length;i++) {
+          dumpKey(fd, R.keys[i]);
         }
       } while (cursor !== "0");
-      sceNetClose(redis_fd);
+
+      log("✅ SCAN + DUMP completato");
+
+      // 8) Chiudo socket
+      sceNetClose(fd);
+      log("✖︎ Socket chiuso");
+
+      log("🎉 Operazione finita. Controlla via FTP /data/redis/dump.rdb");
     }
 
     window.onload = startRedisDump;
