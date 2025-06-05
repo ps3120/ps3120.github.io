@@ -5,6 +5,7 @@
   <title>PS4 Redis Dump</title>
 </head>
 <body>
+
   <script>
     var sceNetSocket  = libKernel.sceNetSocket;
     var sceNetConnect = libKernel.sceNetConnect;
@@ -14,9 +15,38 @@
     var inet_addr     = libKernel.inet_addr;
     var htons         = libKernel.htons;
 
-    var AF_INET      = 2;
-    var SOCK_STREAM  = 1;
-    var IPPROTO_TCP  = 6;
+    const AF_UNIX = 1;
+    const AF_INET = 2;
+    const AF_INET6 = 28;
+    const SOCK_STREAM = 1;
+    const SOCK_DGRAM = 2;
+    const SOL_SOCKET = 0xffff;
+    const SO_REUSEADDR = 4;
+    const SO_LINGER = 0x80;
+
+    const IPPROTO_TCP = 6;
+    const IPPROTO_UDP = 17;
+    const IPPROTO_IPV6 = 41;
+
+    const TCP_INFO = 0x20;
+    const size_tcp_info = 0xec;
+
+    const TCPS_ESTABLISHED = 4;
+
+    const IPV6_2292PKTOPTIONS = 25;
+    const IPV6_PKTINFO = 46;
+    const IPV6_NEXTHOP = 48;
+    const IPV6_RTHDR = 51;
+    const IPV6_TCLASS = 61;
+
+    const CPU_LEVEL_WHICH = 3;
+    const CPU_WHICH_TID = 1;
+
+    const MAP_SHARED = 1;
+    const MAP_FIXED = 0x10;
+
+    const RTP_SET = 1;
+    const RTP_PRIO_REALTIME = 2;
 
     function utf8ToUint8Array(str) {
       return new TextEncoder().encode(str);
