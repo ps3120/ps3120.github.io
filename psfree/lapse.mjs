@@ -222,7 +222,12 @@ function call_nze(...args) {
 //     SceKernelAioSubmitId ids[]
 // );
 function aio_submit_cmd(cmd, requests, num_requests, handles) {
-    sysi('aio_submit_cmd', cmd, requests, num_requests, 3, handles);
+    
+   const ret = sysi('aio_submit_cmd', cmd, requests, num_requests, 3, handles);
+      if (ret < 0) {
+    throw new Error(`aio_submit_cmd() error: ${ret}`);
+  }
+  return ret;
 }
 
 // the various SceAIO syscalls that copies out errors/states will not check if
@@ -238,7 +243,14 @@ const _aio_errors_p = _aio_errors.addr;
 //     int sce_errors[]
 // );
 function aio_multi_delete(ids, num_ids, sce_errs=_aio_errors_p) {
-    sysi('aio_multi_delete', ids, num_ids, sce_errs);
+
+    
+    const ret =sysi('aio_multi_delete', ids, num_ids, sce_errs);
+
+     if (ret < 0) {
+    throw new Error(`aio_multi_delete() error: ${ret}`);
+  }
+  return ret;
 }
 
 // int
@@ -248,7 +260,14 @@ function aio_multi_delete(ids, num_ids, sce_errs=_aio_errors_p) {
 //     int states[]
 // );
 function aio_multi_poll(ids, num_ids, sce_errs=_aio_errors_p) {
-    sysi('aio_multi_poll', ids, num_ids, sce_errs);
+
+    
+   const ret = sysi('aio_multi_poll', ids, num_ids, sce_errs);
+
+     if (ret < 0) {
+    throw new Error(`aio_multi_poll() error: ${ret}`);
+  }
+  return ret;
 }
 
 // int
@@ -258,7 +277,12 @@ function aio_multi_poll(ids, num_ids, sce_errs=_aio_errors_p) {
 //     int states[]
 // );
 function aio_multi_cancel(ids, num_ids, sce_errs=_aio_errors_p) {
-    sysi('aio_multi_cancel', ids, num_ids, sce_errs);
+     const ret =sysi('aio_multi_cancel', ids, num_ids, sce_errs);
+
+      if (ret < 0) {
+    throw new Error(`aio_multi_cancel() error: ${ret}`);
+  }
+  return ret;
 }
 
 // // wait for all (AND) or atleast one (OR) to finish
