@@ -409,8 +409,7 @@ async function load_lapse(){
         new Memory(master_b, slave_b, obj, obj_p.add(0x10), obj_bt);
         import('./lapse.mjs');
     }
-    load_lapse();
-	 return;
+
 
     var prim = {
         write8: function (addr, value) {
@@ -480,5 +479,6 @@ async function load_lapse(){
     };
     window.p = prim; 
     //run_hax();
- 
+     load_lapse();
+	// return;
 }
