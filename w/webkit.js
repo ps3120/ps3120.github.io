@@ -411,11 +411,10 @@ async function load_lapse(){
     }
 alert("Sto per chiamare load_lapse");
  load_lapse();
-alert("Chiamata load_lapse fatta");
-    
-	return;
+ 
+ 
 
-    var prim = {
+   /* var prim = {
         write8: function (addr, value) {
             expl_master[4] = addr.low;
             expl_master[5] = addr.hi;
@@ -482,5 +481,6 @@ alert("Chiamata load_lapse fatta");
         }
     };
     window.p = prim;
-    // run_hax();
+    // run_hax();*/
+ 
 }
