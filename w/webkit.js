@@ -479,6 +479,7 @@ async function load_lapse(){
     };
     window.p = prim; 
     //run_hax();
+	alert("HI2");
      load_lapse();
 	// return;
 }
