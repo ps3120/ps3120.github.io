@@ -397,7 +397,7 @@ function poc() {
 
 
 async function load_lapse(){
-	   
+	   alert("LAPSE");
         let mod = await import('./module/mem.mjs');
         let imod = await import('./module/int64.mjs');
         let Memory = mod.Memory;
