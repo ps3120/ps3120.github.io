@@ -397,6 +397,7 @@ var slave_b =  new DataView(new ArrayBuffer(1));
 
 
 async function load_lapse(){
+	alert("HI");
         let mod = await import('./module/mem.mjs');
         let imod = await import('./module/int64.mjs');
         let Memory = mod.Memory;
@@ -409,9 +410,9 @@ async function load_lapse(){
         import('./lapse.mjs');
     }
     load_lapse();
-	//return;
+	 return;
 
- /*   var prim = {
+    var prim = {
         write8: function (addr, value) {
             expl_master[4] = addr.low;
             expl_master[5] = addr.hi;
@@ -477,7 +478,7 @@ async function load_lapse(){
             return new int64(obj_master[4], obj_master[5]);
         }
     };
-    window.p = prim;*/
+    window.p = prim; 
     //run_hax();
  
 }
