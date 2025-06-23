@@ -397,7 +397,7 @@ function poc() {
 
 
 async function load_lapse(){
-	   
+	     alert("Entrato in load_lapse");
         let mod = await import('./module/mem.mjs');
         let imod = await import('./module/int64.mjs');
         let Memory = mod.Memory;
@@ -409,7 +409,10 @@ async function load_lapse(){
         new Memory(expl_master, expl_slave, obj, obj_p.add(0x10), obj_bt);
         import('./lapse.mjs');
     }
-    load_lapse();
+alert("Sto per chiamare load_lapse");
+ load_lapse();
+alert("Chiamata load_lapse fatta");
+    
 	return;
 
     var prim = {
