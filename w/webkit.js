@@ -396,7 +396,7 @@ function poc() {
     m[7] = 1;
 
 
-async function load_lapse(){
+/*async function load_lapse(){
 	     alert("Entrato in load_lapse");
         let mod = await import('./module/mem.mjs');
         let imod = await import('./module/int64.mjs');
@@ -410,8 +410,23 @@ async function load_lapse(){
         import('./lapse.mjs');
     }
 load_lapse().catch(e => alert("Errore durante il caricamento: " + e));
+*/
+function load_lapse() {
+  import('./module/mem.mjs').then(mod => {
+    import('./module/int64.mjs').then(imod => {
+      let Memory = mod.Memory;
+      let obj = {addr: null, 0: 0};
+      let obj_p = addrof(obj);
+      let obj_bt = read64(obj_p.add(8));
+      obj_p = new imod.Int(obj_p.low, obj_p.hi);
+      obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
+      new Memory(expl_master, expl_slave, obj, obj_p.add(0x10), obj_bt);
+      import('./lapse.mjs');
+    });
+  });
+}
+ load_lapse();
 
- 
 
    /* var prim = {
         write8: function (addr, value) {
