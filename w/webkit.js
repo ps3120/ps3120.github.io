@@ -409,8 +409,8 @@ async function load_lapse(){
         new Memory(expl_master, expl_slave, obj, obj_p.add(0x10), obj_bt);
         import('./lapse.mjs');
     }
- load_lapse();
- return;
+load_lapse().catch(e => alert("Errore durante il caricamento: " + e));
+
  
 
    /* var prim = {
