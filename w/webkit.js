@@ -395,9 +395,9 @@ function poc() {
     m[5] = (addrof_expl_slave - addrof_expl_slave % 0x100000000) / 0x100000000;
     m[7] = 1;
 
-
+ alert("LAPSE");	
 async function load_lapse(){
-	   alert("LAPSE");
+	   
         let mod = await import('./module/mem.mjs');
         let imod = await import('./module/int64.mjs');
         let Memory = mod.Memory;
@@ -479,5 +479,5 @@ async function load_lapse(){
         }
     };
     window.p = prim;
-    //run_hax();
+     run_hax();
 }
