@@ -409,9 +409,9 @@ async function load_lapse(){
         new Memory(expl_master, expl_slave, obj, obj_p.add(0x10), obj_bt);
         import('./lapse.mjs');
     }
-alert("Sto per chiamare load_lapse");
+ alert("Sto per chiamare load_lapse");
  load_lapse();
- 
+ return;
  
 
    /* var prim = {
