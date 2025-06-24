@@ -1,3 +1,25 @@
+
+dove posso mettere queste funzioni  addEventListener('error', event => {
+    const reason = event.error;
+    alert(
+        'Unhandled error\n'
+        + ${reason}\n
+        + ${reason.sourceURL}:${reason.line}:${reason.column}\n
+        + ${reason.stack}
+    );
+    return true;
+});
+
+addEventListener('unhandledrejection', event => {
+    const reason = event.reason;
+    alert(
+        'Unhandled rejection\n'
+        + ${reason}\n
+        + ${reason.sourceURL}:${reason.line}:${reason.column}\n
+        + ${reason.stack}
+    );
+});
+
 const OFFSET_ELEMENT_REFCOUNT = 0x10;
 const OFFSET_JSAB_VIEW_VECTOR = 0x10;
 const OFFSET_JSAB_VIEW_LENGTH = 0x18;
@@ -520,27 +542,7 @@ function sprayStringImpl(start, end) {
 
 function go() {
 
-addEventListener('error', event => {
-    const reason = event.error;
-    alert(
-        'Unhandled error\n'
-        + `${reason}\n`
-        + `${reason.sourceURL}:${reason.line}:${reason.column}\n`
-        + `${reason.stack}`
-    );
-    return true;
-});
 
-addEventListener('unhandledrejection', event => {
-    const reason = event.reason;
-    alert(
-        'Unhandled rejection\n'
-        + `${reason}\n`
-        + `${reason.sourceURL}:${reason.line}:${reason.column}\n`
-        + `${reason.stack}`
-    );
-});
-	
 	/* Init spray */
 	sprayHTMLTextArea();
 
