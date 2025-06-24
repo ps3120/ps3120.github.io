@@ -1,5 +1,5 @@
 
-dove posso mettere queste funzioni  addEventListener('error', event => {
+ addEventListener('error', event => {
     const reason = event.error;
     alert(
         'Unhandled error\n'
@@ -152,6 +152,8 @@ function setupRW() {
 	og_slave_addr = new int64(slave_addr.low32(), slave_addr.hi32());
 	var leak_master = addrof(master_b);
 	write64(leak_master.add(0x10), leak_slave.add(0x10));
+
+
 	
 	 async function load_lapse(){
         let mod = await import('./module/mem.mjs');
@@ -166,6 +168,30 @@ function setupRW() {
         import('./lapse.mjs');
     }
     load_lapse();
+
+
+
+ addEventListener('error', event => {
+    const reason = event.error;
+    alert(
+        'Unhandled error\n'
+        + ${reason}\n
+        + ${reason.sourceURL}:${reason.line}:${reason.column}\n
+        + ${reason.stack}
+    );
+    return true;
+});
+
+addEventListener('unhandledrejection', event => {
+    const reason = event.reason;
+    alert(
+        'Unhandled rejection\n'
+        + ${reason}\n
+        + ${reason.sourceURL}:${reason.line}:${reason.column}\n
+        + ${reason.stack}
+    );
+});
+	
 	return;
 	var prim = {
 		write8: function(addr, val) {
