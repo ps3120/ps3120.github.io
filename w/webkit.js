@@ -431,42 +431,9 @@ addEventListener('unhandledrejection', event => {
         import('./lapse.mjs');
     }*/
 	
-	async function load_lapse() {
-   
-    let mod = await import('./module/mem.mjs');
-    let imod = await import('./module/int64.mjs');
-    const Memory = mod.Memory;
-
- 
-    let obj = { addr: null, 0: 0 };
 
    
-    const obj_p_addr = addrof(obj);
-   // const obj_bt_addr = read_mem(obj_p_addr + 8, 8);             // read64 equivalent
 
-    const obj_bt_addr = p.read8(obj_p_addr.add(8));
-	
-    let obj_p = new imod.Int(obj_p_addr.low, obj_p_addr.hi);
-    let obj_bt = new imod.Int(obj_bt_addr.low, obj_bt_addr.hi);
-
-   
-   // new Memory(expl_master, expl_slave, obj, obj_p.add(0x10), obj_bt);
-
-   new Memory(
-       
-        new Uint32Array(new ArrayBuffer(32)),
-    
-        new DataView(new ArrayBuffer(16)),
-        obj,
-        obj_p.add(0x10),
-        obj_bt
-    )
-	
-    await import('./lapse.mjs');
-}
-
-    load_lapse();
-	return;
 
     var prim = {
         write8: function (addr, value) {
@@ -535,5 +502,38 @@ addEventListener('unhandledrejection', event => {
         }
     };
     window.p = prim;
+	
+
+ async function load_lapse(){
+
+	    function read64(addr) {
+        const d = prim.read8(addr);
+        return { low: d.low, hi: d.hi };
+    }
+ 	 
+        let mod = await import('path/to/module/mem.mjs');
+        let imod = await import('path/to/module/int64.mjs');
+        let Memory = mod.Memory;
+        let obj = {addr: null, 0: 0};
+        let obj_p = window.addrof(obj);
+        let obj_bt = read64(obj_p.add(8));
+        obj_p = new imod.Int(obj_p.low, obj_p.hi);
+        obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
+       
+        new Memory(
+       
+        new Uint32Array(new ArrayBuffer(32)),
+    
+        new DataView(new ArrayBuffer(16)),
+        obj,
+        obj_p.add(0x10),
+        obj_bt
+    )
+	
+        import('path/to/scripts/lapse.mjs');
+    }
+    load_lapse();
+    return;
+	
     //run_hax();
 }
