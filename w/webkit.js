@@ -328,6 +328,12 @@ addEventListener('unhandledrejection', event => {
         return a[4] + a[5] * 4294967296;
     }
 
+function addrof(a){
+    obj_slave.obj = a;
+	   return new Int64(obj_master[4], obj_master[5]);
+
+}
+	
     window.addrof = function (x) {
         obj_slave.obj = x;
         return i48_get(obj_master);
@@ -518,9 +524,7 @@ function read64(addr) {
 	
 
  async function load_lapse(){
-
-  const addrofFn = window.addrof;
-
+ 
   const mod = await import('./module/mem.mjs');
   const imod = await import('./module/int64.mjs');
   const Memory = mod.Memory;
@@ -530,7 +534,7 @@ function read64(addr) {
 
   const obj = { addr: null, 0: 0 };
 	 
-const obj_addr =  addrofFn(obj);
+const obj_addr =  addrof(obj);
 
  
   const obj_bt = read64(obj_addr.add(8));
