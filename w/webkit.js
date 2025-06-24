@@ -328,11 +328,7 @@ addEventListener('unhandledrejection', event => {
         return a[4] + a[5] * 4294967296;
     }
 
-function addrof(a){
-    obj_slave.obj = a;
-	   return new Int64(obj_master[4], obj_master[5]);
 
-}
 	
     window.addrof = function (x) {
         obj_slave.obj = x;
@@ -529,6 +525,12 @@ function read64(addr) {
   const imod = await import('./module/int64.mjs');
   const Memory = mod.Memory;
   const Int64 = imod.Int;
+
+function addrof(a){
+    obj_slave.obj = a;
+	   return new Int64(obj_master[4], obj_master[5]);
+
+}	 
   const obj = { addr: null, 0: 0 };	 
 const obj_addr =  addrof(obj);
   const obj_bt = read64(obj_addr.add(8));
