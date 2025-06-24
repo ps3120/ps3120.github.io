@@ -529,17 +529,10 @@ function read64(addr) {
   const imod = await import('./module/int64.mjs');
   const Memory = mod.Memory;
   const Int64 = imod.Int;
-
-
-
-  const obj = { addr: null, 0: 0 };
-	 
+  const obj = { addr: null, 0: 0 };	 
 const obj_addr =  addrof(obj);
-
- 
   const obj_bt = read64(obj_addr.add(8));
   const obj_p = obj_addr;
-
   new Memory(
     new Uint32Array(new ArrayBuffer(32)),
     new DataView(new ArrayBuffer(16)),
