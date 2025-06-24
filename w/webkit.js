@@ -506,45 +506,34 @@ addEventListener('unhandledrejection', event => {
 
  async function load_lapse(){
 
-    const addrofFn = window.addrof;
+  const addrofFn = window.addrof;
 
-	 
+  const mod = await import('./module/mem.mjs');
+  const imod = await import('./module/int64.mjs');
+  const Memory = mod.Memory;
+  const Int64 = imod.Int;
 
+  function read64(addr) {
+    const bytes = window.read_mem(addr, 8);
+    return new Int64(bytes);
+  }
 
-	 
-         let mod = await import('./module/mem.mjs');
-        let imod = await import('./module/int64.mjs');
-        let Memory = mod.Memory;
+  const obj = { addr: null, 0: 0 };
 
+  const obj_addr = addrofFn(obj);  // già Int64
+  const obj_bt = read64(obj_addr.add(8));
+  const obj_p = obj_addr;
 
-     function read64(addr) {
-      const bytes = window.read_mem(addr, 8);
-      return new Int64(bytes);
-    }
- 	   function toInt64(x) {
-      return x instanceof Int64 ? x : new Int64(x.low, x.hi);
-    }
-	 
-       const obj = { addr: null, 0: 0 };
-    const objAddr = toInt64(addrofFn(obj));
-    const rawBt   = read64(objAddr.add(8));
-   const objP  = objAddr;
-    const objBT = toInt64(rawBt);
+  new Memory(
+    new Uint32Array(new ArrayBuffer(32)),
+    new DataView(new ArrayBuffer(16)),
+    obj,
+    obj_p.add(0x10),
+    obj_bt
+  );
 
-	 
-	 
-        new Memory(
-       
-        new Uint32Array(new ArrayBuffer(32)),
-    
-        new DataView(new ArrayBuffer(16)),
-        obj,
-        obj_p.add(0x10),
-        obj_bt
-    )
-	
-     import('./lapse.mjs')
-    }
+  import('./lapse.mjs');
+}
     load_lapse();
     return;
 	
