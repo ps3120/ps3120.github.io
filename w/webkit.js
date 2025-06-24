@@ -454,9 +454,9 @@ addEventListener('unhandledrejection', event => {
 
    new Memory(
        
-        new Uint32Array(new ArrayBuffer(1)),
+        new Uint32Array(new ArrayBuffer(32)),
     
-        new DataView(new ArrayBuffer(1)),
+        new DataView(new ArrayBuffer(16)),
         obj,
         obj_p.add(0x10),
         obj_bt
