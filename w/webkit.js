@@ -519,8 +519,10 @@ addEventListener('unhandledrejection', event => {
   }
 
   const obj = { addr: null, 0: 0 };
+	 
+const obj_addr = new Int64(addrofFn(obj));
 
-  const obj_addr = addrofFn(obj);  // già Int64
+//const obj_addr = addrofFn(obj);  // già Int64
   const obj_bt = read64(obj_addr.add(8));
   const obj_p = obj_addr;
 
