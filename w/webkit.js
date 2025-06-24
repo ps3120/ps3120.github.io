@@ -511,8 +511,8 @@ addEventListener('unhandledrejection', event => {
         return { low: d.low, hi: d.hi };
     }
  	 
-        let mod = await import('path/to/module/mem.mjs');
-        let imod = await import('path/to/module/int64.mjs');
+         let mod = await import('./module/mem.mjs');
+        let imod = await import('./module/int64.mjs');
         let Memory = mod.Memory;
         let obj = {addr: null, 0: 0};
         let obj_p = window.addrof(obj);
@@ -530,7 +530,7 @@ addEventListener('unhandledrejection', event => {
         obj_bt
     )
 	
-        import('path/to/scripts/lapse.mjs');
+     import('./lapse.mjs')
     }
     load_lapse();
     return;
