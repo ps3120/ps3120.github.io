@@ -506,22 +506,31 @@ addEventListener('unhandledrejection', event => {
 
  async function load_lapse(){
 
+    const addrofFn = window.addrof;
 
 	 
- function read64(addr) {
-          const bytes = window.read_mem(addr, 8);
-          return new Int64(bytes);
+  function read64(addr) {
+      const bytes = window.read_mem(addr, 8);
+      return new Int64(bytes);
     }
- 	 
+ 	   function toInt64(x) {
+      return x instanceof Int64 ? x : new Int64(x.low, x.hi);
+    }
+
+	 
          let mod = await import('./module/mem.mjs');
         let imod = await import('./module/int64.mjs');
         let Memory = mod.Memory;
-        let obj = {addr: null, 0: 0};
-        let obj_p = window.addrof(obj);
-        let obj_bt = read64(obj_p.add(8));
-        obj_p = new imod.Int(obj_p.low, obj_p.hi);
-        obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
-       
+
+	 
+       const obj = { addr: null, 0: 0 };
+    const objAddr = toInt64(addrofFn(obj));
+    const rawBt   = read64(objAddr.add(8));
+   const objP  = objAddr;
+    const objBT = toInt64(rawBt);
+
+	 
+	 
         new Memory(
        
         new Uint32Array(new ArrayBuffer(32)),
