@@ -11,6 +11,27 @@ var HAMMER_NSTRINGS = 700; //tweak this if crashing during hammer time
 
 function poc() {
 
+addEventListener('error', event => {
+    const reason = event.error;
+    alert(
+        'Unhandled error\n'
+        + `${reason}\n`
+        + `${reason.sourceURL}:${reason.line}:${reason.column}\n`
+        + `${reason.stack}`
+    );
+    return true;
+});
+
+addEventListener('unhandledrejection', event => {
+    const reason = event.reason;
+    alert(
+        'Unhandled rejection\n'
+        + `${reason}\n`
+        + `${reason.sourceURL}:${reason.line}:${reason.column}\n`
+        + `${reason.stack}`
+    );
+});
+	
     var union = new ArrayBuffer(8);
     var union_b = new Uint8Array(union);
     var union_i = new Uint32Array(union);
