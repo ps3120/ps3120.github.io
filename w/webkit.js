@@ -506,9 +506,11 @@ addEventListener('unhandledrejection', event => {
 
  async function load_lapse(){
 
-	    function read64(addr) {
-        const d = prim.read8(addr);
-        return { low: d.low, hi: d.hi };
+
+	 
+ function read64(addr) {
+          const bytes = window.read_mem(addr, 8);
+          return new Int64(bytes);
     }
  	 
          let mod = await import('./module/mem.mjs');
