@@ -509,19 +509,21 @@ addEventListener('unhandledrejection', event => {
     const addrofFn = window.addrof;
 
 	 
-  function read64(addr) {
-      const bytes = window.read_mem(addr, 8);
-      return new Int64(bytes);
-    }
- 	   function toInt64(x) {
-      return x instanceof Int64 ? x : new Int64(x.low, x.hi);
-    }
+
 
 	 
          let mod = await import('./module/mem.mjs');
         let imod = await import('./module/int64.mjs');
         let Memory = mod.Memory;
 
+
+     function read64(addr) {
+      const bytes = window.read_mem(addr, 8);
+      return new Int64(bytes);
+    }
+ 	   function toInt64(x) {
+      return x instanceof Int64 ? x : new Int64(x.low, x.hi);
+    }
 	 
        const obj = { addr: null, 0: 0 };
     const objAddr = toInt64(addrofFn(obj));
