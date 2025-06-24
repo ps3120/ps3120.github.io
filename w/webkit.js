@@ -504,8 +504,7 @@ loader.onload = () => {
     await import('./lapse.mjs');
 }
 */
-    load_lapse();
-	return;
+ 
 
     var prim = {
         write8: function (addr, value) {
