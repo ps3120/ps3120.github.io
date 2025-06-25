@@ -535,7 +535,7 @@ return new int64(obj_master[4], obj_master[5]);
 
    let Memory = mod.Memory;
    let obj = {addr: null, 0: 0};
-   let obj_p = addrof(obj);
+   let obj_p = addrof2(obj);
 	  
 	 alert("addrof out"+ obj_p);
 
