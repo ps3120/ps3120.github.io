@@ -509,16 +509,16 @@ addEventListener('unhandledrejection', event => {
     };
     window.p = prim;
 	
-function read(addr, length) {
+/*function read(addr, length) {
 
   const bytes = window.read_mem(addr, length);
 
   return bytes;
 }
-	
-function read64(addr) {
+	*/
+/*function read64(addr) {
 	return new int64(read(addr, 8));
-}
+}*/
   function addrof2(obj) {
 	//  alert("eccomi");
  obj_slave.obj   = obj;
@@ -527,6 +527,28 @@ return new int64(obj_master[4], obj_master[5]);
  // return new int64(obj_master[4], obj_master[5]);	  
   //return read64(butterfly.sub(16));
 }
+
+
+	function read(addr, length) {
+  const ptr = (addr instanceof int64) ? addr.low >>> 0 : addr >>> 0;
+  return window.read_mem(ptr, length);
+}
+
+function read64(addr) {
+ 
+  const b = read(addr, 8);
+ 
+  const low  =  (b[0]       ) |
+                (b[1] <<  8) |
+                (b[2] << 16) |
+                (b[3] << 24);
+  const high =  (b[4]       ) |
+                (b[5] <<  8) |
+                (b[6] << 16) |
+                (b[7] << 24);
+  return new int64(low >>> 0, high >>> 0);
+}
+	
 	
  async function load_lapse(){
  
