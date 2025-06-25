@@ -522,7 +522,8 @@ function read64(addr) {
   function addrof2(obj) {
 	//  alert("eccomi");
  obj_slave.obj   = obj;
- return new int64( obj_master[4] >>> 0,obj_master[5] >>> 0);
+return new int64(obj_master[4], obj_master[5]);
+// return new int64( obj_master[4] >>> 0,obj_master[5] >>> 0);
  // return new int64(obj_master[4], obj_master[5]);	  
   //return read64(butterfly.sub(16));
 }
