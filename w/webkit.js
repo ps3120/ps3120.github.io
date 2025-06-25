@@ -562,8 +562,9 @@ function read64(addr) {
 	  
 	 alert("addrof out"+ obj_p);
 
+	 alert(read64(obj_p);
    let obj_bt = read64(obj_p.add32(8));
-      alert(obj_bt);	 
+      	 
    obj_p = new imod.Int(obj_p.low, obj_p.hi);
   obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
 
