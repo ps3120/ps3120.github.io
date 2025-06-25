@@ -539,12 +539,12 @@ return new int64(obj_master[4], obj_master[5]);
 	  
 	 alert("addrof out"+ obj_p);
 
-   let obj_bt = read64(obj_p.add(8));
+   let obj_bt = read64(obj_p.add32(8));
       alert(obj_bt);	 
    obj_p = new imod.Int(obj_p.low, obj_p.hi);
   obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
 
-  const master_b = new Uint32Array(new ArrayBuffer(32));  
+  const master_b = new Uint32Array(new ArrayBuffer(8));  
   const slave_b  = new DataView   (new ArrayBuffer(8));   
 new Memory(master_b, slave_b, obj, obj_p.add(0x10), obj_bt);
 
