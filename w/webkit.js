@@ -531,8 +531,8 @@ function read64(addr) {
   obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
 	 
   new Memory(
-    new Uint32Array(new ArrayBuffer(32)),
-    new DataView(new ArrayBuffer(16)),
+    new Uint32Array(new ArrayBuffer(1)),
+    new DataView(new ArrayBuffer(1)),
     obj,
     obj_p.add(0x10),
     obj_bt
