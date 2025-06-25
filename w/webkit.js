@@ -558,7 +558,7 @@ function read64(addr) {
 
    let Memory = mod.Memory;
    let obj = {addr: null, 0: 0};
-   let obj_p = addrof2(obj);
+   let obj_p = addrof(obj);
 	  
 	 alert("addrof out"+ obj_p);
 	 
