@@ -380,8 +380,9 @@ function read64(addr) {
 	return new Int64(read(addr, 8));
 }
   function addrof(obj) {
-  obj_slave.obj   = obj;
-  return read64(butterfly.sub(16));
+  return prim.leakval(obj);	  
+  //obj_slave.obj   = obj;
+  //return read64(butterfly.sub(16));
 }
 
 
