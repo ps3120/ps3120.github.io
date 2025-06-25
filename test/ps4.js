@@ -46,7 +46,7 @@ var g_input = null;
 
 var guess_htmltextarea_addr = new Int64("0x2031b00d8");
 
-var master_b = new Uint32Array(new ArrayBuffer(32));
+var master_b = new Uint32Array(new ArrayBuffer(8));
 var slave_b =  new DataView(new ArrayBuffer(8));
 var slave_addr;
 var slave_buf_addr;
