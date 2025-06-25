@@ -534,12 +534,12 @@ function read64(addr) {
 
    let Memory = mod.Memory;
    let obj = {addr: null, 0: 0};
-   let obj_p = addrof2(obj);
+   let obj_p = addrof(obj);
 	  
-	 alert("addrof out"+obj_p);
+	 alert("addrof out"+ obj_p);
 
    let obj_bt = read64(obj_p.add(8));
-  alert(obj_bt);	 
+      alert(obj_bt);	 
    obj_p = new imod.Int(obj_p.low, obj_p.hi);
   obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
 
