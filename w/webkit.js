@@ -513,9 +513,8 @@ function read64(addr) {
 	return new Int64(read(addr, 8));
 }
   function addrof(obj) {
-  return prim.leakval(obj);	  
- //  obj_slave.obj   = obj;
- //return new int64(obj_master[4], obj_master[5]);	  
+ obj_slave.obj   = obj;
+  return new int64(obj_master[4], obj_master[5]);	  
   //return read64(butterfly.sub(16));
 }
 	
