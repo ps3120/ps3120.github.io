@@ -1,24 +1,4 @@
-
- addEventListener('error', event => {
-    const reason = event.error;
-    alert(
-        'Unhandled error\n'
-        + ${reason}\n
-        + ${reason.sourceURL}:${reason.line}:${reason.column}\n
-        + ${reason.stack}
-    );
-    return true;
-});
-
-addEventListener('unhandledrejection', event => {
-    const reason = event.reason;
-    alert(
-        'Unhandled rejection\n'
-        + ${reason}\n
-        + ${reason.sourceURL}:${reason.line}:${reason.column}\n
-        + ${reason.stack}
-    );
-});
+ 
 
 const OFFSET_ELEMENT_REFCOUNT = 0x10;
 const OFFSET_JSAB_VIEW_VECTOR = 0x10;
@@ -156,6 +136,9 @@ function setupRW() {
 
 	
 	 async function load_lapse(){
+
+		debug_log("[+] LOADING LAPSE"); 
+		 
         let mod = await import('./module/mem.mjs');
         let imod = await import('./module/int64.mjs');
         let Memory = mod.Memory;
