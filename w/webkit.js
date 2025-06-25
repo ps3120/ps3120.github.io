@@ -605,13 +605,14 @@ async function load_lapse() {
 
 
   const obj_bt = new int64(low, high);
-
+  alert(obj_bt);
 
   const obj_p_low  = rawPtr >>> 0;
   const obj_p_high = (rawPtr / 0x100000000) >>> 0;
   const obj_p = new int64(obj_p_low, obj_p_high);
 
-
+  alert(obj_p);
+	
   const master_b = new Uint32Array(new ArrayBuffer(8));  
   const slave_b  = new DataView   (new ArrayBuffer(8)); 
   new Memory(
