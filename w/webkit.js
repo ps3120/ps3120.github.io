@@ -562,7 +562,7 @@ function read64(addr) {
 	  
 	 alert("addrof out"+ obj_p);
 	 
-  let test=read(obj_p);
+  let test=read(obj_p,8);
 	 alert(test);
 	 
    let obj_bt = read64(obj_p.add32(8));
