@@ -528,24 +528,25 @@ return new int64(obj_master[4], obj_master[5]);
   //return read64(butterfly.sub(16));
 }
 
+	
+ 
 
-	function read(addr, length) {
-  const ptr = (addr instanceof int64) ? addr.low >>> 0 : addr >>> 0;
-  return window.read_mem(ptr, length);
+function read(addr, length) {
+   return window.read_mem(addr, length);
 }
 
 function read64(addr) {
- 
   const b = read(addr, 8);
  
-  const low  =  (b[0]       ) |
-                (b[1] <<  8) |
-                (b[2] << 16) |
-                (b[3] << 24);
-  const high =  (b[4]       ) |
-                (b[5] <<  8) |
-                (b[6] << 16) |
-                (b[7] << 24);
+  let low  = 0;
+  for (let i = 0; i < 4; i++) {
+    low  |= (b[i] & 0xff) << (8 * i);
+  }
+ 
+  let high = 0;
+  for (let i = 0; i < 4; i++) {
+    high |= (b[4 + i] & 0xff) << (8 * i);
+  }
   return new int64(low >>> 0, high >>> 0);
 }
 	
