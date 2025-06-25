@@ -381,7 +381,7 @@ function read64(addr) {
 }
   function addrof(obj) {
   obj_slave.obj   = obj;
-  return read64(g_jsview_butterfly.sub(16));
+  return read64(butterfly.sub(16));
 }
 
 
