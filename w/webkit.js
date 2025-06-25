@@ -376,14 +376,7 @@ addEventListener('unhandledrejection', event => {
         write_mem(p, arr);
     };
 
-function read64(addr) {
-	return new Int64(read(addr, 8));
-}
-  function addrof(obj) {
-  return prim.leakval(obj);	  
-  //obj_slave.obj   = obj;
-  //return read64(butterfly.sub(16));
-}
+
 
 
 	
@@ -516,7 +509,16 @@ function read64(addr) {
     };
     window.p = prim;
 	
-
+function read64(addr) {
+	return new Int64(read(addr, 8));
+}
+  function addrof(obj) {
+  return prim.leakval(obj);	  
+ //  obj_slave.obj   = obj;
+ //return new int64(obj_master[4], obj_master[5]);	  
+  //return read64(butterfly.sub(16));
+}
+	
  async function load_lapse(){
  
   const mod = await import('./module/mem.mjs');
