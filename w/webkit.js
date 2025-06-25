@@ -509,11 +509,18 @@ addEventListener('unhandledrejection', event => {
     };
     window.p = prim;
 	
+function read(addr, length) {
+
+  const bytes = window.read_mem(addr, length);
+
+  return bytes;
+}
+	
 function read64(addr) {
 	return new int64(read(addr, 8));
 }
   function addrof2(obj) {
-	  alert("eccomi");
+	//  alert("eccomi");
  obj_slave.obj   = obj;
  return new int64( obj_master[4] >>> 0,obj_master[5] >>> 0);
  // return new int64(obj_master[4], obj_master[5]);	  
@@ -531,6 +538,7 @@ function read64(addr) {
 	 //alert(obj_p);
 
    let obj_bt = read64(obj_p.add(8));
+	 
    obj_p = new imod.Int(obj_p.low, obj_p.hi);
   obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
 
