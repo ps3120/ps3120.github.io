@@ -331,6 +331,7 @@ addEventListener('unhandledrejection', event => {
 
 	
     window.addrof = function (x) {
+	    alert("non devo essere qui")
         obj_slave.obj = x;
         return i48_get(obj_master);
     }
@@ -527,7 +528,7 @@ function read64(addr) {
    let Memory = mod.Memory;
    let obj = {addr: null, 0: 0};
    let obj_p = addrof(obj);
-	 alert(obj_p);
+	 //alert(obj_p);
 
    let obj_bt = read64(obj_p.add(8));
    obj_p = new imod.Int(obj_p.low, obj_p.hi);
