@@ -530,14 +530,11 @@ function read64(addr) {
    let obj_bt = read64(obj_p.add(8));
    obj_p = new imod.Int(obj_p.low, obj_p.hi);
   obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
-	 
-  new Memory(
-    new Uint32Array(new ArrayBuffer(1)),
-    new DataView(new ArrayBuffer(1)),
-    obj,
-    obj_p.add(0x10),
-    obj_bt
-  );
+
+  const master_b = new Uint32Array(new ArrayBuffer(32));  
+  const slave_b  = new DataView   (new ArrayBuffer(8));   
+new Memory(master_b, slave_b, obj, obj_p.add(0x10), obj_bt);
+
 
   import('./lapse.mjs');
 }
