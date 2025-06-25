@@ -331,7 +331,6 @@ addEventListener('unhandledrejection', event => {
 
 	
     window.addrof = function (x) {
-	    alert("non devo essere qui")
         obj_slave.obj = x;
         return i48_get(obj_master);
     }
@@ -513,12 +512,13 @@ addEventListener('unhandledrejection', event => {
 function read64(addr) {
 	return new int64(read(addr, 8));
 }
- /* function addrof(obj) {
+  function addrof2(obj) {
+	  alert("eccomi");
  obj_slave.obj   = obj;
  return new int64( obj_master[4] >>> 0,obj_master[5] >>> 0);
  // return new int64(obj_master[4], obj_master[5]);	  
   //return read64(butterfly.sub(16));
-}*/
+}
 	
  async function load_lapse(){
  
@@ -527,7 +527,7 @@ function read64(addr) {
 
    let Memory = mod.Memory;
    let obj = {addr: null, 0: 0};
-   let obj_p = addrof(obj);
+   let obj_p = addrof2(obj);
 	 //alert(obj_p);
 
    let obj_bt = read64(obj_p.add(8));
