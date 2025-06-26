@@ -473,7 +473,7 @@ async function load_lapse() {
   // window.loadLapseModule();
 
 	import('./lapse.mjs').then(mosd => {
-       mosd.GO(); 
+       mosd.kexploit(); 
 });
 }
  
