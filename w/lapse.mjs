@@ -155,7 +155,8 @@ const PROT_EXEC = 4;
 
 async function init() {
 try {
-   import * as rop from './module/chain.mjs';
+     const rop = await import('./module/chain.mjs');
+
 
   await rop.init();
   alert("init ok");
