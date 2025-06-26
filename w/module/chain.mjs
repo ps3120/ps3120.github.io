@@ -596,6 +596,5 @@ export async function init() {
      
     alert('Errore: ' + e);
   }
-    } = module);
 	
 }
