@@ -25,6 +25,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 // * MEMLEAK - memory leaks that our code will induce
 
 import { Int } from './module/int64.mjs';
+alert('importato int64');
+
 import { mem } from './module/mem.mjs';
 import { log, die, hex, hexdump } from './module/utils.mjs';
 import { cstr, jstr } from './module/memtools.mjs';
