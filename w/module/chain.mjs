@@ -41,7 +41,7 @@ import { Int, lohi_from_one } from './int64.mjs';
 import { get_view_vector } from './memtools.mjs';
 import { Addr } from './mem.mjs';
 import * as config from '../config.mjs';
-import { module } from '../rop/900.mjs';
+ 
 
 // put the sycall names that you want to use here
 export const syscall_map = new Map(Object.entries({
@@ -577,34 +577,25 @@ export let init_gadget_map = null;
 export let Chain = null;
 
 export async function init() {
-	alert("SONO IN CHAIN");
-    //  const module = await load_fw_specific();
-// const module = await   import('../rop/900.mjs');
-	
+	try {
+    const module = await import('../rop/900.mjs');  
+    alert("SONO IN ROP");
 
-/*import('../rop/900.mjs').then(module => {
- 
     Chain = module.Chain;
     module.init(Chain);
+
     ({
-        gadgets,
-        libwebkit_base,
-        libkernel_base,
-        libc_base,
-        init_gadget_map,
+      gadgets,
+      libwebkit_base,
+      libkernel_base,
+      libc_base,
+      init_gadget_map,
     } = module);
- 
-});	*/
-	alert(module);
-	 
-   Chain = module.Chain;
-    module.init(Chain);
-    ({
-        gadgets,
-        libwebkit_base,
-        libkernel_base,
-        libc_base,
-        init_gadget_map,
+		
+  } catch (e) {
+     
+    alert('Errore: ' + e);
+  }
     } = module);
 	
 }
