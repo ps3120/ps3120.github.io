@@ -581,16 +581,16 @@ export async function init() {
  // const module =     import('./rop/900.mjs');
 	
 import('../rop/900.mjs').then(module => {
-		Chain = module.Chain;
+ 
+    Chain = module.Chain;
     module.init(Chain);
-
     ({
         gadgets,
         libwebkit_base,
         libkernel_base,
         libc_base,
         init_gadget_map,
-    } = module); 
+    } = module);*/
  
 });	
 	alert(module);
