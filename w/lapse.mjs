@@ -25,7 +25,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 // * MEMLEAK - memory leaks that our code will induce
 
 import { Int } from './module/int64.mjs';
-alert('importato int64');
+a
 
 import { mem } from './module/mem.mjs';
 import { log, die, hex, hexdump } from './module/utils.mjs';
@@ -41,6 +41,7 @@ import {
 
 import * as rop from './module/chain.mjs';
 import * as config from './config.mjs';
+
 
 const t1 = performance.now();
 
