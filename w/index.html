@@ -74,7 +74,18 @@
   <script src="webkit.js"></script>
 
  
-
+  <script type="module">
+    
+    window.loadLapseModule = async function () {
+      try {
+          await import('./lapse.mjs');
+        
+      } catch (e) {
+        alert("Errore nel caricamento di lapse.mjs:\n" + e);
+      
+      }
+    };
+  </script>
 
 </head>
 
