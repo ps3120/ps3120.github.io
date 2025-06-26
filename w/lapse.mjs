@@ -50,6 +50,8 @@ import * as fw_ps4_950 from "./lapse/ps4/950.mjs";
 
 const t1 = performance.now();
 
+alert("LAPSE");
+
 
 
 // check if we are running on a supported firmware version
