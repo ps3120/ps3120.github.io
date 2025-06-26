@@ -1686,6 +1686,8 @@ export async function kexploit() {
     await init();
     const _init_t2 = performance.now();
 
+    alert("dopo init");
+
      try {
          if (sysi("setuid", 0) == 0) {
              runBinLoader();
