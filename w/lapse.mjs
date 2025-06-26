@@ -133,8 +133,13 @@ const PROT_WRITE = 2;
 const PROT_EXEC = 4;
 
 async function init() {
+      alert("init start");
+
     await rop.init();
+      alert("rop.init completato");
+
     chain = new Chain();
+      alert("Chain istanziato");
 
 // PS4 9.00
 const pthread_offsets = new Map(Object.entries({
