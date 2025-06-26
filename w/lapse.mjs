@@ -39,7 +39,7 @@ import {
     Buffer,
 } from './module/view.mjs';
 
- import * as rop from './module/chain.mjs';
+// import * as rop from './module/chain.mjs';
 import * as config from './config.mjs';
 
 
@@ -152,9 +152,11 @@ const PROT_EXEC = 4;
   await kexploit();
 })();
 */
+
 async function init() {
 try {
-  
+   import * as rop from './module/chain.mjs';
+
   await rop.init();
   alert("init ok");
    chain = new Chain();
