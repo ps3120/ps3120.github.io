@@ -51,7 +51,7 @@ import * as fw_ps4_950 from "./lapse/ps4/950.mjs";
 const t1 = performance.now();
 
 
-alert("LAPSE");
+
 // check if we are running on a supported firmware version
 const [is_ps4, version] = (() => {
   const value = config.target;
@@ -97,6 +97,7 @@ const fw_config = (() => {
       return fw_ps4_852;
     } else if (0x900 <= version && version < 0x903) {
       // 9.00
+      alert("sei 900");
       return fw_ps4_900;
     } else if (0x903 <= version && version < 0x950) {
       // 9.03, 9.04
@@ -1698,6 +1699,28 @@ function setup(block_fd) {
 //
 // the exploit implementation also assumes that we are pinned to one core
 export async function kexploit() {
+	addEventListener('error', event => {
+    const reason = event.error;
+    alert(
+        'Unhandled error\n'
+        + `${reason}\n`
+        + `${reason.sourceURL}:${reason.line}:${reason.column}\n`
+        + `${reason.stack}`
+    );
+    return true;
+});
+
+addEventListener('unhandledrejection', event => {
+    const reason = event.reason;
+    alert(
+        'Unhandled rejection\n'
+        + `${reason}\n`
+        + `${reason.sourceURL}:${reason.line}:${reason.column}\n`
+        + `${reason.stack}`
+    );
+});
+  
+  alert("LAPSE kexploit");
   const _init_t1 = performance.now();
   await init();
   const _init_t2 = performance.now();
