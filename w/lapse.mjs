@@ -24,6 +24,22 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 // * RESTORE - code will repair kernel panic vulnerability
 // * MEMLEAK - memory leaks that our code will induce
 
+
+
+import * as chainMod from './module/chain.mjs';
+
+// 2) Avvia subito la tua logica in un IIFE async
+(async () => {
+  try {
+    alert('💡 Inizio in lapse.mjs');
+    // chiama init di chain.mjs (che importerà 900.mjs)
+    await chainMod.init();
+    alert('✅ chain.init() è terminato correttamente');
+  } catch (e) {
+    alert('❌ Errore in lapse.mjs → chain.init(): ' + e);
+  }
+})();
+
 import { Int } from './module/int64.mjs';
 
 
