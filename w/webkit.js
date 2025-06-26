@@ -433,8 +433,8 @@ async function load_lapse() {
 //  const { Int: Int64 } = await import('./module/int64.mjs');
 
 
-let mod = await import('./module/mem2.mjs');
-  let imod = await import('./module/int642.mjs');
+let mod = await import('./module/mem.mjs');
+  let imod = await import('./module/int64.mjs');
 
   const Memory = mod.Memory;
   const Int64 = imod.Int;
