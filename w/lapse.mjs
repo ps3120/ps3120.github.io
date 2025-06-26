@@ -133,10 +133,26 @@ var nogc = [];
 const PROT_READ = 1;
 const PROT_WRITE = 2;
 const PROT_EXEC = 4;
+let rop, mem, Int64, utils, memtools, offset, Chain, View1, View2;
+
+(async () => {
+  // importa i moduli
+  rop       = await import('./module/chain.mjs');
+  mem       = (await import('./module/mem.mjs')).mem;
+  Int64     = (await import('./module/int64.mjs')).Int;
+  utils     = await import('./module/utils.mjs');
+  memtools  = await import('./module/memtools.mjs');
+  offset    = await import('./module/offset.mjs');
+  Chain     = (await import('./module/chain.mjs')).Chain;
+  ({ View1, View2, View4, Word, Long, Pointer, Buffer } =
+     await import('./module/view.mjs'));
+ 
+  await kexploit();
+})();
 
 async function init() {
 try {
-  import * as rop from './module/chain.mjs';
+  
   await rop.init();
   alert("init ok");
    chain = new Chain();
