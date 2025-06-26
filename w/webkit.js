@@ -468,8 +468,9 @@ async function load_lapse() {
   .catch(e => alert('errore import lapse.mjs: ' + e.message));*/
  
 
-  await import('./lapse.mjs');
+//  await import('./lapse.mjs');
   
+    window.loadLapseModule();
 
 }
  
