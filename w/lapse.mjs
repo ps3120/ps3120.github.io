@@ -161,8 +161,22 @@ try {
 //import * as rop from './module/chain.mjs';
  
   await rop.init();
-  alert("init ok");
+ 
    chain = new Chain();
+    
+// PS4 9.00
+const pthread_offsets = new Map(Object.entries({
+    'pthread_create' : 0x25510,
+    'pthread_join' : 0xafa0,
+    'pthread_barrier_init' : 0x273d0,
+    'pthread_barrier_wait' : 0xa320,
+    'pthread_barrier_destroy' : 0xfea0,
+    'pthread_exit' : 0x77a0,
+}));
+
+   rop.init_gadget_map(rop.gadgets, pthread_offsets, rop.libkernel_base);
+    
+    
     
 } catch(e) {
   alert("Import/init failed: " + e);
@@ -186,18 +200,7 @@ try {
     //chain = new Chain();
  
 
-// PS4 9.00
-const pthread_offsets = new Map(Object.entries({
-    'pthread_create' : 0x25510,
-    'pthread_join' : 0xafa0,
-    'pthread_barrier_init' : 0x273d0,
-    'pthread_barrier_wait' : 0xa320,
-    'pthread_barrier_destroy' : 0xfea0,
-    'pthread_exit' : 0x77a0,
-}));
 
-   rop.init_gadget_map(rop.gadgets, pthread_offsets, rop.libkernel_base);
-     //  init_gadget_map(gadgets, pthread_offsets, libkernel_base);
 
 }
 
