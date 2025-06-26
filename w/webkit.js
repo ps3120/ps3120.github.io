@@ -473,8 +473,7 @@ async function load_lapse() {
   // window.loadLapseModule();
 
  
-
-});
+ 
 }
  
 
