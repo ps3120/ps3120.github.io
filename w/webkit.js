@@ -456,13 +456,13 @@ async function load_lapse() {
     obj_bt
   );
 
-const s = document.createElement('script');
+/*const s = document.createElement('script');
   s.type = 'module';
   s.src  = './lapse.mjs';  /
   s.onerror = e => alert('Errore nel caricamento di lapse.mjs', e);
   document.head.appendChild(s);
-	
-//  import('./lapse.mjs');
+	*/
+   import('./lapse.mjs');
 /* import('./lapse.mjs')
   .then(() => alert('lapse.mjs importato con successo'))
   .catch(e => alert('errore import lapse.mjs: ' + e.message));*/
