@@ -578,9 +578,9 @@ export let Chain = null;
 export  function init() {
 	alert("SONO IN CHAIN");
     //  const module = await load_fw_specific();
- // const module =     import('./rop/900.mjs');
+ const module =     import('../rop/900.mjs');
 	
-import('../rop/900.mjs').then(module => {
+/*import('../rop/900.mjs').then(module => {
  
     Chain = module.Chain;
     module.init(Chain);
@@ -590,12 +590,12 @@ import('../rop/900.mjs').then(module => {
         libkernel_base,
         libc_base,
         init_gadget_map,
-    } = module);*/
+    } = module);
  
-});	
+});	*/
 	alert(module);
 	 
-   /* Chain = module.Chain;
+   Chain = module.Chain;
     module.init(Chain);
     ({
         gadgets,
@@ -603,6 +603,6 @@ import('../rop/900.mjs').then(module => {
         libkernel_base,
         libc_base,
         init_gadget_map,
-    } = module);*/
+    } = module);
 	
 }
