@@ -39,7 +39,7 @@ import {
     Buffer,
 } from './module/view.mjs';
 
-//import * as rop from './module/chain.mjs';
+ import * as rop from './module/chain.mjs';
 import * as config from './config.mjs';
 
 
@@ -135,7 +135,7 @@ const PROT_WRITE = 2;
 const PROT_EXEC = 4;
 
 
- let rop       =  import('./module/chain.mjs');
+// let rop       =  import('./module/chain.mjs');
  
 /*(async () => {
   // importa i moduli
