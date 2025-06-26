@@ -646,8 +646,8 @@ async function load_lapse() {
   const obj_bt = new Int64(btRaw  >>> 0, (btRaw  / 0x100000000) >>> 0);
 
   const off0x10 = new Int64(0x10, 0);
- const master_b = new Uint32Array(new ArrayBuffer(8));  
-  const slave_b  = new DataView   (new ArrayBuffer(8)); 
+ const master_b = new Uint32Array(new ArrayBuffer(1));  
+  const slave_b  = new DataView   (new ArrayBuffer(1)); 
   new Memory(
     master_b,
     slave_b,
