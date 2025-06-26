@@ -1682,12 +1682,18 @@ function runBinLoader() {
 // the exploit implementation also assumes that we are pinned to one core
 export async function kexploit() {
   alert("kexploit");
-    const _init_t1 = performance.now();
+
+    try {
+   const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
 
-    alert("dopo init");
-
+  alert("init completata");
+} catch(e) {
+  alert("errore in init: " + e.message);
+}
+   
+   
      try {
          if (sysi("setuid", 0) == 0) {
              runBinLoader();
