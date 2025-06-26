@@ -426,6 +426,25 @@ var expl_slave = new DataView(shared_buf);
     m[5] = (addrof_expl_slave - addrof_expl_slave % 0x100000000) / 0x100000000;
     m[7] = 1;
 
+(function bootstrapExploit() {
+  const s = document.createElement('script');
+  s.type = 'module';
+  s.src  = './lapse.mjs'; 
+
+  s.onload  = () => {
+ 
+    if (window.kexploit) {
+      window.kexploit().catch(e => {
+        console.error('kexploit() ha fallito:', e);
+      });
+    } else {
+      console.error('kexploit() non trovato su window');
+    }
+  };
+  s.onerror = e => console.error('Errore nel caricamento di lapse.mjs', e);
+
+  document.head.appendChild(s);
+})();
 
 async function load_lapse() {
   const { Memory } = await import('./module/mem.mjs');
@@ -454,9 +473,9 @@ async function load_lapse() {
     obj_p.add(off0x10),
     obj_bt
   );
-
+bootstrapExploit();
  
-  import('./lapse.mjs');
+//  import('./lapse.mjs');
 /* import('./lapse.mjs')
   .then(() => alert('lapse.mjs importato con successo'))
   .catch(e => alert('errore import lapse.mjs: ' + e.message));*/
