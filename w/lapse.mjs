@@ -157,8 +157,8 @@ async function init() {
 try {
     // const rop = await import('./module/chain.mjs');
 
-// import * as rop from './module/chain.mjs';
-    rop = await import('./module/chain.mjs');
+import * as rop from './module/chain.mjs';
+   //  rop = await import('./module/chain.mjs');
 
   await rop.init();
   alert("init ok");
