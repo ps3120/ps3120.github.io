@@ -488,7 +488,7 @@ let mod = await import('./module/mem.mjs');
   const moduleSrc = `
     import('${lapseUrl}')
       .then(mods => {
-         
+   alert(mods);
         mods.kexploit();
       })
       .catch(e => {
