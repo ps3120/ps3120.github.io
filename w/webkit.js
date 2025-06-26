@@ -468,11 +468,11 @@ async function load_lapse() {
   .catch(e => alert('errore import lapse.mjs: ' + e.message));*/
  
 
- //   import('./lapse.mjs');
+   import('./lapse.mjs');
   
   // window.loadLapseModule();
 
-	window.kexploit = kexploit;
+ 
 
 });
 }
