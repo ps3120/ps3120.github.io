@@ -467,13 +467,17 @@ async function load_lapse() {
   .then(() => alert('lapse.mjs importato con successo'))
   .catch(e => alert('errore import lapse.mjs: ' + e.message));*/
 	 
- const s = document.createElement('script');
+  const base = document.currentScript.src.replace(/\/[^\/]*$/, '/');
+  const url  = base + 'lapse.mjs';
+
+
+  const s = document.createElement('script');
   s.type = 'module';
-  s.src  = './lapse.mjs'; 
-  s.onload = () => console.log('✓ lapse.mjs caricato con successo');
+  s.src  = url;
+  s.onload  = () => console.log('✓ lapse.mjs caricato con successo');
   s.onerror = e => {
-    
-    alert('Errore nel caricamento di lapse.mjs:\n' + e.message);
+    console.error('✗ Errore caricamento lapse.mjs', e);
+    alert('Errore nel caricamento di lapse.mjs:\n' + (e.message||e));
   };
   document.head.appendChild(s);
 	
