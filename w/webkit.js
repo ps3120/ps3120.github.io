@@ -474,22 +474,7 @@ launchLapse();
 }
 
  function launchLapse() {
-  const m = document.createElement('script');
-  m.type = 'module';
-
-  // nota: dentro textContent siamo in un modulo ES,
-  // quindi qui possiamo usare import() e top‐level await
-  m.textContent = `
-    import('./lapse.mjs')
-      .then(mod => {
-        return mod.kexploit?.(); 
-      })
-      .catch(e => {
-        alert('Errore in lapse.mjs: ' + e);
-      });
-  `;
-
-  document.head.appendChild(m);
+   
 }
 
  
