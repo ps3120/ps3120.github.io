@@ -468,8 +468,8 @@ async function load_lapse() {
   .catch(e => alert('errore import lapse.mjs: ' + e.message));*/
  
 
- const lapse = await import('./lapse.mjs');
-  await lapse.kexploit(); 
+  await import('./lapse.mjs');
+  
 
 }
  
