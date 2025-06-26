@@ -579,7 +579,7 @@ export let Chain = null;
 export function init() {
   alert("INIT di chain.js avviato");
 
-  import('../rop/900.mjs')
+  import('./900.mjs')
     .then(module => {
       alert("SONO IN ROP");
 
