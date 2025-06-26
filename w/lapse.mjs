@@ -152,7 +152,7 @@ const PROT_EXEC = 4;
   await kexploit();
 })();
 */
-function GO() {
+
 
 async function init() {
 try {
@@ -1878,4 +1878,4 @@ fetch('./payload.bin').then(res => res.arrayBuffer()).then(arr => {
 });
 
 })
-}
+ 
