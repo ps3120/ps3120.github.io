@@ -580,7 +580,7 @@ export async function init() {
     //  const module = await load_fw_specific();
   const module =    import('/rop/900.mjs');
 	
-	
+	alert(module );
 	 
     Chain = module.Chain;
     module.init(Chain);
