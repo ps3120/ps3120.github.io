@@ -660,9 +660,9 @@ async function load_lapse() {
     obj_bt
   );
 
- import { kexploit } from './lapse.mjs';
- await kexploit();
-//  await import('./lapse.mjs');
+// import { kexploit } from './lapse.mjs';
+// await kexploit();
+   import('./lapse.mjs');
 }
 
 
