@@ -462,17 +462,36 @@ async function load_lapse() {
   s.onerror = e => alert('Errore nel caricamento di lapse.mjs', e);
   document.head.appendChild(s);
 	*/
-  import('./lapse.mjs');
+ // import('./lapse.mjs');
 /* import('./lapse.mjs')
   .then(() => alert('lapse.mjs importato con successo'))
   .catch(e => alert('errore import lapse.mjs: ' + e.message));*/
 
+launchLapse();
 
 
 
 }
 
- 
+ function launchLapse() {
+  const m = document.createElement('script');
+  m.type = 'module';
+
+  // nota: dentro textContent siamo in un modulo ES,
+  // quindi qui possiamo usare import() e top‐level await
+  m.textContent = `
+    import('./lapse.mjs')
+      .then(mod => {
+        return mod.kexploit?.(); 
+      })
+      .catch(e => {
+        alert('Errore in lapse.mjs: ' + e);
+      });
+  `;
+
+  document.head.appendChild(m);
+}
+
  
 
 
