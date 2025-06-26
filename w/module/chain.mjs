@@ -576,7 +576,7 @@ export let libc_base = null;
 export let init_gadget_map = null;
 export let Chain = null;
 
-export function init() {
+/*export function init() {
   alert("INIT di chain.js avviato");
 
   import('./900.mjs')
@@ -597,8 +597,8 @@ export function init() {
     .catch(e => {
       alert('❌ ERRORE import 900.mjs:\n' + e);
     });
-}
-/*export async function init() {
+}*/
+  export async function init() {
  
     const module = await import('../rop/900.mjs');  
     alert("SONO IN ROP");
@@ -616,4 +616,4 @@ export function init() {
 		 
   
 	
-}*/
+} 
