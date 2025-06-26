@@ -576,12 +576,34 @@ export let libc_base = null;
 export let init_gadget_map = null;
 export let Chain = null;
 
-export async function init() {
-	try {
+export function init() {
+  alert("INIT di chain.js avviato");
+
+  import('../rop/900.mjs')
+    .then(module => {
+      alert("SONO IN ROP");
+
+      Chain = module.Chain;
+      module.init(Chain);
+
+      ({
+        gadgets,
+        libwebkit_base,
+        libkernel_base,
+        libc_base,
+        init_gadget_map,
+      } = module);
+    })
+    .catch(e => {
+      alert('❌ ERRORE import 900.mjs:\n' + e);
+    });
+}
+/*export async function init() {
+ 
     const module = await import('../rop/900.mjs');  
     alert("SONO IN ROP");
 
-    /*Chain = module.Chain;
+   Chain = module.Chain;
     module.init(Chain);
 
     ({
@@ -591,10 +613,7 @@ export async function init() {
       libc_base,
       init_gadget_map,
     } = module);
-		*/
-  } catch (e) {
-     
-    alert('Errore: ' + e);
-  }
+		 
+  
 	
-}
+}*/
