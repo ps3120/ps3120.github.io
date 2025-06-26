@@ -139,6 +139,8 @@ try {
   const rop = await import('./module/chain.mjs');
   await rop.init();
   alert("init ok");
+  chain =new rop.ChainBase();
+    
 } catch(e) {
   alert("Import/init failed: " + e);
 }
@@ -154,7 +156,7 @@ try {
     // await rop.init();
      
 
-    chain = new Chain();
+    //chain = new Chain();
  
 
 // PS4 9.00
