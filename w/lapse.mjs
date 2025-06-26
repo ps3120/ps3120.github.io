@@ -133,9 +133,11 @@ var nogc = [];
 const PROT_READ = 1;
 const PROT_WRITE = 2;
 const PROT_EXEC = 4;
-//let rop, mem, Int64, utils, memtools, offset, Chain, View1, View2;
-let rop;
-(async () => {
+
+
+ let rop       =  import('./module/chain.mjs');
+ 
+/*(async () => {
   // importa i moduli
   rop       = await import('./module/chain.mjs');
   //mem       = (await import('./module/mem.mjs')).mem;
@@ -149,7 +151,7 @@ let rop;
  
   await kexploit();
 })();
-
+*/
 async function init() {
 try {
   
