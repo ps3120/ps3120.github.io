@@ -81,7 +81,7 @@ const fw_config = (() => {
       return fw_ps4_852;
     } else if (0x900 <= version && version < 0x903) {
       // 9.00
-      alert("sei 900");
+     
       return fw_ps4_900;
     } else if (0x903 <= version && version < 0x950) {
       // 9.03, 9.04
