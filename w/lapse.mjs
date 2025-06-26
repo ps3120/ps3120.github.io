@@ -163,11 +163,11 @@ try {
  
  
   await rop.init();
- 
+   alert("carico  await rop.init()");
+    
    chain = new Chain();
 
-    alert("carico thread_offset");
-    
+    alert("new chain)");
 // PS4 9.00
 const pthread_offsets = new Map(Object.entries({
     'pthread_create' : 0x25510,
