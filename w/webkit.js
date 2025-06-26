@@ -665,7 +665,7 @@ async function load_lapse() {
   // import('./lapse.mjs');
 	//await import('./lapse.mjs');
  const { kexploit } = await import('./lapse.mjs');
-  await kexploit();  
+ // await kexploit();  
 }
 
 
