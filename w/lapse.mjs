@@ -134,7 +134,7 @@ const PROT_READ = 1;
 const PROT_WRITE = 2;
 const PROT_EXEC = 4;
 //let rop, mem, Int64, utils, memtools, offset, Chain, View1, View2;
-let rop,Chain, View1, View2;
+let rop;
 (async () => {
   // importa i moduli
   rop       = await import('./module/chain.mjs');
@@ -143,9 +143,9 @@ let rop,Chain, View1, View2;
  // utils     = await import('./module/utils.mjs');
  // memtools  = await import('./module/memtools.mjs');
  // offset    = await import('./module/offset.mjs');
-  Chain     = (await import('./module/chain.mjs')).Chain;
-  ({ View1, View2, View4, Word, Long, Pointer, Buffer } =
-     await import('./module/view.mjs'));
+ // Chain     = (await import('./module/chain.mjs')).Chain;
+ // ({ View1, View2, View4, Word, Long, Pointer, Buffer } =
+  //   await import('./module/view.mjs'));
  
   await kexploit();
 })();
