@@ -133,13 +133,13 @@ const PROT_WRITE = 2;
 const PROT_EXEC = 4;
 
 async function init() {
-      alert("init start");
-
+     
 try {
+  const rop = await import('./module/chain.mjs');
   await rop.init();
   alert("init ok");
 } catch (e) {
-  alert("init failed: " + e);
+  alert("Import or init failed: " + e);
 }
     
   //  await rop.init();
@@ -1695,15 +1695,12 @@ function runBinLoader() {
 export async function kexploit() {
   alert("kexploit");
 
-    try {
+
    const _init_t1 = performance.now();
     await init();
     const _init_t2 = performance.now();
 
-  alert("init completata");
-} catch(e) {
-  alert("errore in init: " + e.message);
-}
+
    
    
      try {
