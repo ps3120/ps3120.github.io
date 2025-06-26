@@ -456,8 +456,10 @@ async function load_lapse() {
   );
 
  
-  import('./lapse.mjs');
- 
+  //import('./lapse.mjs');
+ import('./lapse.mjs')
+  .then(() => alert('lapse.mjs importato con successo'))
+  .catch(e => alert('errore import lapse.mjs: ' + e.message));
 }
 
 
