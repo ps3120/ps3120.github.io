@@ -50,27 +50,9 @@ import * as fw_ps4_950 from "./lapse/ps4/950.mjs";
 
 const t1 = performance.now();
 
+ debug_log("HELLO FROM LAPSE");
 // check if we are running on a supported firmware version
-const [is_ps4, version] = (() => {
-  const value = config.target;
-  const is_ps4 = (value & 0x10000) === 0;
-  const version = value & 0xffff;
-  const [lower, upper] = (() => {
-    if (is_ps4) {
-      return [0x100, 0x1250];
-    } else {
-      return [0x100, 0x1020];
-    }
-  })();
-
-  if (!(lower <= version && version < upper)) {
-    throw RangeError(`invalid config.target: ${hex(value)}`);
-  }
-
-  debug_log(`console: PS${is_ps4 ? "4" : "5"} | firmware: ${hex(version)}`);
-
-  return [is_ps4, version];
-})();
+const [is_ps4, version] = [true, 0x700];
 
 // set per-console/per-firmware offsets
 const fw_config = (() => {
