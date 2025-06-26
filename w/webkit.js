@@ -462,20 +462,16 @@ async function load_lapse() {
   s.onerror = e => alert('Errore nel caricamento di lapse.mjs', e);
   document.head.appendChild(s);
 	*/
- // import('./lapse.mjs');
+   import('./lapse.mjs');
 /* import('./lapse.mjs')
   .then(() => alert('lapse.mjs importato con successo'))
   .catch(e => alert('errore import lapse.mjs: ' + e.message));*/
-
-launchLapse();
+ 
 
 
 
 }
-
- function launchLapse() {
-   
-}
+ 
 
  
 
