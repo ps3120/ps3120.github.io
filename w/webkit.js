@@ -640,10 +640,10 @@ async function load_lapse() {
 
   
   const rawPtr = window.addrof(obj);
-  alert("rawPtr = 0x" + rawPtr.toString(16));
+//  alert("rawPtr = 0x" + rawPtr.toString(16));
 
   const btRaw = window.read_ptr_at(rawPtr + 8);
-  alert("butterfly raw = 0x" + btRaw.toString(16));
+ // alert("butterfly raw = 0x" + btRaw.toString(16));
 
 
   const obj_p = new Int64(rawPtr >>> 0, (rawPtr / 0x100000000) >>> 0);
