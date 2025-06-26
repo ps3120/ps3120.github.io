@@ -588,7 +588,7 @@ export let Chain = null;
 
 export async function init() {
     //const module = await load_fw_specific(config.target);
-    const module =  import('../rop/900.mjs')
+    const module =  await import('../rop/900.mjs')
     Chain = module.Chain;
     module.init(Chain);
     ({
