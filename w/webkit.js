@@ -664,12 +664,12 @@ async function load_lapse() {
 // await kexploit();
   // import('./lapse.mjs');
 	//await import('./lapse.mjs');
- const { kexploit } = await import('./lapse.mjs');
- // await kexploit();  
+  import('./lapse.mjs');
+ 
 }
 
 
-    await load_lapse();
+      load_lapse();
     //return;
 	
     //run_hax();
