@@ -413,7 +413,7 @@ addEventListener('unhandledrejection', event => {
   // var expl_master = new Uint32Array(8);
   //  var expl_slave = new Uint32Array(2);
 
-var shared_buf = new ArrayBuffer(0x10000);  
+var shared_buf = new ArrayBuffer(0x4000);  
 var expl_master = new Uint32Array(shared_buf);
 var expl_slave = new DataView(shared_buf);	
 
