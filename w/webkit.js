@@ -579,7 +579,7 @@ new Memory(master_b, slave_b, obj, obj_p.add(0x10), obj_bt);
 }*/
 
 
-async function load_lapse() {
+/*async function load_lapse() {
 
   const mod   = await import('./module/mem.mjs');
   const Int64 = (await import('./module/int64.mjs')).Int;
@@ -625,7 +625,41 @@ async function load_lapse() {
 
   await import('./lapse.mjs');
 }
-	
+	*/
+
+
+async function load_lapse() {
+  const { Memory } = await import('./module/mem.mjs');
+  const { Int: Int64 } = await import('./module/int64.mjs');
+
+  const obj = { addr: null, 0: 0 };
+
+  
+  const rawPtr = window.addrof(obj);
+  alert("rawPtr = 0x" + rawPtr.toString(16));
+
+  const btRaw = window.read_ptr_at(rawPtr + 8);
+  alert("butterfly raw = 0x" + btRaw.toString(16));
+
+
+  const obj_p = new Int64(rawPtr >>> 0, (rawPtr / 0x100000000) >>> 0);
+  const obj_bt = new Int64(btRaw  >>> 0, (btRaw  / 0x100000000) >>> 0);
+
+  const off0x10 = new Int64(0x10, 0);
+
+  new Memory(
+    master_b,
+    slave_b,
+    obj,
+    obj_p.add(off0x10),
+    obj_bt
+  );
+
+ 
+  await import('./lapse.mjs');
+}
+
+
     load_lapse();
     return;
 	
