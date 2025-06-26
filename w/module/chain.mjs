@@ -581,7 +581,7 @@ export async function init() {
     const module = await import('../rop/900.mjs');  
     alert("SONO IN ROP");
 
-    Chain = module.Chain;
+    /*Chain = module.Chain;
     module.init(Chain);
 
     ({
@@ -591,7 +591,7 @@ export async function init() {
       libc_base,
       init_gadget_map,
     } = module);
-		
+		*/
   } catch (e) {
      
     alert('Errore: ' + e);
