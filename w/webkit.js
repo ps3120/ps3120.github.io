@@ -427,14 +427,15 @@ var expl_slave = new DataView(shared_buf);
     m[7] = 1;
 
 function loadLapseModule() {
-  return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.type = 'module';
-    s.src  = './lapse.mjs';
-    s.onload  = () => resolve();
-    s.onerror = e => reject(new Error('Errore caricamento lapse.mjs: '+e.message));
-    document.head.appendChild(s);
-  });
+ const res = await fetch('./lapse.mjs');
+  if (!res.ok) throw new Error(`Fetch fallito: ${res.status}`);
+  const src = await res.text();
+
+ 
+  const blob = new Blob([src], { type: 'text/javascript' });
+  const url  = URL.createObjectURL(blob);
+
+	  await import(url);
 }
 
 async function load_lapse() {
