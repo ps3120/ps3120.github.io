@@ -474,10 +474,10 @@ let mod = await import('./module/mem.mjs');
   .then(() => alert('lapse.mjs importato con successo'))
   .catch(e => alert('errore import lapse.mjs: ' + e.message));*/
  
-import('./lapse.mjs');
- // import('./lapse.mjs').then(mod => {
-//  mod.kexploit();
-//});
+//import('./lapse.mjs');
+  import('./lapse.mjs').then(moda => {
+   moda.kexploit();
+});
 	
   // window.loadLapseModule();
 
