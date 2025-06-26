@@ -43,12 +43,7 @@ import {
 import * as config from './config.mjs';
 
 
-try {
- import * as rop from './module/chain.mjs';
-  alert("init ok");
-} catch (e) {
-  alert("Import or init failed: " + e);
-}
+
 
 const t1 = performance.now();
 
@@ -140,7 +135,14 @@ const PROT_WRITE = 2;
 const PROT_EXEC = 4;
 
 async function init() {
-     
+try {
+  const rop = await import('./module/chain.mjs');
+  await rop.init();
+  alert("init ok");
+} catch(e) {
+  alert("Import/init failed: " + e);
+}
+    
 /*try {
   const rop = await import('./module/chain.mjs');
   await rop.init();
@@ -149,7 +151,7 @@ async function init() {
   alert("Import or init failed: " + e);
 }
     */
-     await rop.init();
+    // await rop.init();
      
 
     chain = new Chain();
