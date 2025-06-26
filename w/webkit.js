@@ -604,14 +604,13 @@ async function load_lapse() {
                (leakBytes[7] << 24)) >>> 0;
 
 
-  const obj_bt = new int64(low, high);
-  alert(obj_bt);
+  const obj_bt = new Int64(low, high);
+ 
 
   const obj_p_low  = rawPtr >>> 0;
   const obj_p_high = (rawPtr / 0x100000000) >>> 0;
-  const obj_p = new int64(obj_p_low, obj_p_high);
-
-  alert(obj_p);
+  const obj_p = new Int64(obj_p_low, obj_p_high);
+ 
 	
   const master_b = new Uint32Array(new ArrayBuffer(8));  
   const slave_b  = new DataView   (new ArrayBuffer(8)); 
