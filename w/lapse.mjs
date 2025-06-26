@@ -1746,10 +1746,10 @@ export async function kexploit() {
 
    const _init_t1 = performance.now();
 
-     alert("_init_t1 caricato ");
+     
     
     await init();
-         alert("funzione init andata");
+       
     const _init_t2 = performance.now();
 
 
