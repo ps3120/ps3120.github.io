@@ -155,8 +155,6 @@ const PROT_EXEC = 4;
 
 
 async function init() {
-    alert("sono dentro ini");
-try {
     
  
 
@@ -167,7 +165,7 @@ try {
     
    chain = new Chain();
 
-    alert("new chain)");
+ 
 // PS4 9.00
 const pthread_offsets = new Map(Object.entries({
     'pthread_create' : 0x25510,
@@ -180,30 +178,6 @@ const pthread_offsets = new Map(Object.entries({
 
    rop.init_gadget_map(rop.gadgets, pthread_offsets, rop.libkernel_base);
     
-    
-    
-} catch(e) {
-  alert("Import/init failed: " + e);
-    return;
-}
-      
-
-
-  
-
-/*try {
-  const rop = await import('./module/chain.mjs');
-  await rop.init();
-  alert("init ok");
-} catch (e) {
-  alert("Import or init failed: " + e);
-}
-    */
-    // await rop.init();
-     
-
-    //chain = new Chain();
- 
 
 
 
