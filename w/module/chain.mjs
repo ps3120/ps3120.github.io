@@ -565,7 +565,7 @@ export function get_gadget(map, insn_str) {
 function load_fw_specific() {
   
 
-   return import('../rop/900.mjs');
+   return import('/rop/900.mjs');
 }
 
 export let gadgets = null;
