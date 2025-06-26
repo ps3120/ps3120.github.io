@@ -165,6 +165,8 @@ try {
   await rop.init();
  
    chain = new Chain();
+
+    alert("carico thread_offset");
     
 // PS4 9.00
 const pthread_offsets = new Map(Object.entries({
@@ -182,6 +184,7 @@ const pthread_offsets = new Map(Object.entries({
     
 } catch(e) {
   alert("Import/init failed: " + e);
+    return;
 }
       
 
