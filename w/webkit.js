@@ -429,9 +429,16 @@ var expl_slave = new DataView(shared_buf);
 
 
 async function load_lapse() {
-  const { Memory } = await import('./module/mem.mjs');
-  const { Int: Int64 } = await import('./module/int64.mjs');
+//  const { Memory } = await import('./module/mem.mjs');
+//  const { Int: Int64 } = await import('./module/int64.mjs');
 
+
+let mod = await import('./module/mem.mjs');
+  let imod = await import('./module/int64.mjs');
+
+  const Memory = mod.Memory;
+  const Int64 = imod.Int;
+	
   const obj = { addr: null, 0: 0 };
 
   
