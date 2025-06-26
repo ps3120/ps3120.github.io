@@ -575,7 +575,7 @@ export let libc_base = null;
 export let init_gadget_map = null;
 export let Chain = null;
 
-export  function init() {
+export async function init() {
 	alert("SONO IN CHAIN");
     //  const module = await load_fw_specific();
  const module = await   import('../rop/900.mjs');
