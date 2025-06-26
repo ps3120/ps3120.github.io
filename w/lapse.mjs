@@ -155,6 +155,7 @@ const PROT_EXEC = 4;
 
 
 async function init() {
+    alert("sono dentro ini");
 try {
     
  
