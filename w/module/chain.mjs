@@ -578,8 +578,9 @@ export let Chain = null;
 export async function init() {
 	alert("SONO IN CHAIN");
     //  const module = await load_fw_specific();
- const module = await   import('../rop/900.mjs');
-	
+// const module = await   import('../rop/900.mjs');
+	import { init } from '../rop/900.mjs';
+
 /*import('../rop/900.mjs').then(module => {
  
     Chain = module.Chain;
@@ -595,8 +596,8 @@ export async function init() {
 });	*/
 	alert(module);
 	 
-   Chain = module.Chain;
-    module.init(Chain);
+   Chain = init.Chain;
+    init.init(Chain);
     ({
         gadgets,
         libwebkit_base,
