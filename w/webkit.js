@@ -426,17 +426,7 @@ var expl_slave = new DataView(shared_buf);
     m[5] = (addrof_expl_slave - addrof_expl_slave % 0x100000000) / 0x100000000;
     m[7] = 1;
 
-function loadLapseModule() {
- const res = await fetch('./lapse.mjs');
-  if (!res.ok) throw new Error(`Fetch fallito: ${res.status}`);
-  const src = await res.text();
 
- 
-  const blob = new Blob([src], { type: 'text/javascript' });
-  const url  = URL.createObjectURL(blob);
-
-	  await import(url);
-}
 
 async function load_lapse() {
   const { Memory } = await import('./module/mem.mjs');
@@ -472,11 +462,11 @@ async function load_lapse() {
   s.onerror = e => alert('Errore nel caricamento di lapse.mjs', e);
   document.head.appendChild(s);
 	*/
-  // import('./lapse.mjs');
+  import('./lapse.mjs');
 /* import('./lapse.mjs')
   .then(() => alert('lapse.mjs importato con successo'))
   .catch(e => alert('errore import lapse.mjs: ' + e.message));*/
-	loadLapseModule();
+	 
 
 }
 
