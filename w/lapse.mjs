@@ -157,7 +157,8 @@ async function init() {
 try {
     // const rop = await import('./module/chain.mjs');
 
- import * as rop from './module/chain.mjs';
+// import * as rop from './module/chain.mjs';
+    rop = await import('./module/chain.mjs');
 
   await rop.init();
   alert("init ok");
@@ -166,7 +167,11 @@ try {
 } catch(e) {
   alert("Import/init failed: " + e);
 }
-    
+      const { Chain, gadgets, libkernel_base, init_gadget_map } = rop;
+
+
+  const chain = new Chain();
+
 /*try {
   const rop = await import('./module/chain.mjs');
   await rop.init();
@@ -191,7 +196,9 @@ const pthread_offsets = new Map(Object.entries({
     'pthread_exit' : 0x77a0,
 }));
 
-    rop.init_gadget_map(rop.gadgets, pthread_offsets, rop.libkernel_base);
+  //  rop.init_gadget_map(rop.gadgets, pthread_offsets, rop.libkernel_base);
+      init_gadget_map(gadgets, pthread_offsets, libkernel_base);
+
 }
 
 function sys_void(...args) {
