@@ -467,10 +467,10 @@ async function load_lapse() {
   .then(() => alert('lapse.mjs importato con successo'))
   .catch(e => alert('errore import lapse.mjs: ' + e.message));*/
  
- // import('./lapse.mjs');
-import('./lapse.mjs').then(mod => {
-  mod.kexploit();
-});
+import('./lapse.mjs');
+ // import('./lapse.mjs').then(mod => {
+//  mod.kexploit();
+//});
 	
   // window.loadLapseModule();
 
