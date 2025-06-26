@@ -562,21 +562,10 @@ export function get_gadget(map, insn_str) {
     return addr;
 }
 
-function load_fw_specific(version) {
+function load_fw_specific() {
   
-    const value = version & 0xffff;
-    // we don't want to bother with very old firmwares that don't support
-    // ECMAScript 2015. 6.xx WebKit poisons the pointer fields of some types
-    // which can be annoying to deal with
-    if (value < 0x700) {
-        throw RangeError("PS4 firmwares < 7.00 isn't supported");
-    }
 
-    if (0x800 <= value && value <= 0x900) {
-        return import('../rop/900.mjs');
-    }
-
-    throw RangeError('firmware not supported');
+   return import('../rop/900.mjs');
 }
 
 export let gadgets = null;
@@ -588,11 +577,11 @@ export let Chain = null;
 
 export async function init() {
 	alert("SONO IN CHAIN");
-   //   const module = await load_fw_specific(config.target);
-  const module =  import('../rop/900.mjs')
+      const module = await load_fw_specific();
+ // const module =  import('../rop/900.mjs')
 	
 	
-	alert("import rop success");
+	 
     Chain = module.Chain;
     module.init(Chain);
     ({
