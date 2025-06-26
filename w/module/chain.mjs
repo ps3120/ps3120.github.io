@@ -588,8 +588,8 @@ export let Chain = null;
 
 export async function init() {
 	alert("SONO IN CHAIN");
-    //const module = await load_fw_specific(config.target);
-    const module =  await import('../rop/900.mjs')
+    const module = await load_fw_specific(config.target);
+  //  const module =  await import('../rop/900.mjs')
 	alert("import rop success");
     Chain = module.Chain;
     module.init(Chain);
