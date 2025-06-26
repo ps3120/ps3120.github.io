@@ -480,6 +480,7 @@ async function load_lapse() {
       });
   `;
   document.head.appendChild(m);
+	alert("lapse loaded with new method");
 }
 
  
