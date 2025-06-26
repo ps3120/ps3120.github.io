@@ -618,7 +618,7 @@ async function load_lapse() {
     master_b,
     slave_b,
     obj,
-    obj_p.add32(0x10),  // offset 0x10 sul puntatore a obj
+    obj_p.add(0x10),  // offset 0x10 sul puntatore a obj
     obj_bt
   );
 
