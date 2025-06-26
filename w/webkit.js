@@ -463,12 +463,12 @@ let mod = await import('./module/mem.mjs');
     obj_bt
   );
 
- const s = document.createElement('script');
+ /*const s = document.createElement('script');
   s.type = 'module';
   s.src  = './lapse.mjs';  /
   s.onerror = e => alert('Errore nel caricamento di lapse.mjs', e);
   document.head.appendChild(s);
-	 
+	 */
    //import('./lapse.mjs');
 /* import('./lapse.mjs')
   .then(() => alert('lapse.mjs importato con successo'))
@@ -481,6 +481,24 @@ let mod = await import('./module/mem.mjs');
 	
   // window.loadLapseModule();
 
+
+	 const moduleSrc = `
+    import('./lapse.mjs')
+      .then(module => {
+         
+        module.kexploit(); 
+      })
+      .catch(e => {
+        alert('Errore import:' + e);
+      });
+  `;
+  const blob = new Blob([moduleSrc], { type: 'application/javascript' });
+  const url  = URL.createObjectURL(blob);
+
+  const script = document.createElement('script');
+  script.type = 'module';
+  script.src  = url;
+  document.head.appendChild(script);
  
  
 }
