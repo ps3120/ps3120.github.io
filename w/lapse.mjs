@@ -39,7 +39,7 @@ import {
     Buffer,
 } from './module/view.mjs';
 
-  import * as rop from './module/chain.mjs';
+//  import * as rop from './module/chain.mjs';
 import * as config from './config.mjs';
 
 
@@ -156,10 +156,10 @@ const PROT_EXEC = 4;
 
 async function init() {
 try {
-   const rop = await import('./module/chain.mjs');
-  await rop.init();
+    
+   await rop.init();
 
-//import * as rop from './module/chain.mjs';
+ import * as rop from './module/chain.mjs';
  
   await rop.init();
  
