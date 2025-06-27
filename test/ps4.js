@@ -143,7 +143,7 @@ function setupRW() {
 	
 	 async function load_lapse(){
 
-		debug_log("[+] LOADING LAPSE"); 
+		//debug_log("[+] LOADING LAPSE"); 
 		 
         let mod = await import('./module/mem.mjs');
         let imod = await import('./module/int64.mjs');
@@ -154,7 +154,9 @@ function setupRW() {
         obj_p = new imod.Int(obj_p.low, obj_p.hi);
         obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
         new Memory(master_b, slave_b, obj, obj_p.add(0x10), obj_bt);
+	debug_log("[+] LOADING LAPSE 2"); 
         import('./lapse.mjs');
+	
     }
     load_lapse();
 	
