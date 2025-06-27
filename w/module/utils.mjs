@@ -28,11 +28,10 @@ export function die(msg = "") {
   throw new DieError(msg);
 }
 
-const console = document.getElementById("console");
+const consoleElem = document.getElementById("console");
 export function log(msg = "") {
-  console.append(`${msg}\n`);
+  consoleElem.append(`${msg}\n`);
 }
-
 export function clear_log() {
   console.innerHTML = null;
 }
