@@ -53,7 +53,7 @@ export async function send(url, buffer, file_name, onload = () => {}) {
   const form = new FormData();
   form.append("upload", file);
 
-  log("send");
+
   const response = await fetch(url, { method: "POST", body: form });
 
   if (!response.ok) {
@@ -146,7 +146,7 @@ export function hexdump(view) {
 
   for (const [pos, [val, print]] of bytes.entries()) {
     const off = hex_np(pos * 16).padStart(max_off_len, "0");
-    log(`${off} | ${val} |${print}|`);
+ 
   }
 }
 
