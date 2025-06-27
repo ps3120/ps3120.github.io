@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 // by janisslsm (John) from ps4-dev discord
 
 
-alert("sono in rop.js");
+ 
 import { log } from '../module/utils.mjs';
 import { mem } from '../module/mem.mjs';
 import { KB} from '../module/constants.mjs';
@@ -373,4 +373,4 @@ export function init(Chain) {
     Chain.init_class(gadgets, syscall_array);
 }
 
-log('Chain900');
+ 
