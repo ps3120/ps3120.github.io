@@ -476,9 +476,16 @@ let mod = await import('./module/mem.mjs');
         let Memory = mod.Memory;
         let obj = {addr: null, 0: 0};
 	 
+const rawPtr = window.addrof(obj);
+ 
+  const btRaw = window.read_ptr_at(rawPtr + 8);
+ 
 
-let obj_p = mod.addrof(obj);   
-let obj_bt = obj_p.read64(8);
+  const obj_p = new Int64(rawPtr >>> 0, (rawPtr / 0x100000000) >>> 0);
+  const obj_bt = new Int64(btRaw  >>> 0, (btRaw  / 0x100000000) >>> 0);
+	  
+   new Memory(expl_master, expl_slave, obj, obj_p.add(0x10), obj_bt);
+ 
 
  import('./lapse.mjs');
 	  
