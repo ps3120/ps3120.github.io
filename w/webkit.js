@@ -471,11 +471,11 @@ let mod = await import('./module/mem.mjs');
 }
  */
   async function load_lapse(){
-        let mod = await import('/module/mem.mjs');
-        let imod = await import('/module/int64.mjs');
+        let mod = await import('./module/mem.mjs');
+        let imod = await import('./module/int64.mjs');
         let Memory = mod.Memory;
         let obj = {addr: null, 0: 0};
-	  
+	  alert("import finish");
        /* let obj_p = addrof(obj);
         let obj_bt = read64(obj_p.add(8));
         obj_p = new imod.Int(obj_p.low, obj_p.hi);
