@@ -10,6 +10,14 @@ var HAMMER_FONT_NAME = "font8"; //must take bucket 3 of 8 (counting from zero)
 var HAMMER_NSTRINGS = 700; //tweak this if crashing during hammer time
 
 function poc() {
+
+	function log(msg) {
+  const consoleElem = document.getElementById("console");
+  const p = document.createElement("p");
+  p.textContent = msg;
+  consoleElem.appendChild(p);
+  consoleElem.scrollTop = consoleElem.scrollHeight; 
+}
 	
 	addEventListener('error', event => {
     const reason = event.error;
@@ -426,7 +434,7 @@ var expl_slave = new DataView(shared_buf);
     m[5] = (addrof_expl_slave - addrof_expl_slave % 0x100000000) / 0x100000000;
     m[7] = 1;
 
-
+log("WEBKIT EXPLOIT FINISH");
 
  async function load_lapse() {
 //  const { Memory } = await import('./module/mem.mjs');
