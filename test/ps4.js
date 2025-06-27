@@ -151,8 +151,8 @@ function setupRW() {
         let obj = {addr: null, 0: 0};
         let obj_p = addrof(obj);
         let obj_bt = read64(obj_p.add(8));
-        obj_p = new imod.Int(obj_p.low, obj_p.hi);
-        obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
+        //obj_p = new imod.Int(obj_p.low, obj_p.hi);
+      //  obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
         new Memory(master_b, slave_b, obj, obj_p.add(0x10), obj_bt);
 	debug_log("[+] LOADING LAPSE 2"); 
         import('./lapse.mjs');
