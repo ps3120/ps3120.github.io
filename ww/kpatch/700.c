@@ -66,7 +66,7 @@ static inline void do_patch(void *kbase) {
     disable_cr0_wp();
 
     // ChendoChap's patches from pOOBs4
-    write16(kbase, 0x63acce, 0x9090); // veriPatch
+    write16(kbase, 0x63acce, 0x00eb); // veriPatch
     write8(kbase, 0xacd, 0xeb); // bcopy
     write8(kbase, 0x2ef8d, 0xeb); // bzero
     write8(kbase, 0x2efd1, 0xeb); // pagezero
@@ -75,6 +75,9 @@ static inline void do_patch(void *kbase) {
     write8(kbase, 0x2f23d, 0xeb); // copyin
     write8(kbase, 0x2f6ed, 0xeb); // copyinstr
     write8(kbase, 0x2f7bd, 0xeb); // copystr
+
+    // stop sysVeri from causing a delayed panic on suspend
+    write16(kbase, 0x63b5ef, 0x00eb);
 
     // patch amd64_syscall() to allow calling syscalls everywhere
     // struct syscall_args sa; // initialized already
@@ -111,8 +114,8 @@ static inline void do_patch(void *kbase) {
     //
     // sy_call() is the function that will execute the requested syscall.
     write16(kbase, 0x4c6, 0xe990);
-    write16(kbase, 0x4bd, 0x9090);
-    write16(kbase, 0x4b9, 0x9090);
+    write16(kbase, 0x4bd, 0x00eb);
+    write16(kbase, 0x4b9, 0x00eb);
 
     // patch sys_setuid() to allow freely changing the effective user ID
     // ; PRIV_CRED_SETUID = 50
@@ -131,7 +134,7 @@ static inline void do_patch(void *kbase) {
     // }
     write32(kbase, 0x264c0a, 0);
 
-    // TODO: Description of this patch. "prx"
+    // TODO: Description of this patch. patch sys_dynlib_load_prx()
     write16(kbase, 0x94ec1, 0xe990);
 
     // patch sys_dynlib_dlsym() to allow dynamic symbol resolution everywhere

