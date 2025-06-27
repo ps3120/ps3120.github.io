@@ -1677,7 +1677,9 @@ function runBinLoader() {
 // the exploit implementation also assumes that we are pinned to one core
 export async function kexploit() {
   alert("kexploit");
-  log("GAY");
+    const consoleElem = document.getElementById("console");
+    
+  consoleElem.append(`GAY`);
 
    const _init_t1 = performance.now();
 
