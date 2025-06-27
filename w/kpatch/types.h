@@ -15,8 +15,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
-#ifndef TYPES_H_
-#define TYPES_H_
+#pragma once
 
 typedef unsigned char u8;
 typedef unsigned short u16;
@@ -27,5 +26,3 @@ typedef signed char s8;
 typedef signed short s16;
 typedef signed int s32;
 typedef signed long long s64;
-
-#endif

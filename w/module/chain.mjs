@@ -15,33 +15,10 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
-	addEventListener('error', event => {
-    const reason = event.error;
-    alert(
-        'Unhandled error\n'
-        + `${reason}\n`
-        + `${reason.sourceURL}:${reason.line}:${reason.column}\n`
-        + `${reason.stack}`
-    );
-    return true;
-});
-
-addEventListener('unhandledrejection', event => {
-    const reason = event.reason;
-    alert(
-        'Unhandled rejection\n'
-        + `${reason}\n`
-        + `${reason.sourceURL}:${reason.line}:${reason.column}\n`
-        + `${reason.stack}`
-    );
-});
-
-
 import { Int, lohi_from_one } from './int64.mjs';
 import { get_view_vector } from './memtools.mjs';
 import { Addr } from './mem.mjs';
 import * as config from '../config.mjs';
- 
 
 // put the sycall names that you want to use here
 export const syscall_map = new Map(Object.entries({
@@ -563,10 +540,24 @@ export function get_gadget(map, insn_str) {
     return addr;
 }
 
-function load_fw_specific() {
-  
+function load_fw_specific(version) {
+    if (version & 0x10000) {
+        throw RangeError('ps5 not supported yet');
+    }
 
-   return import('/rop/900.mjs');
+    const value = version & 0xffff;
+    // we don't want to bother with very old firmwares that don't support
+    // ECMAScript 2015. 6.xx WebKit poisons the pointer fields of some types
+    // which can be annoying to deal with
+    if (value < 0x700) {
+        throw RangeError("PS4 firmwares < 7.00 isn't supported");
+    }
+
+    if (0x800 <= value && value <= 0x900) {
+        return import('../rop/900.mjs');
+    }
+
+    throw RangeError('firmware not supported');
 }
 
 export let gadgets = null;
@@ -576,22 +567,15 @@ export let libc_base = null;
 export let init_gadget_map = null;
 export let Chain = null;
 
-  export async function init() {
-  
-	  
-   const module = await import('../rop/900.mjs');  
- 
-   Chain = module.Chain;
+export async function init() {
+    const module = await load_fw_specific(config.target);
+    Chain = module.Chain;
     module.init(Chain);
-
     ({
-      gadgets,
-      libwebkit_base,
-      libkernel_base,
-      libc_base,
-      init_gadget_map,
+        gadgets,
+        libwebkit_base,
+        libkernel_base,
+        libc_base,
+        init_gadget_map,
     } = module);
-		 
-  
-	
-} 
+}

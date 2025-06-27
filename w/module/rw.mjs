@@ -15,7 +15,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
-import { Int, lohi_from_one } from "./int64.mjs";
+import { Int, lohi_from_one } from './int64.mjs';
 
 // DataView's accessors are constant time and are faster when doing multi-byte
 // accesses but the single-byte accessors are slightly slower compared to just
@@ -27,44 +27,39 @@ import { Int, lohi_from_one } from "./int64.mjs";
 // instances of BufferView will their have m_mode set to WastefulTypedArray
 // since we use the .buffer getter to create a DataView
 export class BufferView extends Uint8Array {
-  constructor(...args) {
-    super(...args);
-    this._dview = new DataView(this.buffer, this.byteOffset);
-  }
+    constructor(...args) {
+        super(...args);
+        this._dview = new DataView(this.buffer, this.byteOffset);
+    }
 
-  read8(offset) {
-    return this._dview.getUint8(offset);
-  }
+    read16(offset) {
+        return this._dview.getUint16(offset, true);
+    }
 
-  read16(offset) {
-    return this._dview.getUint16(offset, true);
-  }
+    read32(offset) {
+        return this._dview.getUint32(offset, true);
+    }
 
-  read32(offset) {
-    return this._dview.getUint32(offset, true);
-  }
+    read64(offset) {
+        return new Int(
+            this._dview.getUint32(offset, true),
+            this._dview.getUint32(offset + 4, true),
+        );
+    }
 
-  read64(offset) {
-    return new Int(this._dview.getUint32(offset, true), this._dview.getUint32(offset + 4, true));
-  }
+    write16(offset, value) {
+        this._dview.setUint16(offset, value, true);
+    }
 
-  write8(offset, value) {
-    this._dview.setUint8(offset, value);
-  }
+    write32(offset, value) {
+        this._dview.setUint32(offset, value, true);
+    }
 
-  write16(offset, value) {
-    this._dview.setUint16(offset, value, true);
-  }
-
-  write32(offset, value) {
-    this._dview.setUint32(offset, value, true);
-  }
-
-  write64(offset, value) {
-    const values = lohi_from_one(value);
-    this._dview.setUint32(offset, values[0], true);
-    this._dview.setUint32(offset + 4, values[1], true);
-  }
+    write64(offset, value) {
+        const values = lohi_from_one(value);
+        this._dview.setUint32(offset, values[0], true);
+        this._dview.setUint32(offset + 4, values[1], true);
+    }
 }
 
 // WARNING: These functions are now deprecated. use BufferView instead.
@@ -93,53 +88,53 @@ export class BufferView extends Uint8Array {
 
 // for reads less than 8 bytes
 function read(u8_view, offset, size) {
-  let res = 0;
-  for (let i = 0; i < size; i++) {
-    res += u8_view[offset + i] << (i * 8);
-  }
-  // << returns a signed integer, >>> converts it to unsigned
-  return res >>> 0;
+    let res = 0;
+    for (let i = 0; i < size; i++) {
+        res += u8_view[offset + i] << i*8;
+    }
+    // << returns a signed integer, >>> converts it to unsigned
+    return res >>> 0;
 }
 
 export function read16(u8_view, offset) {
-  return read(u8_view, offset, 2);
+    return read(u8_view, offset, 2);
 }
 
 export function read32(u8_view, offset) {
-  return read(u8_view, offset, 4);
+    return read(u8_view, offset, 4);
 }
 
 export function read64(u8_view, offset) {
-  return new Int(read32(u8_view, offset), read32(u8_view, offset + 4));
+    return new Int(read32(u8_view, offset), read32(u8_view, offset + 4));
 }
 
 // for writes less than 8 bytes
 function write(u8_view, offset, value, size) {
-  for (let i = 0; i < size; i++) {
-    u8_view[offset + i] = (value >>> (i * 8)) & 0xff;
-  }
+    for (let i = 0; i < size; i++) {
+        u8_view[offset + i]  = (value >>> i*8) & 0xff;
+    }
 }
 
 export function write16(u8_view, offset, value) {
-  write(u8_view, offset, value, 2);
+    write(u8_view, offset, value, 2);
 }
 
 export function write32(u8_view, offset, value) {
-  write(u8_view, offset, value, 4);
+    write(u8_view, offset, value, 4);
 }
 
 export function write64(u8_view, offset, value) {
-  if (!(value instanceof Int)) {
-    throw TypeError("write64 value must be an Int");
-  }
+    if (!(value instanceof Int)) {
+        throw TypeError('write64 value must be an Int');
+    }
 
-  let low = value.lo;
-  let high = value.hi;
+    let low = value.lo;
+    let high = value.hi;
 
-  for (let i = 0; i < 4; i++) {
-    u8_view[offset + i] = (low >>> (i * 8)) & 0xff;
-  }
-  for (let i = 0; i < 4; i++) {
-    u8_view[offset + 4 + i] = (high >>> (i * 8)) & 0xff;
-  }
+    for (let i = 0; i < 4; i++) {
+        u8_view[offset + i]  = (low >>> i*8) & 0xff;
+    }
+    for (let i = 0; i < 4; i++) {
+        u8_view[offset + 4 + i]  = (high >>> i*8) & 0xff;
+    }
 }
