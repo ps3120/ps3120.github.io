@@ -25,7 +25,19 @@
     </script>
   
  
-
+<script>
+    function log(msg) {
+      const consoleElem = document.getElementById("console");
+      if (!consoleElem) {
+        console.error("#console non trovato!");
+        return;
+      }
+      const p = document.createElement("p");
+      p.textContent = msg;
+      consoleElem.appendChild(p);
+      consoleElem.scrollTop = consoleElem.scrollHeight;
+    }
+  </script>
    
     <script src="rop.js"></script>
 
