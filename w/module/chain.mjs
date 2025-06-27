@@ -581,7 +581,6 @@ export let Chain = null;
 	  
    const module = await import('../rop/900.mjs');  
  
-    alert("✅ SONO IN ROP 900.mjs");
    Chain = module.Chain;
     module.init(Chain);
 
