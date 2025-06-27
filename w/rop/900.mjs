@@ -368,8 +368,7 @@ export function init(Chain) {
     init_gadget_map(gadgets, libc_gadget_offsets, libc_base);
     init_gadget_map(gadgets, libkernel_gadget_offsets, libkernel_base);
     init_syscall_array(syscall_array, libkernel_base, 300 * KB);
-    log('syscall_array:');
-    log(syscall_array);
+   
     Chain.init_class(gadgets, syscall_array);
 }
 
