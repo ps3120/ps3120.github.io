@@ -477,7 +477,7 @@ let mod = await import('./module/mem.mjs');
         let obj = {addr: null, 0: 0};
 	 
 
-let obj_p = mem.addrof(obj);   
+let obj_p = mod.addrof(obj);   
 let obj_bt = obj_p.read64(8);
 
  import('./lapse.mjs');
