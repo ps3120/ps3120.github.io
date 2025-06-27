@@ -481,8 +481,10 @@ let mod = await import('./module/mem.mjs');
 	
   // window.loadLapseModule();
 
- 
-  const lapseUrl = new URL('lapse.mjs', document.baseURI).href;
+ const lapseModule = await import('./lapse.mjs');
+lapseModule.kexploit();
+	
+  /*const lapseUrl = new URL('lapse.mjs', document.baseURI).href;
 
  
   const moduleSrc = `
@@ -508,7 +510,7 @@ let mod = await import('./module/mem.mjs');
    
  // setTimeout(() => URL.revokeObjectURL(url), 60000);
 
-
+*/
  
 }
  
