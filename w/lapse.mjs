@@ -139,23 +139,7 @@ const PROT_WRITE = 2;
 const PROT_EXEC = 4;
 
 
-// let rop       =  import('./module/chain.mjs');
- 
-/*(async () => {
-  // importa i moduli
-  rop       = await import('./module/chain.mjs');
-  //mem       = (await import('./module/mem.mjs')).mem;
- // Int64     = (await import('./module/int64.mjs')).Int;
- // utils     = await import('./module/utils.mjs');
- // memtools  = await import('./module/memtools.mjs');
- // offset    = await import('./module/offset.mjs');
- // Chain     = (await import('./module/chain.mjs')).Chain;
- // ({ View1, View2, View4, Word, Long, Pointer, Buffer } =
-  //   await import('./module/view.mjs'));
- 
-  await kexploit();
-})();
-*/
+
 
 
 async function init() {
@@ -165,7 +149,7 @@ async function init() {
  
  
   await rop.init();
-   alert("carico  await rop.init()");
+
     
    chain = new Chain();
 
