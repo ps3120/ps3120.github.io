@@ -26,16 +26,10 @@
   
  
 <script>
-    function log(msg) {
-      const consoleElem = document.getElementById("console");
-      if (!consoleElem) {
-        console.error("#console non trovato!");
-        return;
-      }
-      const p = document.createElement("p");
-      p.textContent = msg;
-      consoleElem.appendChild(p);
-      consoleElem.scrollTop = consoleElem.scrollHeight;
+    function log(msg = "") {
+   const consoleElem = document.getElementById("console");
+  consoleElem.innerText += msg + "\n";
+  consoleElem.scrollTop = consoleElem.scrollHeight;
     }
   </script>
    
