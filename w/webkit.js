@@ -477,12 +477,8 @@ let mod = await import('./module/mem.mjs');
         let obj = {addr: null, 0: 0};
 	 
 
-let raw_obj_p = addrof(obj);
-let obj_p = new imod.Int(raw_obj_p & 0xFFFFFFFF, raw_obj_p / 0x100000000);
-
-let raw_obj_bt = read_ptr_at(obj_p.add(8));
-let obj_bt = new imod.Int(raw_obj_bt & 0xFFFFFFFF, raw_obj_bt / 0x100000000);
- new Memory(expl_master, expl_slave, obj, obj_p.add(0x10), obj_bt);
+let obj_p = mem.addrof(obj);   
+let obj_bt = obj_p.read64(8);
 
  import('./lapse.mjs');
 	  
