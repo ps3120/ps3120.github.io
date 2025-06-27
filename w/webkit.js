@@ -428,7 +428,7 @@ var expl_slave = new DataView(shared_buf);
 
 
 
-/*async function load_lapse() {
+ async function load_lapse() {
 //  const { Memory } = await import('./module/mem.mjs');
 //  const { Int: Int64 } = await import('./module/int64.mjs');
 
@@ -469,21 +469,20 @@ let mod = await import('./module/mem.mjs');
 
  
 }
- */
-  async function load_lapse(){
+  
+/*  async function load_lapse(){
         let mod = await import('./module/mem.mjs');
         let imod = await import('./module/int64.mjs');
         let Memory = mod.Memory;
         let obj = {addr: null, 0: 0};
-	const Int64 = imod.Int;
-
+ 
 const rawPtr = window.addrof(obj);
  
   const btRaw = window.read_ptr_at(rawPtr + 8);
  
 
-  const obj_p = new Int64(rawPtr >>> 0, (rawPtr / 0x100000000) >>> 0);
-  const obj_bt = new Int64(btRaw  >>> 0, (btRaw  / 0x100000000) >>> 0);
+  const obj_p = new imod.Int(rawPtr >>> 0, (rawPtr / 0x100000000) >>> 0);
+  const obj_bt = new imod.Int(btRaw  >>> 0, (btRaw  / 0x100000000) >>> 0);
 	  
    new Memory(expl_master, expl_slave, obj, obj_p.add(0x10), obj_bt);
  
@@ -496,13 +495,14 @@ const rawPtr = window.addrof(obj);
         obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
         new Memory(expl_master, expl_slave, obj, obj_p.add(0x10), obj_bt);
         import('./lapse.mjs'); 
-*/
+
     }
+    */
  
    load_lapse();
     return;
 
-
+ 
 
 
    
