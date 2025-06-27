@@ -536,9 +536,5 @@ async function load_lapse() {
 	
 
 	
- 
-
-
-	
 
 }
