@@ -11,14 +11,7 @@ var HAMMER_NSTRINGS = 700; //tweak this if crashing during hammer time
 
 function poc() {
 
-	function log(msg) {
-  const consoleElem = document.getElementById("console");
-  const p = document.createElement("p");
-  p.textContent = msg;
-  consoleElem.appendChild(p);
-  consoleElem.scrollTop = consoleElem.scrollHeight; 
-}
-	
+log("START WEBKIT EXPLOIT");
 	addEventListener('error', event => {
     const reason = event.error;
     alert(
