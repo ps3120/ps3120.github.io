@@ -599,15 +599,11 @@ export let Chain = null;
     });
 }*/
   export async function init() {
- const url900 = new URL('../rop/900.mjs', import.meta.url).href;
-    alert('⏳ Provo a importare 900 da: ' + url900);
-
-    const module900 = await import(url900);
-    alert("✅ SONO IN ROP 900.mjs");
+  
 	  
-   // const module = await import('../rop/900.mjs');  
-  //  alert("SONO IN ROP");
-
+   const module = await import('../rop/900.mjs');  
+ 
+    alert("✅ SONO IN ROP 900.mjs");
    Chain = module.Chain;
     module.init(Chain);
 
