@@ -475,7 +475,8 @@ let mod = await import('./module/mem.mjs');
         let imod = await import('./module/int64.mjs');
         let Memory = mod.Memory;
         let obj = {addr: null, 0: 0};
-	 
+	const Int64 = imod.Int;
+
 const rawPtr = window.addrof(obj);
  
   const btRaw = window.read_ptr_at(rawPtr + 8);
