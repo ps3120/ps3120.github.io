@@ -144,7 +144,7 @@ function setupRW() {
 	 async function load_lapse(){
 
 		//debug_log("[+] LOADING LAPSE"); 
-		 
+	try {
         let mod = await import('./module/mem.mjs');
         let imod = await import('./module/int64.mjs');
         let Memory = mod.Memory;
@@ -156,7 +156,11 @@ function setupRW() {
         new Memory(master_b, slave_b, obj, obj_p.add(0x10), obj_bt);
 	debug_log("[+] LOADING LAPSE 2"); 
         import('./lapse.mjs');
-	
+	}
+
+	catch(err) {
+         alert( err.message);
+        }	 
     }
     load_lapse();
 	
