@@ -428,7 +428,7 @@ var expl_slave = new DataView(shared_buf);
 
 
 
-async function load_lapse() {
+/*async function load_lapse() {
 //  const { Memory } = await import('./module/mem.mjs');
 //  const { Int: Int64 } = await import('./module/int64.mjs');
 
@@ -463,79 +463,33 @@ let mod = await import('./module/mem.mjs');
     obj_bt
   );
 
- /*const s = document.createElement('script');
-  s.type = 'module';
-  s.src  = './lapse.mjs';  /
-  s.onerror = e => alert('Errore nel caricamento di lapse.mjs', e);
-  document.head.appendChild(s);
-	 */
-   //import('./lapse.mjs');
-/* import('./lapse.mjs')
-  .then(() => alert('lapse.mjs importato con successo'))
-  .catch(e => alert('errore import lapse.mjs: ' + e.message));*/
- 
-//import('./lapse.mjs');
-/*  import('./lapse.mjs').then(moda => {
-   moda.kexploit();
-});*/
-	
-  // window.loadLapseModule();
+	  import('./lapse.mjs'); 
 
-// const lapseModule = 
-//lapseModule.kexploit();
-	await import('./lapse.mjs');
-  /*const lapseUrl = new URL('lapse.mjs', document.baseURI).href;
-
- 
-  const moduleSrc = `
-    import('${lapseUrl}')
-      .then(mods => {
- 
-      })
-      .catch(e => {
- 
-        alert('Errore import lapse.mjs: ' + e);
-      });
-  `;
-
- 
-  const blob = new Blob([moduleSrc], { type: 'application/javascript' });
-  const url  = URL.createObjectURL(blob);
-
-  const script = document.createElement('script');
-  script.type = 'module';
-  script.src  = url;
-  document.head.appendChild(script);
-
-   
- // setTimeout(() => URL.revokeObjectURL(url), 60000);
-
-*/
- 
-}
  
 
  
-
-
-
-      load_lapse();
-     return;
-	
-/*async function load_lapse(){
-	   
-        let mod = await import('./module/mem.mjs');
-        let imod = await import('./module/int64.mjs');
+}
+ */
+  async function load_lapse(){
+        let mod = await import('/module/mem.mjs');
+        let imod = await import('/module/int64.mjs');
         let Memory = mod.Memory;
         let obj = {addr: null, 0: 0};
-        let obj_p = addrof(obj);
+	  
+       /* let obj_p = addrof(obj);
         let obj_bt = read64(obj_p.add(8));
         obj_p = new imod.Int(obj_p.low, obj_p.hi);
         obj_bt = new imod.Int(obj_bt.low, obj_bt.hi);
         new Memory(expl_master, expl_slave, obj, obj_p.add(0x10), obj_bt);
-        import('./lapse.mjs');
-    }*/
-	
+        import('./lapse.mjs'); 
+*/
+    }
+ 
+   load_lapse();
+    return;
+
+
+
 
    
 
