@@ -1499,11 +1499,11 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
 
 
 
-for (const sock of sds) {
+/*for (const sock of sds) {
   const pktopts = await get_sock_pktopts(sock, kmem.read64);
   await kmem.write64(pktopts + off_ip6po_rthdr, 0n);
 }
-
+*/
 await kmem.write64(r_pktopts + off_ip6po_rthdr, 0n);
 await kmem.write64(w_pktopts + off_ip6po_rthdr, 0n);
 
