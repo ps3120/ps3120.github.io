@@ -19,9 +19,15 @@
      console.append(`${msg}\n`);
     }
   </script>
+  
 <body>
 <pre id="console"></pre>
   <script src="expl.js"></script>
-   
+   <script>
+    window.onload = () => {
+      main().catch(e => alert(e.message));
+    };
+  </script>
+
 </body>
 </html>
