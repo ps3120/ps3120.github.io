@@ -43,7 +43,7 @@ function spray(count, size) {
     const v = new Uint8Array(size);
     v[0] = 0x41;
     arr.push(v);
-   log(`[spray] spray ${i}`);
+ 
 
   }
   return arr;
