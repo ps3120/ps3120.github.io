@@ -30,9 +30,15 @@ for (let i = 0; i < 3; i++) new Uint8Array(8 * MB);
 }
 
 function findAllCorrupted(buffers) {
-  const bad = [];
+ const bad = [];
   for (let i = 0; i < buffers.length; i++) {
-    if (buffers[i][0] !== 0x41) bad.push(i);
+    for (let off = 0; off < buffers[i].length; off += 4) {
+      if (buffers[i][off] !== 0x41) {
+        log(`Buffer ${i} corrupt at offset 0x${off.toString(16)} = 0x${buffers[i][off].toString(16)}`);
+        bad.push(i);
+        break;
+      }
+    }
   }
   return bad;
 }
