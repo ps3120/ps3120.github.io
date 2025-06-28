@@ -34,7 +34,7 @@ function findAllCorrupted(buffers) {
   for (let i = 0; i < buffers.length; i++) {
     for (let off = 0; off < buffers[i].length; off += 4) {
       if (buffers[i][off] !== 0x41) {
-        log(`Buffer ${i} corrupt at offset 0x${off.toString(16)} = 0x${buffers[i][off].toString(16)}`);
+       // log(`Buffer ${i} corrupt at offset 0x${off.toString(16)} = 0x${buffers[i][off].toString(16)}`);
         bad.push(i);
         break;
       }
