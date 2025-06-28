@@ -85,15 +85,28 @@ function findCorrupted(buffers) {
 }
 
 async function main() {
+addEventListener('error', event => {
+    const reason = event.error;
+    alert(
+        'Unhandled error\n'
+        + `${reason}\n`
+        + `${reason.sourceURL}:${reason.line}:${reason.column}\n`
+        + `${reason.stack}`
+    );
+    return true;
+});
 
- log("=== OFFSET & SIZE DUMP ===");
- log("off.size_strimpl      =", off.size_strimpl);
- log("off.size_inline       =", off.size_inline);
- log("off.strimpl_inline_str=", off.strimpl_inline_str);
- log("off.js_cell_header    =", off.js_cell_header);
- log("off.js_butterfly      =", off.js_butterfly);
- log("off.butterfly_data    =", off.butterfly_data);
- log("==========================");
+addEventListener('unhandledrejection', event => {
+    const reason = event.reason;
+    alert(
+        'Unhandled rejection\n'
+        + `${reason}\n`
+        + `${reason.sourceURL}:${reason.line}:${reason.column}\n`
+        + `${reason.stack}`
+    );
+});
+ 
+
  
   const pre = spray(SPRAY_COUNT, UAF_SIZE);
   const leaked = await doUAF(1600);
