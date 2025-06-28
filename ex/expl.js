@@ -34,6 +34,12 @@ function getBigUint64Compat(dv, offset, littleEndian = true) {
   return (BigInt(high) << 32n) | BigInt(low);
 }
 
+function readU64(dv, offset, littleEndian = true) {
+  const low = dv.getUint32(offset, littleEndian);
+  const high = dv.getUint32(offset + 4, littleEndian);
+  return (BigInt(high) << 32n) | BigInt(low);
+}
+
 function setBigUint64Compat(dv, offset, value, littleEndian = true) {
   const low = Number(value & 0xFFFFFFFFn);
   const high = Number(value >> 32n);
