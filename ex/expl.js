@@ -8,7 +8,7 @@ import * as config from "./config.mjs";
 
  
 
-const UAF_SIZE = off.size_strimpl + off.size_inline+ 0x20;;
+const UAF_SIZE = off.size_strimpl + off.size_inline+ 0x20;
 const SPRAY_COUNT = 0x400;
 
 function gc() {
