@@ -51,6 +51,28 @@ function findCorrupted(buffers) {
 }
 
 async function main() {
+
+  	addEventListener('error', event => {
+    const reason = event.error;
+    alert(
+        'Unhandled error\n'
+        + `${reason}\n`
+        + `${reason.sourceURL}:${reason.line}:${reason.column}\n`
+        + `${reason.stack}`
+    );
+    return true;
+});
+
+addEventListener('unhandledrejection', event => {
+    const reason = event.reason;
+    alert(
+        'Unhandled rejection\n'
+        + `${reason}\n`
+        + `${reason.sourceURL}:${reason.line}:${reason.column}\n`
+        + `${reason.stack}`
+    );
+});
+
     log(`[+] START`);
 
   const pre = spray(SPRAY_COUNT, UAF_SIZE);
@@ -100,4 +122,4 @@ async function main() {
   log('Arbitrary R/W ready!');
 }
 
-main().catch(e=>die(e));
+main();
