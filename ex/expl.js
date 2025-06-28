@@ -122,4 +122,5 @@ addEventListener('unhandledrejection', event => {
   log('Arbitrary R/W ready!');
 }
 
- 
+ main().catch(e => alert(e.message));
+
