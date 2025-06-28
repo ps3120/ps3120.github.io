@@ -12,8 +12,15 @@
         font-family: "logging";
       }
     </style>
+
+    <script>
+    function log(msg = "") {
+  const console = document.getElementById("console");
+     console.append(`${msg}\n`);
+    }
+  </script>
 <body>
-  
+
   <script src="expl.js"></script>
    <pre id="console"></pre>
 </body>
