@@ -18,6 +18,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 // WebKit offsets start
 
 // offsets for JSC::JSObject
+export const heap_slide = 0x0n;
+
 export const js_cell = 0;
 export const js_butterfly = 0x8;
 // start of the array of inline properties (JSValues)
