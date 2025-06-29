@@ -1176,8 +1176,10 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     const psd = pktopts_sds[0];
     const tclass = new Word();
     const off_tclass = is_ps4 ? 0xb0 : 0xc0;
+const kernel = kernel_addr;
 
 /** Restituisce f_data (struct socket*) a partire dal FD */
+    
 function get_fd_data_addr(sock, read_fn) {
   const fdesc = kernel.addr.curproc
               + CURPROC_OFILES
