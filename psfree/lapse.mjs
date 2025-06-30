@@ -1222,6 +1222,7 @@ function get_fd_data_addr(sock) {
 */
     
 function get_fd_data_addr(sock) {
+  
   const idx = sock;
   const filep = kmem.read64(ofiles.add(idx * SIZEOF_OFILES));
   return kmem.read64(filep);
@@ -1231,7 +1232,8 @@ function get_sock_pktopts(sock) {
   const sock_data = get_fd_data_addr(sock);
   const pcb = kmem.read64(sock_data.add(SO_PCB));
   return kmem.read64(pcb.add(INPCB_PKTOPTS));
-}  
+}
+
     const pktopts = new Buffer(0x100);
     const rsize = build_rthdr(pktopts, pktopts.size);
     const pktinfo_p = k100_addr.add(0x10);
@@ -1532,17 +1534,13 @@ function get_sock_pktopts(sock) {
 
 
 
-
- for (let i = 0; i < sds.length; i++) {
+for (let i = 0; i < sds.length; i++) {
   const pkto = get_sock_pktopts(sds[i]);
   kmem.write64(pkto.add(off_ip6po_rthdr), 0);   
 }
 
 kmem.write64(get_sock_pktopts(reclaim_sock).add(off_ip6po_rthdr), 0);
 kmem.write64(worker_pktopts.add(off_ip6po_rthdr), 0);
-
-    log("fixes applied");
-    
 const sock_increase_ref = [
   ipv6_kernel_rw.data.master_sock,
   ipv6_kernel_rw.data.victim_sock,
@@ -1555,6 +1553,13 @@ for (const sd of sock_increase_ref) {
   const sock_addr = get_fd_data_addr(sd);
   kmem.write32(sock_addr, 0x100);   
 }
+
+
+    
+
+    log("fixes applied");
+    
+ 
     
     /*
     // REMOVE once restore kernel is ready for production
