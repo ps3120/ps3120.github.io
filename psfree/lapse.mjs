@@ -1176,14 +1176,22 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     const psd = pktopts_sds[0];
     const tclass = new Word();
     const off_tclass = is_ps4 ? 0xb0 : 0xc0;
+    
+const kernel_offset = {
+  PROC_FD:       0x48n,
+  PROC_PID:      0xb0n,
+  PROC_VM_SPACE: 0x200n,
+ 
 
-  const {
-    CURPROC_OFILES,
-    SIZEOF_OFILES,
-    SO_PCB,
-    INPCB_PKTOPTS
-  } = kernel_offset;
+  FILEDESC_OFILES: 0x0n,
+  SIZEOF_OFILES:   0x8n,
 
+
+  PMAP_CR3: 0x28n,
+
+  SO_PCB:          0x18n,
+  INPCB_PKTOPTS:   0x118n,
+};
     
  
     
