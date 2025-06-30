@@ -1501,31 +1501,29 @@ function get_sock_pktopts(fd) {
 }
 
  try{
-for (let i = 0; i < sds.length; i++) {
-    const pkto = get_sock_pktopts(sds[i]);
-    kmem.write64(pkto.add(off_ip6po_rthdr), 0);
-}
+ for (let sd of pktopts_sds.concat([reclaim_sd, dirty_sd])) {
+      const pkto = get_sock_pktopts(sd);
+      kmem.write64(pkto.add(off_ip6po_rthdr), 0);
+    }
 
-kmem.write64(get_sock_pktopts(reclaim_sock).add(off_ip6po_rthdr), 0);
-kmem.write64(worker_pktopts.add(off_ip6po_rthdr), 0);
-
-/*const sock_increase_ref = [
-  ipv6_kernel_rw.data.master_sock,
-  ipv6_kernel_rw.data.victim_sock,
-  main_sock,
-  worker_sock,
-  reclaim_sock,
-];
-
-for (const sd of sock_increase_ref) {
-    const sock_addr = get_fd_data_addr(sd);
-    kmem.write32(sock_addr, 0x100);
-}*/
+    // Bump del so_count per prevenire free accidentali
+    const sock_increase_ref = [
+      ipv6_kernel_rw.data.master_sock,
+      ipv6_kernel_rw.data.victim_sock,
+      main_sd,
+      worker_sd,
+      reclaim_sd
+    ];
+    for (let sd of sock_increase_ref) {
+      const sock_addr = get_fd_data_addr(sd);
+      kmem.write32(sock_addr, 0x100);
+    }
+    log("full restore of pktopts and sock refcounts complete");
  }
     catch(e){
         alert(e.message);
     }
-    log("fixes applied");
+ 
     
  
     
