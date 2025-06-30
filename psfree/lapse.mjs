@@ -1206,8 +1206,7 @@ function get_fd_data_addr(sock) {
       return kmem.read64(filep + 0n);
 
 }
-    */
- /* function get_sock_pktopts(sock) {
+  /* function get_sock_pktopts(sock) {
     const sock_data = get_fd_data_addr(sock);
     const pcb       = kmem.read64(sock_data + BigInt(SO_PCB));
     return kmem.read64(pcb       + BigInt(INPCB_PKTOPTS));
