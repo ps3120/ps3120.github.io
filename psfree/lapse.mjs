@@ -1181,9 +1181,9 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     
 const kernel = kernel_addr;
 
-    const kmem = new KernelMemory(main_sd, worker_sd, pipes, kpipe);
+    const kmrw  = new KernelMemory(main_sd, worker_sd, pipes, kpipe);
 
-  const { read64, write64, read32, write32 } = kmem;
+  const { read64, write64, read32, write32 } = kmrw ;
   const {
     CURPROC_OFILES,
     SIZEOF_OFILES,
