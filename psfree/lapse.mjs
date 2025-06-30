@@ -1194,7 +1194,7 @@ var  INPCB_PKTOPTS = 0x118n;
  
     
 
-  function get_sock_pktopts(sock) {
+ /* function get_sock_pktopts(sock) {
   const sock_data = get_fd_data_addr(sock);
   const pcb = kmem.read64(sock_data + SO_PCB);
   return kmem.read64(pcb + INPCB_PKTOPTS);
@@ -1221,7 +1221,23 @@ function get_fd_data_addr(sock) {
  
 */
     
+function get_fd_data_addr(sock) {
+  
+  const idx = BigInt(sock);
+  
+  const filep = kmem.read64(ofiles + idx * SIZEOF_OFILES);
+ 
+  return kmem.read64(filep + 0n);
+}
+    function get_sock_pktopts(sock) {
+  const sock_data = get_fd_data_addr(sock);
+ 
+  const pcb = kmem.read64(sock_data + SO_PCB);
+  return kmem.read64(pcb + INPCB_PKTOPTS);
+}
 
+
+    
     const pktopts = new Buffer(0x100);
     const rsize = build_rthdr(pktopts, pktopts.size);
     const pktinfo_p = k100_addr.add(0x10);
