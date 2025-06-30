@@ -1505,7 +1505,7 @@ for (const sd of sock_increase_ref) {
     const sock_addr = get_fd_data_addr(sd);
     kmem.write32(sock_addr, 0x100);
 }
-const sock_increase_ref = [
+/*const sock_increase_ref = [
   ipv6_kernel_rw.data.master_sock,
   ipv6_kernel_rw.data.victim_sock,
   main_sock,
@@ -1516,7 +1516,7 @@ const sock_increase_ref = [
 for (const sd of sock_increase_ref) {
     const sock_addr = get_fd_data_addr(sd);
     kmem.write32(sock_addr, 0x100);
-}
+}*/
  }
     catch(e){
         alert(e.message);
