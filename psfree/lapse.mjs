@@ -1199,12 +1199,12 @@ function get_sock_pktopts(sock, read_fn) {
   return read_fn(pcb + BigInt(INPCB_PKTOPTS));
 }
 
-    const ofiles = kread64(p_fd);
+    const ofiless = kread64(p_fd);
 
 
 function get_fd_data_addr(sock, read_fn) {
 
-  const filep = read_fn(ofiles + BigInt(sock) * 8n);
+  const filep = read_fn(ofiless + BigInt(sock) * 8n);
  
   return read_fn(filep + 0n);
 }
