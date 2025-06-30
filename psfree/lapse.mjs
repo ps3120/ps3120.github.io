@@ -1184,17 +1184,17 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
  */
 
  //var FILEDESC_OFILES= 0x0;
-var  SIZEOF_OFILES = 0x8n;
+var  SIZEOF_OFILES = 0x8;
 
 
 
 
-  var SO_PCB        = 0x18n;
-var  INPCB_PKTOPTS = 0x118n;
+  var SO_PCB        = 0x18;
+var  INPCB_PKTOPTS = 0x118;
  
     
  
-/*   function get_sock_pktopts(sock) {
+  function get_sock_pktopts(sock) {
   const sock_data = get_fd_data_addr(sock);
   const pcb = kmem.read64(sock_data + SO_PCB);
   return kmem.read64(pcb + INPCB_PKTOPTS);
@@ -1205,7 +1205,7 @@ function get_fd_data_addr(sock) {
   return kmem.read64(filep);
 }
     */
-  function get_sock_pktopts(sock) {
+ /* function get_sock_pktopts(sock) {
     const sock_data = get_fd_data_addr(sock);
     const pcb       = kmem.read64(sock_data + BigInt(SO_PCB));
     return kmem.read64(pcb       + BigInt(INPCB_PKTOPTS));
@@ -1218,7 +1218,7 @@ function get_fd_data_addr(sock) {
     return kmem.read64(filep + 0n);
   }
  
-
+*/
     
 
     const pktopts = new Buffer(0x100);
