@@ -1223,16 +1223,13 @@ function get_fd_data_addr(sock) {
     
 function get_fd_data_addr(sock) {
   const filep = kmem.read64(ofiles + BigInt(sock) * SIZEOF_OFILES);
-  const f_data = kmem.read64(filep);
-  return Number(f_data & 0xffffffffn); // restituisce Number
+  return kmem.read64(filep);   
 }
 
 function get_sock_pktopts(sock) {
   const sock_data = get_fd_data_addr(sock);
-  const pcb = kmem.read64(BigInt(sock_data) + SO_PCB);
-  const pktopts = kmem.read64(pcb + INPCB_PKTOPTS);
-  return Number(pktopts & 0xffffffffn); // restituisce Number
-}
+  const pcb = kmem.read64(sock_data + SO_PCB);
+  return kmem.read64(pcb + INPCB);}
 
 
     
