@@ -1510,6 +1510,7 @@ function get_fd_data_addr(fd) {
 
     
  try{
+     
  for (let sd of pktopts_sds.concat([reclaim_sock, dirty_sd])) {
   const pkto = get_sock_pktopts(sd);                    // Int pktopts
   const rptr = intAdd(pkto, off_ip6po_rthdr);           // Int &ip6po_rthdr
@@ -1517,7 +1518,7 @@ function get_fd_data_addr(fd) {
 }
 
  
-const sock_increase_ref = [
+/*const sock_increase_ref = [
   ipv6_kernel_rw.data.master_sock,
   ipv6_kernel_rw.data.victim_sock,
   master_sock,
@@ -1529,7 +1530,7 @@ for (let sd of sock_increase_ref) {
   const sockAddr = get_fd_data_addr(sd);               // Int socket*
   kmem.write32(sockAddr, 0x100);                       // scrive 0x100 low‑32bit
 }
-     
+     */
     log("full restore of pktopts and sock refcounts complete");
  }
     catch(e){
