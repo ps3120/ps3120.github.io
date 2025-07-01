@@ -1512,7 +1512,7 @@ for (let sd of [reclaim_sock, worker_sock, ...sds]) {
      
     
   
-   const bump_fds = [
+  /* const bump_fds = [
   ipv6_kernel_rw.data.master_sock,
   ipv6_kernel_rw.data.victim_sock,
   main_sock,
@@ -1528,7 +1528,7 @@ for (let sd of bump_fds) {
     log(`skip bump so_count fd=${sd}: ${e}`);
   }
 }
- 
+ */
     
     /*
     // REMOVE once restore kernel is ready for production
