@@ -1502,14 +1502,18 @@ function get_sock_pktopts(fd) {
  
 for (let sd of [reclaim_sock, worker_sock, ...sds]) {
   try {
-    const pkto = get_sock_pktopts(sd);          // Int
-    const ptr  = pkto.add(off_ip6po_rthdr);     // Int
+    const pkto = get_sock_pktopts(sd); // Int / Addr
+    if (!pkto || typeof pkto.lo !== 'number' || typeof pkto.hi !== 'number') {
+      log(`invalid pkto for fd=${sd}: skipping`);
+      continue;
+    }
+
+    const ptr = pkto.add(off_ip6po_rthdr);
     kmem.write64(ptr, 0);
   } catch (e) {
     log(`skip clean rthdr fd=${sd}: ${e}`);
   }
 }
-     
     
   
   /* const bump_fds = [
