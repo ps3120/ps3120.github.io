@@ -37,11 +37,6 @@ export function lohi_from_one(low) {
     return [low >>> 0, low < 0 ? -1 >>> 0 : 0];
 }
 
-export function int64(val) {
-    if (val instanceof Int) return val;
-    return new Int(val);
-}
-
 // immutable 64-bit integer
 export class Int {
     constructor(low, high) {

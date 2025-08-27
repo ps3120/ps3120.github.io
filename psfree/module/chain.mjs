@@ -88,11 +88,6 @@ export const syscall_map = new Map(Object.entries({
     'aio_multi_cancel' : 666,
     'aio_submit_cmd' : 669,
     'blockpool_move' : 673,
-     'mmap_GPU': 477,
-    'sys_ctx': 483,
-    'dynlib_load_prx': 594,
-    'dynlib_get_proc_param': 589,
-
 }));
 
 const argument_pops = [
