@@ -1762,41 +1762,23 @@ export async function kexploit() {
         await patch_kernel(kbase, kmem, p_ucred, restore_info);
         
     } finally {
-         log('unblock AIO and free blocker');
         close(unblock_fd);
-        aio_multi_wait(block_id.addr, 1);
-        aio_multi_delete(block_id.addr, 1);
 
-        log();
-        for (const name in times) {
-            log(`${name}: ${times[name]}`);
-        }
         const t2 = performance.now();
         const ftime = t2 - t1;
         const init_time = _init_t2 - _init_t1;
-
         log('\ntime (include init): ' + (ftime) / 1000);
         log('kex time: ' + (t2 - _init_t2) / 1000);
         log('init time: ' + (init_time) / 1000);
         log('time to init: ' + (_init_t1 - t1) / 1000);
         log('time - init time: ' + (ftime - init_time) / 1000);
     }
-    log('cleaning up');
-    set_our_affinity(old_mask);
-    sysi('rtprio_thread', RTP_SET, 0, old_rtprio.addr);
     close(block_fd);
     free_aios2(groom_ids.addr, groom_ids.length);
+    aio_multi_wait(block_id.addr, 1);
+    aio_multi_delete(block_id.addr, block_id.length);
     for (const sd of sds) {
         close(sd);
-    }
-    log('cleanup done');
-    {
-        const t2 = performance.now();
-        const ftime = t2 - t1;
-        const init_time = _init_t2 - _init_t1;
-        log('\ntime (include init+cleanup): ' + (ftime) / 1000);
-        log('kex+c time: ' + (t2 - _init_t2) / 1000);
-        log('time (i+c) - init time: ' + (ftime - init_time) / 1000);
     }
 }
 
@@ -1828,7 +1810,7 @@ function array_from_address(addr, size) {
 
 kexploit().then(() => {
 
-fetch('./payload.bin').then(res => res.arrayBuffer()).then(arr => {
+fetch('./goldhen.bin').then(res => res.arrayBuffer()).then(arr => {
    
     const originalLength = arr.byteLength;
     const paddingLength = (4 - (originalLength % 4)) % 4;
