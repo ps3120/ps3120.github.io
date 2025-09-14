@@ -1810,7 +1810,7 @@ function array_from_address(addr, size) {
 
 kexploit().then(() => {
 
-fetch('./payload.bin').then(res => res.arrayBuffer()).then(arr => {
+fetch('./goldhen.bin').then(res => res.arrayBuffer()).then(arr => {
    
     const originalLength = arr.byteLength;
     const paddingLength = (4 - (originalLength % 4)) % 4;
