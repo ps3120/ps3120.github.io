@@ -1579,6 +1579,7 @@ const kpatch_900 = new Uint8Array([
     const buf = kpatch_900.buffer;
     const patches = new DataView(kpatch_900.buffer);
     const map_size = kpatch_900.byteLength;
+    const max_size = 0x10000000;
     if (map_size > max_size) {
     
     if (map_size > max_size) {
