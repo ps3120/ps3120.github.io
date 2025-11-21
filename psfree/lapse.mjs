@@ -1577,18 +1577,17 @@ const kpatch_900 = new Uint8Array([
   0x02,0x48,0x83,0xC0,0x01,0x4C,0x39,0xC0,0x75,0xF0,0xEB,0x83
 ]);
     const buf = kpatch_900.buffer;
-    const patches = new DataView(kpatch_900.buffer);
-    const map_size = kpatch_900.byteLength;
+    const patches = new View1(await buf, 0x1000);
+    let map_size = patches.size;
     const max_size = 0x10000000;
-    if (map_size > max_size) {
-    
+
     if (map_size > max_size) {
         die(`patch file too large (>${max_size}): ${map_size}`);
     }
     if (map_size === 0) {
         die('patch file size is zero');
     }
-    map_size = map_size+page_size & -page_size;
+    map_size =( map_size+page_size) & -page_size;
 
     const prot_rwx = 7;
     const prot_rx = 5;
