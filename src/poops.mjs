@@ -10,6 +10,9 @@ import { View1, View2, View4, Word, Long, Pointer, Buffer } from "./module/view.
 import * as rop from "./module/chain.mjs";
 import * as config from "./config.mjs";
 
+
+let chain = null;
+
 // static imports for firmware configurations
 import * as fw_ps4_700 from "./lapse/ps4/700.mjs";
 import * as fw_ps4_750 from "./lapse/ps4/750.mjs";
@@ -1208,8 +1211,14 @@ async function triggerUcredTripleFree() {
 }*/
 
 export async function main() {
+	
  let iovState = new WorkerState(IOV_THREAD_NUM);
 let uioState = new WorkerState(UIO_THREAD_NUM);
+
+	await rop.init();
+  chain = new Chain()
+
+	
   /*if (Helper.isJailbroken()) {
     NativeInvoke.sendNotificationRequest("Already Jailbroken");
     return 0;
@@ -1324,4 +1333,5 @@ class WorkerState {
         }
     }
 }
+
 
