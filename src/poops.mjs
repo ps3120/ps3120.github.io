@@ -1,4 +1,4 @@
-  import { Int } from "./module/int64.mjs";
+import { Int } from "./module/int64.mjs";
 import { mem } from "./module/mem.mjs";
 import { log, die, hex, hexdump } from "./module/utils.mjs";
 import { cstr, jstr } from "./module/memtools.mjs";
@@ -1211,12 +1211,11 @@ async function triggerUcredTripleFree() {
 }*/
 
 export async function main() {
+  await rop.init();
+   chain = new Chain();
 	
  let iovState = new WorkerState(IOV_THREAD_NUM);
 let uioState = new WorkerState(UIO_THREAD_NUM);
-
-	await rop.init();
-  chain = new Chain()
 
 	
   /*if (Helper.isJailbroken()) {
@@ -1333,5 +1332,6 @@ class WorkerState {
         }
     }
 }
+
 
 
