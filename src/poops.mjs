@@ -171,8 +171,7 @@ let iovSs = new Int32Array(2);
 let iovThreads = new Array(IOV_THREAD_NUM);   
 let uioThreads = new Array(UIO_THREAD_NUM);   
 
-let iovState = new WorkerState(IOV_THREAD_NUM);
-let uioState = new WorkerState(UIO_THREAD_NUM);
+ 
 
 let uafSock = 0;
 
@@ -1209,7 +1208,8 @@ async function triggerUcredTripleFree() {
 }*/
 
 export async function main() {
- 
+ let iovState = new WorkerState(IOV_THREAD_NUM);
+let uioState = new WorkerState(UIO_THREAD_NUM);
   /*if (Helper.isJailbroken()) {
     NativeInvoke.sendNotificationRequest("Already Jailbroken");
     return 0;
@@ -1324,3 +1324,4 @@ class WorkerState {
         }
     }
 }
+
