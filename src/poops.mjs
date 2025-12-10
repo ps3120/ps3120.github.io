@@ -152,17 +152,17 @@ const sys = {
     __sys_netcontrol: 0n
 };
 
-  static leakRthdr = new Buffer(UCRED_SIZE);
-    static leakRthdrLen = { value: 0 };
-    static sprayRthdr = new Buffer(UCRED_SIZE);
-    static msg = new Buffer(MSG_HDR_SIZE);
-    static sprayRthdrLen = 0;
-    static msgIov = new Buffer(MSG_IOV_NUM * IOV_SIZE);
-    static dummyBuffer = new Buffer(0x1000);
-    static tmp = new Buffer(PAGE_SIZE);
-    static victimPipebuf = new Buffer(PIPEBUF_SIZE);
-    static uioIovRead = new Buffer(UIO_IOV_NUM * IOV_SIZE);
-    static uioIovWrite = new Buffer(UIO_IOV_NUM * IOV_SIZE);
+let leakRthdr = new Buffer(UCRED_SIZE);
+let leakRthdrLen = { value: 0 };
+let sprayRthdr = new Buffer(UCRED_SIZE);
+let msg = new Buffer(MSG_HDR_SIZE);
+let sprayRthdrLen = 0;
+let msgIov = new Buffer(MSG_IOV_NUM * IOV_SIZE);
+let dummyBuffer = new Buffer(0x1000);
+let tmp = new Buffer(PAGE_SIZE);
+let victimPipebuf = new Buffer(PIPEBUF_SIZE);
+let uioIovRead = new Buffer(UIO_IOV_NUM * IOV_SIZE);
+let uioIovWrite = new Buffer(UIO_IOV_NUM * IOV_SIZE);
 	
 	
 	
@@ -1325,3 +1325,4 @@ class WorkerState {
         }
     }
 }
+
