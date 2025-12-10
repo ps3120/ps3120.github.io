@@ -152,7 +152,7 @@ const sys = {
     __sys_netcontrol: 0n
 };
 
-let leakRthdr = new Buffer(UCRED_SIZE);
+  let leakRthdr = new Buffer(UCRED_SIZE);
 let leakRthdrLen = { value: 0 };
 let sprayRthdr = new Buffer(UCRED_SIZE);
 let msg = new Buffer(MSG_HDR_SIZE);
@@ -163,7 +163,6 @@ let tmp = new Buffer(PAGE_SIZE);
 let victimPipebuf = new Buffer(PIPEBUF_SIZE);
 let uioIovRead = new Buffer(UIO_IOV_NUM * IOV_SIZE);
 let uioIovWrite = new Buffer(UIO_IOV_NUM * IOV_SIZE);
-	
 	
 	
 	let uioSs = new Int32Array(2);
@@ -1211,11 +1210,11 @@ async function triggerUcredTripleFree() {
 
 export async function main() {
  
-  if (Helper.isJailbroken()) {
+  /*if (Helper.isJailbroken()) {
     NativeInvoke.sendNotificationRequest("Already Jailbroken");
     return 0;
   }
-
+*/
   log("Pre-configuration");
   if (!performSetup()) {
     log("pre-config failure");
@@ -1325,5 +1324,3 @@ class WorkerState {
         }
     }
 }
-
-
