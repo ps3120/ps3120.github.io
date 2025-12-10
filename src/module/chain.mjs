@@ -37,7 +37,7 @@ export const syscall_map = new Map(
     ioctl: 54,
 	dup: 41,
 	sys_netcontrol: 63,
-	writev = 121,
+	writev : 121,
 	readv: 120,
     munmap: 73,
     mprotect: 74,
