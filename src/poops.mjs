@@ -206,7 +206,12 @@ let previousCore = -1;
 
 let kernelRW = null; 
 
+async function init() {
+  await rop.init();
+  chain = new Chain();
 
+  rop.init_gadget_map(rop.gadgets, pthread_offsets, rop.libkernel_base);
+}
 
 function sysi(...args) {
   return chain.sysi(...args);
@@ -1211,10 +1216,10 @@ async function triggerUcredTripleFree() {
 }*/
 
 export async function main() {
-  await rop.init();
-   chain = new Chain();
+//  await rop.init();
+ //  chain = new Chain();
 
-rop.init_gadget_map(rop.gadgets, pthread_offsets, rop.libkernel_base);
+//rop.init_gadget_map(rop.gadgets, pthread_offsets, rop.libkernel_base);
 
 	
  let iovState = new WorkerState(IOV_THREAD_NUM);
@@ -1335,6 +1340,7 @@ class WorkerState {
         }
     }
 }
+
 
 
 
