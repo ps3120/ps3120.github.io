@@ -1213,6 +1213,9 @@ async function triggerUcredTripleFree() {
 export async function main() {
   await rop.init();
    chain = new Chain();
+
+rop.init_gadget_map(rop.gadgets, pthread_offsets, rop.libkernel_base);
+
 	
  let iovState = new WorkerState(IOV_THREAD_NUM);
 let uioState = new WorkerState(UIO_THREAD_NUM);
@@ -1332,6 +1335,7 @@ class WorkerState {
         }
     }
 }
+
 
 
 
