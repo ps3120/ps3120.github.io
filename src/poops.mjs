@@ -1209,7 +1209,7 @@ async function triggerUcredTripleFree() {
   return true;
 }*/
 
-function main() {
+export async function main() {
  
   if (Helper.isJailbroken()) {
     NativeInvoke.sendNotificationRequest("Already Jailbroken");
@@ -1325,4 +1325,5 @@ class WorkerState {
         }
     }
 }
+
 
