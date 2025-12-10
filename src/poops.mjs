@@ -1226,7 +1226,6 @@ let uioState = new WorkerState(UIO_THREAD_NUM);
   if (!performSetup()) {
     log("pre-config failure");
     cleanup();
-    printReboot();
     return -3;
   }
 
@@ -1333,6 +1332,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
