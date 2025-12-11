@@ -387,7 +387,7 @@ function __sys_netcontrol(ifindex, cmd, buf, size) {
 
 
 function getCurrentCore() {
-  const mask = new Buffer(sizeof_cpuset_t_);
+  const mask = new Buffer(0x10);
   get_cpu_affinity(mask);
   return get_core_index(mask);
 }
@@ -1467,6 +1467,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
