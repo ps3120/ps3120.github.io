@@ -403,18 +403,10 @@ function get_core_index(mask) {
 }
 
 function cpusetSetAffinity(core) {
-    let mask = new Buffer(0x10);
-    mask.putShort(0x00, (1 << core) & 0xFFFF);
-    return sys.cpuset_setaffinity(
-        3,
-        1,
-        0xFFFFFFFFFFFFFFFFn,   
-        0x10,
-        mask
-    );
+	sysi("cpuset_setaffinity", 3, 1, -1, 0x10, core.addr);
 }
 
-function cpuset_setaffinity(level, which, id, setsize, mask) {
+/*function cpuset_setaffinity(level, which, id, setsize, mask) {
     return sysi(
         "cpuset_setaffinity",
         level,
@@ -424,7 +416,7 @@ function cpuset_setaffinity(level, which, id, setsize, mask) {
         mask ? mask.addr : 0
     );
 }
-
+*/
 function set_cpu_affinity(mask) {
   sysi("cpuset_setaffinity", 3, 1, -1, 0x10, mask.addr);
 }
@@ -1467,6 +1459,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
