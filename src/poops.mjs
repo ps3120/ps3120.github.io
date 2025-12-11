@@ -358,6 +358,21 @@ function __sys_netcontrol(ifindex, cmd, buf, size) {
 }
 
 
+function getCurrentCore() {
+  const mask = new Buffer(sizeof_cpuset_t_);
+  get_cpu_affinity(mask);
+  return get_core_index(mask);
+}
+
+function get_core_index(mask) {
+  let num = mem.read32(mask.addr);
+  let position = 0;
+  while (num > 0) {
+    num = num >>> 1;
+    position += 1;
+  }
+  return position - 1;
+}
 
 function cpusetSetAffinity(core) {
     let mask = new Buffer(0x10);
@@ -380,6 +395,14 @@ function cpuset_setaffinity(level, which, id, setsize, mask) {
         setsize,
         mask ? mask.addr : 0
     );
+}
+
+function set_cpu_affinity(mask) {
+  sysi("cpuset_setaffinity", 3, 1, -1, 0x10, mask.addr);
+}
+
+function get_cpu_affinity(mask) {
+  sysi("cpuset_getaffinity", 3, 1, -1, 0x10, mask.addr);
 }
 
 function pin_to_core(core) {
@@ -435,7 +458,7 @@ function cleanup() {
 }
 
 
-/*function buildRthdr(buf, size) {
+ function buildRthdr(buf, size) {
     let len = ((size >> 3) - 1) & ~1;
 
 
@@ -446,21 +469,9 @@ function cleanup() {
 
     return (len + 1) << 3;
 }
-*/
+ 
 
-function buildRthdr(buf, size) {
-    if (typeof size !== "number" || size <= 0) throw new TypeError("size must be positive number");
-
-    let len = ((size >> 3) - 1) & ~1;
-    if (len < 0 || len > 255) len = 0xff; 
-
-    buf.write8(0x00, 0);                 // ip6r_nxt
-    buf.write8(0x01, len & 0xff);        // ip6r_len
-    buf.write8(0x02, IPV6_RTHDR_TYPE_0 & 0xff); // ip6r_type
-    buf.write8(0x03, (len >> 1) & 0xff); // segments_left
-
-    return (len + 1) << 3;
-}
+ 
 
 function getRthdr(s, buf, len) {
     return sysi("getsockopt", s, IPPROTO_IPV6, IPV6_RTHDR, buf, len);
@@ -696,7 +707,7 @@ function performSetup() {
         uioIovWrite.putLong(0x00, dummyBuffer.address());
 
         // Affinity
-        previousCore = Helper.getCurrentCore();
+        previousCore = getCurrentCore();
         if (cpusetSetAffinity(4) !== 0) {
             log("failed to pin to core");
             return false;
@@ -1409,6 +1420,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
