@@ -214,7 +214,7 @@ function sysi(...args) {
 function dup(fd) {
   return sysi("dup", fd);
 }
-function close(fd) {
+async function close(fd) {
     log("[DEBUG] closing fd:", fd);
     if (!chain) throw new Error("chain not initialized");
     try {
@@ -1345,6 +1345,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
