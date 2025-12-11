@@ -174,7 +174,8 @@ let iovSs = new Int32Array(2);
 let iovThreads = new Array(IOV_THREAD_NUM);   
 let uioThreads = new Array(UIO_THREAD_NUM);   
 
- 
+ var iovState;
+var uioState;
 
 let uafSock = 0;
 
@@ -628,7 +629,8 @@ function kwriteSlow(addr, buffer) {
 
 function performSetup() {
     try {
-     
+        iovState = new WorkerState(IOV_THREAD_NUM);
+        uioState = new WorkerState(UIO_THREAD_NUM);
         // Prepare spray buffer
         sprayRthdrLen = buildRthdr(sprayRthdr, UCRED_SIZE);
 
@@ -1236,8 +1238,6 @@ export async function main() {
   rop.init_gadget_map(rop.gadgets, pthread_offsets, rop.libkernel_base);
 
 	
- let iovState = new WorkerState(IOV_THREAD_NUM);
-let uioState = new WorkerState(UIO_THREAD_NUM);
 
 	
   /*if (Helper.isJailbroken()) {
@@ -1355,6 +1355,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
