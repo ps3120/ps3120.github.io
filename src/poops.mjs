@@ -215,12 +215,12 @@ function dup(fd) {
   return sysi("dup", fd);
 }
 function close(fd) {
-    console.log("[DEBUG] closing fd:", fd);
+    log("[DEBUG] closing fd:", fd);
     if (!chain) throw new Error("chain not initialized");
     try {
         sysi("close", fd);
     } catch(e) {
-        console.error("[DEBUG] close failed:", e);
+        log("[DEBUG] close failed:", e);
     }
 }
 
@@ -1345,6 +1345,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
