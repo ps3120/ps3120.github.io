@@ -470,6 +470,10 @@ function cleanup() {
     return (len + 1) << 3;
 }*/
  function buildRthdr(buf, size) {
+
+	 if (!buf || typeof buf.addr !== "number" || buf.addr <= 0 || buf.addr > 0xFFFFFFFFFFFF) {
+    log("Invalid buffer address in buildRthdr: " + buf.addr);
+}
     if (typeof size !== "number" || size < 8) {
         throw new Error("Invalid size for buildRthdr");
     }
@@ -1442,6 +1446,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
