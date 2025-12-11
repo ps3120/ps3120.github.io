@@ -703,7 +703,8 @@ function performSetup() {
         return true;
 
     } catch (e) {
-        log("exception during performSetup");
+		 log("exception during performSetup");
+        log(e);
         return false;
     }
 }
@@ -1355,6 +1356,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
