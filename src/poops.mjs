@@ -216,14 +216,24 @@ function dup(fd) {
 }
 function close(fd) {
     log("[DEBUG] closing fd:", fd);
-    if (!chain) throw new Error("chain not initialized");
+
+    if (!Number.isInteger(fd) || fd < 0) {
+        log("[DEBUG] invalid fd, skipping close()");
+        return;
+    }
+
+    if (!chain) {
+        log("[DEBUG] chain not initialized, skipping close()");
+        return;
+    }
+
     try {
-        sysi("close", fd);
+        let ret = sysi("close", fd);
+        log("[DEBUG] close returned:", ret);
     } catch(e) {
-        log("[DEBUG] close failed:", e);
+        log("[DEBUG] close syscall error:", e, "fd was:", fd);
     }
 }
-
 
 
  function read(fd) {
@@ -1345,6 +1355,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
