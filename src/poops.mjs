@@ -245,9 +245,10 @@ Buffer.prototype.putLong = function(offset, value) {
         low  = Number(v & 0xFFFFFFFFn);
         high = Number((v >> 32n) & 0xFFFFFFFFn);
     }
-    else if (value && typeof value.lo === "number" && typeof value.hi === "number") {
-        low  = value.lo >>> 0;
-        high = value.hi >>> 0;
+    else if (value && value._u32 instanceof Uint32Array && value._u32.length >= 2) {
+       
+        low  = value._u32[0] >>> 0;
+        high = value._u32[1] >>> 0;
     }
     else {
         throw new Error("putLong: unsupported value type: " + value);
@@ -1476,6 +1477,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
