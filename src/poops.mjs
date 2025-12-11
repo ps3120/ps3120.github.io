@@ -204,6 +204,10 @@ let victimWpipeFd = 0;
 
 let previousCore = -1;
 
+function sys_void(...args) {
+  return chain.syscall_void(...args);
+}
+
 function sysi(...args) {
   return chain.sysi(...args);
 }
@@ -288,7 +292,8 @@ function getpid() {
 }
 
 function sched_yield() {
-	 return sysi("sched_yield");
+	sys_void("sched_yield");
+	 //return sysi("sched_yield");
 }
 
 function __sys_netcontrol(ifindex, cmd, buf, size) {
@@ -1332,6 +1337,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
