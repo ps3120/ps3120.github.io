@@ -228,6 +228,8 @@ Buffer.prototype.putLong = function(offset, value) {
     mem.write32(this.addr + offset + 4, high);
 };
 
+
+
 function sys_void(...args) {
   return chain.syscall_void(...args);
 }
@@ -469,21 +471,14 @@ function cleanup() {
 
     return (len + 1) << 3;
 }*/
- function buildRthdr(buf, size) {
 
-	 if (!buf || typeof buf.addr !== "number" || buf.addr <= 0 || buf.addr > 0xFFFFFFFFFFFF) {
-    log("Invalid buffer address in buildRthdr: " + buf.addr);
-}
-    if (typeof size !== "number" || size < 8) {
-        throw new Error("Invalid size for buildRthdr");
-    }
-
+function buildRthdr(buf, size) {
     let len = ((size >> 3) - 1) & ~1;
 
-    buf.write8(0x00, 0);                // ip6r_nxt
-    buf.write8(0x01, len);              // ip6r_len
-    buf.write8(0x02, IPV6_RTHDR_TYPE_0);// ip6r_type
-    buf.write8(0x03, len >> 1);         // segments_left
+    buf.write8(0x00, 0);               
+    buf.write8(0x01, len);             
+    buf.write8(0x02, IPV6_RTHDR_TYPE_0);
+    buf.write8(0x03, len >> 1);        
 
     return (len + 1) << 3;
 }
@@ -1446,6 +1441,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
