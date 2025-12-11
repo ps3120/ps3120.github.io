@@ -236,7 +236,21 @@ function close(fd) {
     }
 }
 
+function setRealtimePriority(prio) {
+    const truncated = prio & 0xFF;
 
+    const _rtprio = new Buffer(4);
+    _rtprio.write16(0, RTP_PRIO_REALTIME); 
+    _rtprio.write16(2, truncated);         
+
+    try {
+        sysi("rtprio_thread", RTP_SET, 0, _rtprio.addr);
+        return true;
+    } catch (e) {
+        log("setRealtimePriority failed:", e);
+        return false;
+    }
+}
  function read(fd) {
  return  sysi("read", fd);
 }
@@ -649,10 +663,10 @@ function performSetup() {
             return false;
         }
 
-        if (!Helper.setRealtimePriority(256)) {
-            log("failed realtime priority");
-            return false;
-        }
+      if (!setRealtimePriority(256)) {
+           log("failed realtime priority");
+           return false;
+     }
 
         // Create socket pair for UIO spraying
         socketpair(AF_UNIX, SOCK_STREAM, 0, uioSs);
@@ -1356,6 +1370,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
