@@ -239,17 +239,16 @@ Buffer.prototype.putLong = function(offset, value) {
     if (typeof value === "bigint") {
         low  = Number(value & 0xFFFFFFFFn);
         high = Number((value >> 32n) & 0xFFFFFFFFn);
-    } 
+    }
     else if (typeof value === "number") {
         const v = BigInt(value >>> 0);
         low  = Number(v & 0xFFFFFFFFn);
         high = Number((v >> 32n) & 0xFFFFFFFFn);
     }
-    // PSFree type: Int, Long, Addr, Pointer
-    else if (value.lo !== undefined && value.hi !== undefined) {
+    else if (value && typeof value.lo === "number" && typeof value.hi === "number") {
         low  = value.lo >>> 0;
         high = value.hi >>> 0;
-    } 
+    }
     else {
         throw new Error("putLong: unsupported value type: " + value);
     }
@@ -782,7 +781,7 @@ function performSetup() {
         iovSs0 = iovSs.get(0);
         iovSs1 = iovSs.get(1);
 
-		 	log("Create IOV threads");
+		 log("Create IOV threads");
         // Create IOV threads
         for (let i = 0; i < IOV_THREAD_NUM; i++) {
             iovThreads[i] = new IovThread(iovState);
@@ -1477,6 +1476,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
