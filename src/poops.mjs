@@ -344,14 +344,14 @@ function pin_to_core(core) {
 function cleanup() {
 
     for (let i = 0; i < ipv6Socks.length; i++) {
-        close(ipv6Socks[i]);
+       await close(ipv6Socks[i]);
     }
 
 
-    close(uioSs1);
-    close(uioSs0);
-    close(iovSs1);
-    close(iovSs0);
+   await close(uioSs1);
+   await close(uioSs0);
+   await close(iovSs1);
+   await close(iovSs0);
 
 
     for (let i = 0; i < IOV_THREAD_NUM; i++) {
@@ -1345,6 +1345,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
