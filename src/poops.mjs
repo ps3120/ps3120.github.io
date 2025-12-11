@@ -234,9 +234,26 @@ Buffer.prototype.write64 = function(offset, value) {
 };
 
 Buffer.prototype.putLong = function(offset, value) {
-    const v = BigInt(value);
-    const low  = Number(v & 0xFFFFFFFFn);
-    const high = Number((v >> 32n) & 0xFFFFFFFFn);
+    let low, high;
+
+    if (typeof value === "bigint") {
+        low  = Number(value & 0xFFFFFFFFn);
+        high = Number((value >> 32n) & 0xFFFFFFFFn);
+    } 
+    else if (typeof value === "number") {
+        const v = BigInt(value >>> 0);
+        low  = Number(v & 0xFFFFFFFFn);
+        high = Number((v >> 32n) & 0xFFFFFFFFn);
+    }
+    // PSFree type: Int, Long, Addr, Pointer
+    else if (value.lo !== undefined && value.hi !== undefined) {
+        low  = value.lo >>> 0;
+        high = value.hi >>> 0;
+    } 
+    else {
+        throw new Error("putLong: unsupported value type: " + value);
+    }
+
     this.write32(offset, low);
     this.write32(offset + 4, high);
 };
@@ -1460,6 +1477,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
