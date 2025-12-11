@@ -205,8 +205,27 @@ let victimWpipeFd = 0;
 
 let previousCore = -1;
 
+Buffer.prototype.address = function() {
+    return mem.addrof(this);
+};
+Buffer.prototype.write32 = function(offset, value) {
+    mem.write32(this.addr + offset, value >>> 0);
+};
+
 Buffer.prototype.write8 = function(offset, value) {
     mem.write8(this.addr + offset, value);
+};
+
+Buffer.prototype.putLong = function(offset, value) {
+    if (typeof value !== "number" || isNaN(value)) {
+        throw new Error("putLong: invalid value " + value);
+    }
+
+    const low = value >>> 0;
+    const high = Math.floor(value / 0x100000000) >>> 0;
+
+    mem.write32(this.addr + offset, low);
+    mem.write32(this.addr + offset + 4, high);
 };
 
 function sys_void(...args) {
@@ -1375,6 +1394,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
