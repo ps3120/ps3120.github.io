@@ -216,69 +216,30 @@ Buffer.prototype.write32 = function(offset, value) {
     mem.write8(this.addr + offset, value);
 };*/
 
-class Buffer {
-  constructor(size) {
-    this.size = size;
-
-    
-    const alloc = mem.gc_alloc(size);
-    if (!alloc || !alloc[0]) throw new Error("Buffer: allocation failed");
-
-    this.addr = alloc[0];   // IMPORTANT: keep l'oggetto Addr, non solo .lo
-    this.backer = alloc[1]; // evita GC del backing JS object
-
-   
-    if (typeof this.addr !== "object" || typeof this.addr.lo !== "number") {
-      throw new Error("Buffer: invalid Addr returned by gc_alloc: " + String(this.addr));
-    }
-  }
-
- 
-  write8(offset, value) {
+Buffer.prototype.write8 = function(offset, value) {
     this.addr.write8(offset, value & 0xFF);
-  }
+};
 
-  write16(offset, value) {
+Buffer.prototype.write16 = function(offset, value) {
     this.addr.write16(offset, value & 0xFFFF);
-  }
+};
 
-  write32(offset, value) {
+Buffer.prototype.write32 = function(offset, value) {
     this.addr.write32(offset, value >>> 0);
-  }
+};
 
-  write64(offset, value) {
- 
+Buffer.prototype.write64 = function(offset, value) {
     const v = BigInt(value);
     this.addr.write64(offset, v);
-  }
+};
 
-
-  read8(offset)  { return this.addr.read8(offset); }
-  read16(offset) { return this.addr.read16(offset); }
-  read32(offset) { return this.addr.read32(offset); }
-  read64(offset) { return this.addr.read64(offset); }
-
-
-  putLong(offset, value) {
+Buffer.prototype.putLong = function(offset, value) {
     const v = BigInt(value);
     const low  = Number(v & 0xFFFFFFFFn);
     const high = Number((v >> 32n) & 0xFFFFFFFFn);
-    this.addr.write32(offset, low);
-    this.addr.write32(offset + 4, high);
-  }
-
-
-  address() {
-    return this.addr;
-  }
-
-  fill(byte) {
-    const b = byte & 0xFF;
-    for (let i = 0; i < this.size; i++) this.addr.write8(i, b);
-  }
-
-  size() { return this.size; }
-}
+    this.write32(offset, low);
+    this.write32(offset + 4, high);
+};
 
 
 /*Buffer.prototype.putLong = function(offset, value) {
@@ -1506,6 +1467,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
