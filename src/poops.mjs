@@ -699,7 +699,7 @@ function performSetup() {
         iovState = new WorkerState(IOV_THREAD_NUM);
         uioState = new WorkerState(UIO_THREAD_NUM);
         // Prepare spray buffer
-        sprayRthdrLen = buildRthdr(sprayRthdr, UCRED_SIZE);
+       // sprayRthdrLen = buildRthdr(sprayRthdr, UCRED_SIZE);
 
 			log("msgIov.address():", msgIov.address());
 		
@@ -1429,6 +1429,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
