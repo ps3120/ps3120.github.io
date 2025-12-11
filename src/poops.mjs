@@ -24,7 +24,7 @@ import * as fw_ps4_900 from "./lapse/ps4/900.mjs";
 import * as fw_ps4_903 from "./lapse/ps4/903.mjs";
 import * as fw_ps4_950 from "./lapse/ps4/950.mjs";
 
-const t1 = performance.now();
+//const t1 = performance.now();
 
 // check if we are running on a supported firmware version
 const [is_ps4, version] = (() => {
@@ -1342,13 +1342,15 @@ export async function main() {
   rop.init_gadget_map(rop.gadgets, pthread_offsets, rop.libkernel_base);
 
 	
-
-	
-  /*if (Helper.isJailbroken()) {
-    NativeInvoke.sendNotificationRequest("Already Jailbroken");
-    return 0;
+  try {
+    if (sysi("setuid", 0) == 0) {
+      log("kernel already patched, skipping kexploit");
+      return true;
+    }
+  } catch {
+    // Expected when not in an exploited state
   }
-*/
+	
   log("Pre-configuration");
   if (!performSetup()) {
     log("pre-config failure");
@@ -1459,6 +1461,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
