@@ -744,6 +744,7 @@ function performSetup() {
             return false;
         }
 
+		log("set realtime priority");
       if (!setRealtimePriority(256)) {
            log("failed realtime priority");
            return false;
@@ -1458,6 +1459,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
