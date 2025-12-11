@@ -435,7 +435,7 @@ function cleanup() {
 }
 
 
-function buildRthdr(buf, size) {
+/*function buildRthdr(buf, size) {
     let len = ((size >> 3) - 1) & ~1;
 
 
@@ -443,6 +443,21 @@ function buildRthdr(buf, size) {
     buf.write8(0x01, len);              // ip6r_len
    buf.write8(0x02, IPV6_RTHDR_TYPE_0);// ip6r_type
    buf.write8(0x03, len >> 1);         // segments_left
+
+    return (len + 1) << 3;
+}
+*/
+
+function buildRthdr(buf, size) {
+    if (typeof size !== "number" || size <= 0) throw new TypeError("size must be positive number");
+
+    let len = ((size >> 3) - 1) & ~1;
+    if (len < 0 || len > 255) len = 0xff; 
+
+    buf.write8(0x00, 0);                 // ip6r_nxt
+    buf.write8(0x01, len & 0xff);        // ip6r_len
+    buf.write8(0x02, IPV6_RTHDR_TYPE_0 & 0xff); // ip6r_type
+    buf.write8(0x03, (len >> 1) & 0xff); // segments_left
 
     return (len + 1) << 3;
 }
@@ -1394,6 +1409,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
