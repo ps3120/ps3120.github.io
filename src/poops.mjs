@@ -211,7 +211,7 @@ function dup(fd) {
   return sysi("dup", fd);
 }
 function close(fd) {
-  return sysi("close", fd);
+  sysi("close", fd);
 }
 
  function read(fd) {
@@ -1332,6 +1332,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
