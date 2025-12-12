@@ -119,6 +119,9 @@ Buffer.prototype.fill = function(byte) {
         this.addr.write8(i, v);
     }
 };
+Buffer.prototype.address = function() {
+    return mem.addrof(this);
+};
 
     const AF_UNIX = 1;
     const AF_INET6 = 28;
@@ -226,12 +229,7 @@ let victimWpipeFd = 0;
 
 let previousCore = -1;
 
-Buffer.prototype.address = function() {
-    return mem.addrof(this);
-};
-Buffer.prototype.write32 = function(offset, value) {
-    mem.write32(this.addr + offset, value >>> 0);
-};
+
 
 /*Buffer.prototype.write8 = function(offset, value) {
     mem.write8(this.addr + offset, value);
@@ -1480,6 +1478,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
