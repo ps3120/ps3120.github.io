@@ -93,30 +93,9 @@ const jmp_rsi = fw_config.jmp_rsi;
 const patch_elf_loc = fw_config.patch_elf_loc;
 
 Buffer.prototype.write8 = function(offset, value) {
-    mem.write8(this.addr + offset, value & 0xFF);
+    this.addr.write8(offset, value & 0xFF);
 };
 
-Buffer.prototype.write16 = function(offset, value) {
-    mem.write16(this.addr + offset, value & 0xFFFF);
-};
-
-Buffer.prototype.write32 = function(offset, value) {
-    mem.write32(this.addr + offset, value >>> 0);
-};
-
-Buffer.prototype.putLong = function(offset, value) {
-    const v = BigInt(value);
-    const low = Number(v & 0xFFFFFFFFn);
-    const high = Number((v >> 32n) & 0xFFFFFFFFn);
-
-    mem.write32(this.addr + offset, low);
-    mem.write32(this.addr + offset + 4, high);
-};
-
-Buffer.prototype.fill = function(byte) {
-    for (let i = 0; i < this.size; i++) {
-        mem.write8(this.addr + i, byte);
-	}
 
     const AF_UNIX = 1;
     const AF_INET6 = 28;
@@ -1478,4 +1457,5 @@ class WorkerState {
 }
 
 main();
+
 
