@@ -233,16 +233,14 @@ Buffer.prototype.write64 = function(offset, value) {
     this.addr.write64(offset, v);
 };
 
-Buffer.prototype.putLong = function(offset, value) {
+BBuffer.prototype.putLong = function(offset, value) {
     if (typeof value === "number" || typeof value === "bigint") {
-         
         const v = BigInt(value);
         const low  = Number(v & 0xFFFFFFFFn) >>> 0;
         const high = Number((v >> 32n) & 0xFFFFFFFFn) >>> 0;
         this.write32(offset, low);
         this.write32(offset + 4, high);
     } else if (value && typeof value.read32 === "function") {
-    
         const low  = value.read32(0) >>> 0;
         const high = value.read32(4) >>> 0;
         this.write32(offset, low);
@@ -251,7 +249,6 @@ Buffer.prototype.putLong = function(offset, value) {
         throw new Error("putLong: invalid value " + value);
     }
 };
-
 
 /*Buffer.prototype.putLong = function(offset, value) {
     if (typeof value !== "number" || isNaN(value)) {
@@ -746,8 +743,8 @@ function performSetup() {
 
 		log("dummy buffer");
         dummyBuffer.fill(0x41);
-        uioIovRead.putLong(0x00, dummyBuffer.address());
-        uioIovWrite.putLong(0x00, dummyBuffer.address());
+        uioIovRead.putLong(0x00, dummyBuffer.addr);
+        uioIovWrite.putLong(0x00, dummyBuffer.addr);
 
         // Affinity
         previousCore = getCurrentCore();
@@ -1471,6 +1468,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
