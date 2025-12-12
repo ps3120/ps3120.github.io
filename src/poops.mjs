@@ -787,9 +787,9 @@ function performSetup() {
        sprayRthdrLen = buildRthdr(sprayRthdr, UCRED_SIZE);
 		
         // Prepare msg iov buffer
-      //  msg.putLong(0x10, msgIov.addr); // msg_iov
-		msg.putLong(0x10, addr_to_u64(msgIov.addr));
+		msg.putLong(0x10, msgIov.addr.to_uint64());
 
+      //   msg.putLong(0x10, msgIov.addr); // msg_iov
         msg.putLong(0x18, MSG_IOV_NUM);      // msg_iovlen
 
 		
@@ -1526,6 +1526,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
