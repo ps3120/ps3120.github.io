@@ -766,7 +766,7 @@ function performSetup() {
         msg.putLong(0x10, msgIov.addr); // msg_iov
         msg.putLong(0x18, MSG_IOV_NUM);      // msg_iovlen
 
-		log("dummyBuffer.addr =", dummyBuffer.addr.lo.toString(16), dummyBuffer.addr.hi.toString(16));
+		
 
 		
       /*  dummyBuffer.fill(0x41);
@@ -774,6 +774,7 @@ function performSetup() {
         uioIovWrite.putLong(0x00, dummyBuffer.address());
        */
 		dummyBuffer.fill(0x41);
+		log("dummyBuffer  =", dummyBuffer);
      uioIovRead.putLong(0, dummyBuffer.addr);
     uioIovWrite.putLong(0, dummyBuffer.addr);
 		
@@ -1499,6 +1500,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
