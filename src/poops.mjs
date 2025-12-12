@@ -234,12 +234,13 @@ Buffer.prototype.write64 = function(offset, value) {
 };
 
 Buffer.prototype.putLong = function(offset, addrObj) {
-    if (!addrObj || !(addrObj._u32 instanceof Uint32Array) || addrObj._u32.length < 2) {
-        throw new Error("putAddr: invalid Addr/Pointer object: " + addrObj);
+    if (!addrObj || typeof addrObj.add !== "function") {
+        throw new Error("putAddr: invalid Addr object: " + addrObj);
     }
 
-    const low  = addrObj._u32[0] >>> 0;
-    const high = addrObj._u32[1] >>> 0;
+    
+    const low  = addrObj.read32(0) >>> 0;
+    const high = addrObj.read32(4) >>> 0;
 
     this.write32(offset, low);
     this.write32(offset + 4, high);
@@ -1464,6 +1465,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
