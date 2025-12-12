@@ -99,23 +99,41 @@ Buffer.prototype.write32 = function(offset, value) {
     this.addr.write32(offset, value);
 };
 */
+function ptr_add(ptr, off) {
+    const v = (BigInt(ptr.hi) << 32n) | BigInt(ptr.lo);
+    const r = v + BigInt(off);
+    return {
+        lo: Number(r & 0xFFFFFFFFn),
+        hi: Number((r >> 32n) & 0xFFFFFFFFn)
+    };
+}
+
 Buffer.prototype.write8 = function(offset, value) {
-    this.addr.write8(offset, value & 0xFF);
+    const addr = ptr_add(this.addr, offset);
+    mem.write8(addr, value & 0xFF);
 };
+
 Buffer.prototype.write32 = function(offset, value) {
-    this.addr.write32(offset, value >>> 0);
+    const addr = ptr_add(this.addr, offset);
+    mem.write32(addr, value >>> 0);
 };
+
 Buffer.prototype.putLong = function(offset, value) {
     const v = BigInt(value);
-    this.addr.write32(offset, Number(v & 0xFFFFFFFFn));
-    this.addr.write32(offset + 4, Number((v >> 32n) & 0xFFFFFFFFn));
+    const addr1 = ptr_add(this.addr, offset);
+    const addr2 = ptr_add(this.addr, offset + 4);
+
+    mem.write32(addr1, Number(v & 0xFFFFFFFFn));
+    mem.write32(addr2, Number((v >> 32n) & 0xFFFFFFFFn));
 };
 
 Buffer.prototype.fill = function(byte) {
     for (let i = 0; i < this.size; i++) {
-        this.addr.write8(i, byte);
+        const addr = ptr_add(this.addr, i);
+        mem.write8(addr, byte);
     }
 };
+
 
 /*Buffer.prototype.write8 = function(offset, value) {
     this.addr.write8(offset, value & 0xFF);
@@ -781,8 +799,8 @@ function performSetup() {
        */
 		dummyBuffer.fill(0x41);
 		log("dummyBuffer addr =", dummyBuffer.addr.lo.toString(16), dummyBuffer.addr.hi.toString(16));
-     uioIovRead.putLong(0, dummyBuffer.addr);
-    uioIovWrite.putLong(0, dummyBuffer.addr);
+     uioIovRead.putLong(0, addr_to_u64(dummyBuffer.addr));
+    uioIovWrite.putLong(0,addr_to_u64(dummyBuffer.addr));
 		
         // Affinity
         previousCore = getCurrentCore();
@@ -1506,6 +1524,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
