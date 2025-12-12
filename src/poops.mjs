@@ -812,7 +812,7 @@ function performSetup() {
 		
         // Prepare msg iov buffer
  
-
+      log("test");
         msg.putLong(0x10, msgIov.addr); // msg_iov
         msg.putLong(0x18, MSG_IOV_NUM);      // msg_iovlen
 
@@ -1550,6 +1550,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
