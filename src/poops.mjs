@@ -91,7 +91,66 @@ const off_cpuid_to_pcpu = fw_config.off_cpuid_to_pcpu;
 const off_sysent_661 = fw_config.off_sysent_661;
 const jmp_rsi = fw_config.jmp_rsi;
 const patch_elf_loc = fw_config.patch_elf_loc;
- 
+
+class RawBuffer {
+    constructor(size) {
+        this.size = size;
+
+        const alloc = mem.gc_alloc(size);
+        if (!alloc || !alloc[0]) {
+            throw new Error("RawBuffer: allocation failed");
+        }
+
+        this.addr = alloc[0];   
+        this.backer = alloc[1]; 
+    }
+
+    write8(offset, value) {
+        this.addr.write8(offset, value & 0xFF);
+    }
+
+    write16(offset, value) {
+        this.addr.write16(offset, value & 0xFFFF);
+    }
+
+    write32(offset, value) {
+        this.addr.write32(offset, value >>> 0);
+    }
+
+    write64(offset, value) {
+        const v = BigInt(value);
+        this.addr.write64(offset, v);
+    }
+
+
+    read8(offset)  { return this.addr.read8(offset); }
+    read16(offset) { return this.addr.read16(offset); }
+    read32(offset) { return this.addr.read32(offset); }
+    read64(offset) { return this.addr.read64(offset); }
+
+  
+    putLong(offset, value) {
+        const v = BigInt(value);
+
+        const low  = Number(v & 0xFFFFFFFFn);
+        const high = Number((v >> 32n) & 0xFFFFFFFFn);
+
+        this.addr.write32(offset,     low);
+        this.addr.write32(offset + 4, high);
+    }
+
+    fill(byte) {
+        const b = byte & 0xFF;
+        for (let i = 0; i < this.size; i++) {
+            this.addr.write8(i, b);
+        }
+    }
+
+    address() {
+        return this.addr;
+    }
+}
+
     const AF_UNIX = 1;
     const AF_INET6 = 28;
     const SOCK_STREAM = 1;
@@ -250,64 +309,7 @@ Buffer.prototype.write64 = function(offset, value) {
 };
 */
 
-class RawBuffer {
-    constructor(size) {
-        this.size = size;
 
-        const alloc = mem.gc_alloc(size);
-        if (!alloc || !alloc[0]) {
-            throw new Error("RawBuffer: allocation failed");
-        }
-
-        this.addr = alloc[0];   
-        this.backer = alloc[1]; 
-    }
-
-    write8(offset, value) {
-        this.addr.write8(offset, value & 0xFF);
-    }
-
-    write16(offset, value) {
-        this.addr.write16(offset, value & 0xFFFF);
-    }
-
-    write32(offset, value) {
-        this.addr.write32(offset, value >>> 0);
-    }
-
-    write64(offset, value) {
-        const v = BigInt(value);
-        this.addr.write64(offset, v);
-    }
-
-
-    read8(offset)  { return this.addr.read8(offset); }
-    read16(offset) { return this.addr.read16(offset); }
-    read32(offset) { return this.addr.read32(offset); }
-    read64(offset) { return this.addr.read64(offset); }
-
-  
-    putLong(offset, value) {
-        const v = BigInt(value);
-
-        const low  = Number(v & 0xFFFFFFFFn);
-        const high = Number((v >> 32n) & 0xFFFFFFFFn);
-
-        this.addr.write32(offset,     low);
-        this.addr.write32(offset + 4, high);
-    }
-
-    fill(byte) {
-        const b = byte & 0xFF;
-        for (let i = 0; i < this.size; i++) {
-            this.addr.write8(i, b);
-        }
-    }
-
-    address() {
-        return this.addr;
-    }
-}
 
 /*Buffer.prototype.putLong = function(offset, value) {
     if (typeof value !== "number" || isNaN(value)) {
@@ -1532,6 +1534,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
