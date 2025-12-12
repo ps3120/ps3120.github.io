@@ -1435,7 +1435,7 @@ async function triggerUcredTripleFree() {
   return true;
 }*/
 
-export async function main() {
+async function main() {
   await rop.init();
   chain = new Chain();
 
@@ -1561,6 +1561,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
