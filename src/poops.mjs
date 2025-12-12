@@ -5,7 +5,7 @@ import { cstr, jstr } from "./module/memtools.mjs";
 import { page_size, context_size } from "./module/offset.mjs";
 import { Chain } from "./module/chain.mjs";
 
-import { View1, View2, View4, Word, Long, Pointer} from "./module/view.mjs";
+import { View1, View2, View4, Word, Long, Pointer,Buffer} from "./module/view.mjs";
 
 import * as rop from "./module/chain.mjs";
 import * as config from "./config.mjs";
@@ -92,6 +92,24 @@ const off_sysent_661 = fw_config.off_sysent_661;
 const jmp_rsi = fw_config.jmp_rsi;
 const patch_elf_loc = fw_config.patch_elf_loc;
 
+Buffer.prototype.write8 = function(offset, value) {
+    this.addr.write8(offset, value);
+};
+Buffer.prototype.write32 = function(offset, value) {
+    this.addr.write32(offset, value);
+};
+
+Buffer.prototype.putLong = function(offset, value) {
+    const v = BigInt(value);
+    this.addr.write32(offset, Number(v & 0xFFFFFFFFn));
+    this.addr.write32(offset + 4, Number((v >> 32n) & 0xFFFFFFFFn));
+};
+
+Buffer.prototype.fill = function(byte) {
+    for (let i = 0; i < this.size; i++) {
+        this.addr.write8(i, byte);
+    }
+};
 
 /*Buffer.prototype.write8 = function(offset, value) {
     this.addr.write8(offset, value & 0xFF);
@@ -124,41 +142,7 @@ Buffer.prototype.address = function() {
     return mem.addrof(this);
 };
 */
-class Buffer {
-    constructor(size) {
-        const [addr, backer] = mem.gc_alloc(size);
-        this.addr = addr;       
-        this.backer = backer;   
-        this.size = size;
-    }
-
-    address() {
-        return this.addr;
-    }
-
-    write8(off, v) {
-        this.addr.write8(off, v);
-    }
-    write16(off, v) {
-        this.addr.write16(off, v);
-    }
-    write32(off, v) {
-        this.addr.write32(off, v);
-    }
-    write64(off, v) {
-        this.addr.write64(off, v);
-    }
-
-    read8(off) {
-        return this.addr.read8(off);
-    }
-    read32(off) {
-        return this.addr.read32(off);
-    }
-    read64(off) {
-        return this.addr.read64(off);
-    }
-}
+ 
     const AF_UNIX = 1;
     const AF_INET6 = 28;
     const SOCK_STREAM = 1;
@@ -1515,6 +1499,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
