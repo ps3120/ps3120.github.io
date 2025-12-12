@@ -92,7 +92,8 @@ const off_sysent_661 = fw_config.off_sysent_661;
 const jmp_rsi = fw_config.jmp_rsi;
 const patch_elf_loc = fw_config.patch_elf_loc;
 
-Buffer.prototype.write8 = function(offset, value) {
+
+/*Buffer.prototype.write8 = function(offset, value) {
     this.addr.write8(offset, value & 0xFF);
 };
 Buffer.prototype.write16 = function(offset, value) {
@@ -122,7 +123,42 @@ Buffer.prototype.fill = function(byte) {
 Buffer.prototype.address = function() {
     return mem.addrof(this);
 };
+*/
+class Buffer {
+    constructor(size) {
+        const [addr, backer] = mem.gc_alloc(size);
+        this.addr = addr;       
+        this.backer = backer;   
+        this.size = size;
+    }
 
+    address() {
+        return this.addr;
+    }
+
+    write8(off, v) {
+        this.addr.write8(off, v);
+    }
+    write16(off, v) {
+        this.addr.write16(off, v);
+    }
+    write32(off, v) {
+        this.addr.write32(off, v);
+    }
+    write64(off, v) {
+        this.addr.write64(off, v);
+    }
+
+    read8(off) {
+        return this.addr.read8(off);
+    }
+    read32(off) {
+        return this.addr.read32(off);
+    }
+    read64(off) {
+        return this.addr.read64(off);
+    }
+}
     const AF_UNIX = 1;
     const AF_INET6 = 28;
     const SOCK_STREAM = 1;
@@ -1479,6 +1515,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
