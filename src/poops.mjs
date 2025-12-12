@@ -92,13 +92,19 @@ const off_sysent_661 = fw_config.off_sysent_661;
 const jmp_rsi = fw_config.jmp_rsi;
 const patch_elf_loc = fw_config.patch_elf_loc;
 
-Buffer.prototype.write8 = function(offset, value) {
+/*Buffer.prototype.write8 = function(offset, value) {
     this.addr.write8(offset, value);
 };
 Buffer.prototype.write32 = function(offset, value) {
     this.addr.write32(offset, value);
 };
-
+*/
+Buffer.prototype.write8 = function(offset, value) {
+    this.addr.write8(offset, value & 0xFF);
+};
+Buffer.prototype.write32 = function(offset, value) {
+    this.addr.write32(offset, value >>> 0);
+};
 Buffer.prototype.putLong = function(offset, value) {
     const v = BigInt(value);
     this.addr.write32(offset, Number(v & 0xFFFFFFFFn));
@@ -774,7 +780,7 @@ function performSetup() {
         uioIovWrite.putLong(0x00, dummyBuffer.address());
        */
 		dummyBuffer.fill(0x41);
-		log("dummyBuffer  =", dummyBuffer);
+		log("dummyBuffer addr =", dummyBuffer.addr.lo.toString(16), dummyBuffer.addr.hi.toString(16));
      uioIovRead.putLong(0, dummyBuffer.addr);
     uioIovWrite.putLong(0, dummyBuffer.addr);
 		
@@ -1500,6 +1506,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
