@@ -92,7 +92,7 @@ const off_sysent_661 = fw_config.off_sysent_661;
 const jmp_rsi = fw_config.jmp_rsi;
 const patch_elf_loc = fw_config.patch_elf_loc;
 
-/*Buffer.prototype.write8 = function(offset, value) {
+Buffer.prototype.write8 = function(offset, value) {
     mem.write8(this.addr + offset, value & 0xFF);
 };
 
@@ -117,7 +117,6 @@ Buffer.prototype.fill = function(byte) {
     for (let i = 0; i < this.size; i++) {
         mem.write8(this.addr + i, byte);
 	}
-	*/
 
     const AF_UNIX = 1;
     const AF_INET6 = 28;
@@ -159,7 +158,7 @@ Buffer.prototype.fill = function(byte) {
     const F_SETFL = 4;
     const O_NONBLOCK = 4;
 	
-/*  let leakRthdr = new Buffer(UCRED_SIZE);
+let leakRthdr = new Buffer(UCRED_SIZE);
 let leakRthdrLen = { value: 0 };
 let sprayRthdr = new Buffer(UCRED_SIZE);
 let msg = new Buffer(MSG_HDR_SIZE);
@@ -170,7 +169,7 @@ let tmp = new Buffer(PAGE_SIZE);
 let victimPipebuf = new Buffer(PIPEBUF_SIZE);
 let uioIovRead = new Buffer(UIO_IOV_NUM * IOV_SIZE);
 let uioIovWrite = new Buffer(UIO_IOV_NUM * IOV_SIZE);
-	*/
+/* 	
 let leakRthdr       = new Uint8Array(UCRED_SIZE);
 let leakRthdrLen    = { value: 0 };
 
@@ -187,7 +186,7 @@ let victimPipebuf   = new Uint8Array(PIPEBUF_SIZE);
 
 let uioIovRead      = new Uint8Array(UIO_IOV_NUM * IOV_SIZE);
 let uioIovWrite     = new Uint8Array(UIO_IOV_NUM * IOV_SIZE);
-	
+	*/
 let uioSs = new Int32Array(2);
 let iovSs = new Int32Array(2);
 
@@ -1479,3 +1478,4 @@ class WorkerState {
 }
 
 main();
+
