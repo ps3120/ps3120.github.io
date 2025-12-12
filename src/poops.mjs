@@ -234,20 +234,57 @@ Buffer.prototype.write64 = function(offset, value) {
 };
 
 Buffer.prototype.putLong = function(offset, value) {
-    if (typeof value === "number" || typeof value === "bigint") {
-        const v = BigInt(value);
-        const low  = Number(v & 0xFFFFFFFFn) >>> 0;
-        const high = Number((v >> 32n) & 0xFFFFFFFFn) >>> 0;
-        this.write32(offset, low);
-        this.write32(offset + 4, high);
-    } else if (value && typeof value.read32 === "function") {
-        const low  = value.read32(0) >>> 0;
-        const high = value.read32(4) >>> 0;
-        this.write32(offset, low);
-        this.write32(offset + 4, high);
-    } else {
-        throw new Error("putLong: invalid value " + value);
+  try {
+    let low = undefined, high = undefined;
+
+    if (value === undefined || value === null) {
+      throw new Error("putLong: value is undefined/null");
     }
+
+    if (typeof value === "bigint" || typeof value === "number") {
+      const v = BigInt(value);
+      low  = Number(v & 0xFFFFFFFFn) >>> 0;
+      high = Number((v >> 32n) & 0xFFFFFFFFn) >>> 0;
+    }
+    else if (typeof value.read32 === "function") {
+      low  = Number(value.read32(0)) >>> 0;
+      high = Number(value.read32(4)) >>> 0;
+    }
+  
+    else if (value._u32 && value._u32 instanceof Uint32Array && value._u32.length >= 2) {
+      low  = value._u32[0] >>> 0;
+      high = value._u32[1] >>> 0;
+    }
+ 
+    else if (typeof value.lo === "number" && typeof value.hi === "number") {
+      low  = value.lo >>> 0;
+      high = value.hi >>> 0;
+    }
+   
+    else if (typeof value.addr !== "undefined") {
+      return this.putLong(offset, value.addr);
+    } else if (typeof value.address === "function") {
+      return this.putLong(offset, value.address());
+    } else {
+      throw new Error("putLong: unsupported value type: " + String(value));
+    }
+
+    if (!Number.isFinite(low) || !Number.isInteger(low)) {
+      throw new Error("putLong: low is not a 32-bit integer: " + String(low));
+    }
+    if (!Number.isFinite(high) || !Number.isInteger(high)) {
+      throw new Error("putLong: high is not a 32-bit integer: " + String(high));
+    }
+
+    log("[putLong] offset=", offset, "low=0x" + low.toString(16), "high=0x" + high.toString(16));
+  
+    this.write32(offset, low);
+    this.write32(offset + 4, high);
+  } catch (e) {
+
+    log("[putLong] ERROR:", e, "value:", value);
+    throw e; 
+  }
 };
 
 /*Buffer.prototype.putLong = function(offset, value) {
@@ -1468,6 +1505,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
