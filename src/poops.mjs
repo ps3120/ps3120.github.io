@@ -95,7 +95,30 @@ const patch_elf_loc = fw_config.patch_elf_loc;
 Buffer.prototype.write8 = function(offset, value) {
     this.addr.write8(offset, value & 0xFF);
 };
+Buffer.prototype.write16 = function(offset, value) {
+    this.addr.write16(offset, value & 0xFFFF);
+};
 
+Buffer.prototype.write32 = function(offset, value) {
+    this.addr.write32(offset, value >>> 0);
+};
+
+Buffer.prototype.putLong = function(offset, value) {
+    // value può essere Int, Addr, BigInt, numero JS, tutto ok
+    const v = BigInt(value);
+    const low  = Number(v & 0xFFFFFFFFn);
+    const high = Number((v >> 32n) & 0xFFFFFFFFn);
+
+    this.addr.write32(offset, low);
+    this.addr.write32(offset + 4, high);
+};
+
+Buffer.prototype.fill = function(byte) {
+    const v = byte & 0xFF;
+    for (let i = 0; i < this.size; i++) {
+        this.addr.write8(i, v);
+    }
+};
 
     const AF_UNIX = 1;
     const AF_INET6 = 28;
@@ -1457,5 +1480,6 @@ class WorkerState {
 }
 
 main();
+
 
 
