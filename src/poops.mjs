@@ -92,7 +92,7 @@ const off_sysent_661 = fw_config.off_sysent_661;
 const jmp_rsi = fw_config.jmp_rsi;
 const patch_elf_loc = fw_config.patch_elf_loc;
 
-Buffer.prototype.write8 = function(offset, value) {
+/*Buffer.prototype.write8 = function(offset, value) {
     mem.write8(this.addr + offset, value & 0xFF);
 };
 
@@ -117,7 +117,7 @@ Buffer.prototype.fill = function(byte) {
     for (let i = 0; i < this.size; i++) {
         mem.write8(this.addr + i, byte);
 	}
-	
+	*/
 
     const AF_UNIX = 1;
     const AF_INET6 = 28;
@@ -1353,7 +1353,7 @@ async function triggerUcredTripleFree() {
   return true;
 }*/
 
-async function main() {
+export async function main() {
   await rop.init();
   chain = new Chain();
 
