@@ -233,26 +233,13 @@ Buffer.prototype.write64 = function(offset, value) {
     this.addr.write64(offset, v);
 };
 
-Buffer.prototype.putLong = function(offset, value) {
-    let low, high;
+Buffer.prototype.putLong = function(offset, addrObj) {
+    if (!addrObj || !(addrObj._u32 instanceof Uint32Array) || addrObj._u32.length < 2) {
+        throw new Error("putAddr: invalid Addr/Pointer object: " + addrObj);
+    }
 
-    if (typeof value === "bigint") {
-        low  = Number(value & 0xFFFFFFFFn);
-        high = Number((value >> 32n) & 0xFFFFFFFFn);
-    }
-    else if (typeof value === "number") {
-        const v = BigInt(value >>> 0);
-        low  = Number(v & 0xFFFFFFFFn);
-        high = Number((v >> 32n) & 0xFFFFFFFFn);
-    }
-    else if (value && value._u32 instanceof Uint32Array && value._u32.length >= 2) {
-       
-        low  = value._u32[0] >>> 0;
-        high = value._u32[1] >>> 0;
-    }
-    else {
-        throw new Error("putLong: unsupported value type: " + value);
-    }
+    const low  = addrObj._u32[0] >>> 0;
+    const high = addrObj._u32[1] >>> 0;
 
     this.write32(offset, low);
     this.write32(offset + 4, high);
@@ -1477,6 +1464,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
