@@ -796,10 +796,16 @@ function performSetup() {
 
 		log("dummyBuffer.address =", dummyBuffer.address());
 		
-        dummyBuffer.fill(0x41);
+      /*  dummyBuffer.fill(0x41);
 		uioIovRead.putLong(0x00, dummyBuffer.address());
         uioIovWrite.putLong(0x00, dummyBuffer.address());
-       
+       */
+		dummyBuffer.fill(0x41);
+
+     let dummyBufAddr = addrof(dummyBuffer);
+     uioIovRead.putLong(0x00, dummyBufAddr);
+     uioIovWrite.putLong(0x00, dummyBufAddr);
+		
         // Affinity
         previousCore = getCurrentCore();
         if (cpusetSetAffinity(4) !== 0) {
@@ -1522,6 +1528,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
