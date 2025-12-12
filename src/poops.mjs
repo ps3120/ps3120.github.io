@@ -92,65 +92,6 @@ const off_sysent_661 = fw_config.off_sysent_661;
 const jmp_rsi = fw_config.jmp_rsi;
 const patch_elf_loc = fw_config.patch_elf_loc;
 
-class RawBuffer {
-    constructor(size) {
-        this.size = size;
-
-        const alloc = mem.gc_alloc(size);
-        if (!alloc || !alloc[0]) {
-            throw new Error("RawBuffer: allocation failed");
-        }
-
-        this.addr = alloc[0];   
-        this.backer = alloc[1]; 
-    }
-
-    write8(offset, value) {
-        this.addr.write8(offset, value & 0xFF);
-    }
-
-    write16(offset, value) {
-        this.addr.write16(offset, value & 0xFFFF);
-    }
-
-    write32(offset, value) {
-        this.addr.write32(offset, value >>> 0);
-    }
-
-    write64(offset, value) {
-        const v = BigInt(value);
-        this.addr.write64(offset, v);
-    }
-
-
-    read8(offset)  { return this.addr.read8(offset); }
-    read16(offset) { return this.addr.read16(offset); }
-    read32(offset) { return this.addr.read32(offset); }
-    read64(offset) { return this.addr.read64(offset); }
-
-  
-    putLong(offset, value) {
-        const v = BigInt(value);
-
-        const low  = Number(v & 0xFFFFFFFFn);
-        const high = Number((v >> 32n) & 0xFFFFFFFFn);
-
-        this.addr.write32(offset,     low);
-        this.addr.write32(offset + 4, high);
-    }
-
-    fill(byte) {
-        const b = byte & 0xFF;
-        for (let i = 0; i < this.size; i++) {
-            this.addr.write8(i, b);
-        }
-    }
-
-    address() {
-        return this.addr;
-    }
-}
-
 Buffer.prototype.write8 = function(offset, value) {
     mem.write8(this.addr + offset, value & 0xFF);
 };
@@ -218,29 +159,6 @@ Buffer.prototype.fill = function(byte) {
     const F_SETFL = 4;
     const O_NONBLOCK = 4;
 	
-const sys = {
-    dup: 0n,
-    close: 0n,
-    read: 0n,
-    readv: 0n,
-    write: 0n,
-    writev: 0n,
-    ioctl: 0n,
-    fcntl: 0n,
-    pipe: 0n,
-    kqueue: 0n,
-    socket: 0n,
-    socketpair: 0n,
-    recvmsg: 0n,
-    getsockopt: 0n,
-    setsockopt: 0n,
-    setuid: 0n,
-    getpid: 0n,
-    sched_yield: 0n,
-    cpuset_setaffinity: 0n,
-    __sys_netcontrol: 0n
-};
-
 /*  let leakRthdr = new Buffer(UCRED_SIZE);
 let leakRthdrLen = { value: 0 };
 let sprayRthdr = new Buffer(UCRED_SIZE);
@@ -1561,56 +1479,3 @@ class WorkerState {
 }
 
 main();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
