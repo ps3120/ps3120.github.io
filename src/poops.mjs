@@ -233,7 +233,7 @@ Buffer.prototype.write64 = function(offset, value) {
     this.addr.write64(offset, v);
 };
 
-BBuffer.prototype.putLong = function(offset, value) {
+Buffer.prototype.putLong = function(offset, value) {
     if (typeof value === "number" || typeof value === "bigint") {
         const v = BigInt(value);
         const low  = Number(v & 0xFFFFFFFFn) >>> 0;
@@ -1468,6 +1468,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
