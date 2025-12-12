@@ -155,20 +155,36 @@ const sys = {
     __sys_netcontrol: 0n
 };
 
-  let leakRthdr = new Buffer(UCRED_SIZE);
+/*  let leakRthdr = new Buffer(UCRED_SIZE);
 let leakRthdrLen = { value: 0 };
 let sprayRthdr = new Buffer(UCRED_SIZE);
 let msg = new Buffer(MSG_HDR_SIZE);
 let sprayRthdrLen = 0;
 let msgIov = new Buffer(MSG_IOV_NUM * IOV_SIZE);
-let dummyBuffer = new Buffer(0x1000);
+let dummyBuffer = new Uint8Array(0x1000);
 let tmp = new Buffer(PAGE_SIZE);
 let victimPipebuf = new Buffer(PIPEBUF_SIZE);
 let uioIovRead = new Buffer(UIO_IOV_NUM * IOV_SIZE);
 let uioIovWrite = new Buffer(UIO_IOV_NUM * IOV_SIZE);
+	*/
+let leakRthdr       = new Uint8Array(UCRED_SIZE);
+let leakRthdrLen    = { value: 0 };
+
+let sprayRthdr      = new Uint8Array(UCRED_SIZE);
+let msg             = new Uint8Array(MSG_HDR_SIZE);
+
+let sprayRthdrLen   = 0;
+
+let msgIov          = new Uint8Array(MSG_IOV_NUM * IOV_SIZE);
+let dummyBuffer     = new Uint8Array(0x1000);
+
+let tmp             = new Uint8Array(PAGE_SIZE);
+let victimPipebuf   = new Uint8Array(PIPEBUF_SIZE);
+
+let uioIovRead      = new Uint8Array(UIO_IOV_NUM * IOV_SIZE);
+let uioIovWrite     = new Uint8Array(UIO_IOV_NUM * IOV_SIZE);
 	
-	
-	let uioSs = new Int32Array(2);
+let uioSs = new Int32Array(2);
 let iovSs = new Int32Array(2);
 
 let iovThreads = new Array(IOV_THREAD_NUM);   
@@ -1506,6 +1522,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
