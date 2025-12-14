@@ -818,15 +818,15 @@ function performSetup() {
 		
         // Affinity
         previousCore = getCurrentCore();
-		  const core4Mask = new Buffer(0x10);
+		/*  const core4Mask = new Buffer(0x10);
         core4Mask.write32(0, 1 << 4); // core 4
         cpusetSetAffinity(core4Mask);
-		
-        /*if (cpusetSetAffinity(4) !== 0) {
+		*/
+         if (cpusetSetAffinity(4) !== 0) {
             log("failed to pin to core");
             return false;
         }
-*/
+ 
 		log("set realtime priority");
        if (!setRealtimePriority(256)) {
            log("failed realtime priority");
@@ -1542,6 +1542,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
