@@ -202,24 +202,7 @@ let tmp = new Buffer(PAGE_SIZE);
 let victimPipebuf = new Buffer(PIPEBUF_SIZE);
 let uioIovRead = new Buffer(UIO_IOV_NUM * IOV_SIZE);
 let uioIovWrite = new Buffer(UIO_IOV_NUM * IOV_SIZE);
-/* 	
-let leakRthdr       = new Uint8Array(UCRED_SIZE);
-let leakRthdrLen    = { value: 0 };
 
-let sprayRthdr      = new Uint8Array(UCRED_SIZE);
-let msg             = new Uint8Array(MSG_HDR_SIZE);
-
-let sprayRthdrLen   = 0;
-
-let msgIov          = new Uint8Array(MSG_IOV_NUM * IOV_SIZE);
-let dummyBuffer = new Buffer(0x1000);
-
-let tmp             = new Uint8Array(PAGE_SIZE);
-let victimPipebuf   = new Uint8Array(PIPEBUF_SIZE);
-
-let uioIovRead      = new Uint8Array(UIO_IOV_NUM * IOV_SIZE);
-let uioIovWrite     = new Uint8Array(UIO_IOV_NUM * IOV_SIZE);
-	*/
 let uioSs = new Int32Array(2);
 let iovSs = new Int32Array(2);
 
@@ -258,44 +241,6 @@ let victimWpipeFd = 0;
 let previousCore = -1;
 
 
-
-/*Buffer.prototype.write8 = function(offset, value) {
-    mem.write8(this.addr + offset, value);
-};*/
-
-/*Buffer.prototype.write8 = function(offset, value) {
-    this.addr.write8(offset, value & 0xFF);
-};
-
-Buffer.prototype.write16 = function(offset, value) {
-    this.addr.write16(offset, value & 0xFFFF);
-};
-
-Buffer.prototype.write32 = function(offset, value) {
-    this.addr.write32(offset, value >>> 0);
-};
-
-Buffer.prototype.write64 = function(offset, value) {
-    const v = BigInt(value);
-    this.addr.write64(offset, v);
-};
-*/
-
-
-
-/*Buffer.prototype.putLong = function(offset, value) {
-    if (typeof value !== "number" || isNaN(value)) {
-        throw new Error("putLong: invalid value " + value);
-    }
-
-    const low = value >>> 0;
-    const high = Math.floor(value / 0x100000000) >>> 0;
-
-    mem.write32(this.addr + offset, low);
-    mem.write32(this.addr + offset + 4, high);
-};
-
-*/
 
 function sys_void(...args) {
   return chain.syscall_void(...args);
@@ -1512,6 +1457,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
