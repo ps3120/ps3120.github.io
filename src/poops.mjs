@@ -100,14 +100,11 @@ Buffer.prototype.write32 = function(offset, value) {
 };
 */
 
+
+
 Buffer.prototype.write8 = function(offset, value) {
-    mem.write8(this.addr.add(offset), value & 0xFF);
-};
-
-
-/*Buffer.prototype.write8 = function(offset, value) {
     this.addr.write8(offset, value & 0xFF);
-};*/
+};
 Buffer.prototype.write16 = function(offset, value) {
     this.addr.write16(offset, value & 0xFFFF);
 };
@@ -147,7 +144,7 @@ Buffer.prototype.address = function() {
 Buffer.prototype.fill = function(byte) {
     const fillByte = byte & 0xFF;
     for (let i = 0; i < this.size; i++) {
-        mem.write8(this.addr.add(i), fillByte);
+        this.addr.write8(i, fillByte);
     }
 };
 
@@ -1548,6 +1545,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
