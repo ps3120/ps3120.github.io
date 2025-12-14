@@ -99,57 +99,42 @@ Buffer.prototype.write32 = function(offset, value) {
     this.addr.write32(offset, value);
 };
 */
-function ptr_add(ptr, off) {
-    const v = (BigInt(ptr.hi) << 32n) | BigInt(ptr.lo);
-    const r = v + BigInt(off);
-    return {
-        lo: Number(r & 0xFFFFFFFFn),
-        hi: Number((r >> 32n) & 0xFFFFFFFFn)
-    };
-}
+
 
 Buffer.prototype.write8 = function(offset, value) {
-    const addr = ptr_add(this.addr, offset);
-    mem.write8(addr, value & 0xFF);
+    this.addr.write8(offset, value & 0xFF);
+};
+Buffer.prototype.write16 = function(offset, value) {
+    this.addr.write16(offset, value & 0xFFFF);
 };
 
 Buffer.prototype.write32 = function(offset, value) {
-    const addr = ptr_add(this.addr, offset);
-    mem.write32(addr, value >>> 0);
+    this.addr.write32(offset, value >>> 0);
 };
 
+Buffer.prototype.write64 = function(offset, value) {
+    this.addr.write64(offset, value);
+};
+
+Buffer.prototype.read8 = function(offset) {
+    return this.addr.read8(offset);
+};
+
+Buffer.prototype.read16 = function(offset) {
+    return this.addr.read16(offset);
+};
+
+Buffer.prototype.read32 = function(offset) {
+    return this.addr.read32(offset);
+};
+
+Buffer.prototype.read64 = function(offset) {
+    return this.addr.read64(offset);
+};
+
+
 Buffer.prototype.putLong = function(offset, value) {
-    let lo, hi;
-
-   
-    if (typeof value === "bigint") {
-        lo = Number(value & 0xFFFFFFFFn);
-        hi = Number((value >> 32n) & 0xFFFFFFFFn);
-    }
-   
-    else if (value && typeof value === "object" && 
-             "lo" in value && "hi" in value) {
-        lo = value.lo >>> 0;
-        hi = value.hi >>> 0;
-    }
-   
-    else if (typeof value === "number") {
-        lo = (value >>> 0);
-        hi = 0;
-    }
-   
-    else if (value && typeof value.toBigInt === "function") {
-        const v = value.toBigInt();
-        lo = Number(v & 0xFFFFFFFFn);
-        hi = Number((v >> 32n) & 0xFFFFFFFFn);
-    }
-    else {
-        throw new Error("putLong(): valore NON valido → " + typeof value);
-    }
-
-    // Scrivi i due valori a 32-bit
-    this.write32(offset, lo);
-    this.write32(offset + 4, hi);
+    this.addr.write64(offset, value);
 };
 
 
@@ -1557,6 +1542,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
