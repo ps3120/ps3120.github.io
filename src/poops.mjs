@@ -693,7 +693,7 @@ function performSetup() {
         log("Filling dummy buffer with 0x41");
 	   log("dummyBuffer addr =", hex(dummyBuffer.address()));
 
-      dummyBuffer.fill(0x41);
+    //  dummyBuffer.fill(0x41);
         
         log("dummy after fill",dummyBuffer.address());
         
@@ -1439,6 +1439,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
