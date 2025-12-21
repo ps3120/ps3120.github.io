@@ -112,7 +112,7 @@ Buffer.prototype.putInt = function(offset, value) {
 function fill(buf, value, max = 0x100) {
     const b = value & 0xFF;
     for (let i = 0; i < max; i++) {
-        buf.addr.write8(i, b); // usa solo i primi 0x100 byte
+        this.addr.write8(i, b); 
     }
 
 Buffer.prototype.address = function() {
@@ -1439,6 +1439,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
