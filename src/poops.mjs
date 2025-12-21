@@ -696,6 +696,9 @@ function performSetup() {
         log("Filling dummy buffer with 0x41");
 
   log("dummyBuffer.addr =", dummyBuffer.addr.toString());
+log("dummyBuffer.addr exists:", dummyBuffer.addr !== undefined);
+log("dummyBuffer.addr.write8 exists:", dummyBuffer.addr?.write8 !== undefined);
+log("dummyBuffer.size():", dummyBuffer.size());
 
 try {
     dummyBuffer.fill(0x41);
@@ -1446,6 +1449,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
