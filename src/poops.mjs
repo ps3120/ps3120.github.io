@@ -198,7 +198,10 @@ let sprayRthdr = new Buffer(UCRED_SIZE);
 let msg = new Buffer(MSG_HDR_SIZE);
 let sprayRthdrLen = 0;
 let msgIov = new Buffer(MSG_IOV_NUM * IOV_SIZE);
-let dummyBuffer = new Buffer(0x1000);
+
+const ptr = new Pointer(mem.alloc(0x1000));
+let dummyBuffer = new Buffer(ptr, 0x1000);
+//let dummyBuffer = new Buffer(0x1000);
 let tmp = new Buffer(PAGE_SIZE);
 let victimPipebuf = new Buffer(PIPEBUF_SIZE);
 let uioIovRead = new Buffer(UIO_IOV_NUM * IOV_SIZE);
@@ -1445,6 +1448,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
