@@ -692,6 +692,11 @@ function performSetup() {
         msg.putLong(0x18, MSG_IOV_NUM);
 
         log("Filling dummy buffer with 0x41");
+
+	   log("dummyBuffer object:", dummyBuffer);
+log("dummyBuffer.addr:", dummyBuffer.addr);
+log("mem.addrof(dummyBuffer):", mem.addrof(dummyBuffer));
+	   
 	   log("dummyBuffer addr =", hex(dummyBuffer.address()));
 
        dummyBuffer.fill(0x41);
