@@ -109,11 +109,12 @@ Buffer.prototype.putInt = function(offset, value) {
     this.addr.write32(offset, value);
 };
 
-function fill(buf, value, max = 0x100) {
+Buffer.prototype.fill = function(value, max = this.size) {
     const b = value & 0xFF;
     for (let i = 0; i < max; i++) {
-        this.addr.write8(i, b); 
+        this.addr.write8(i, b);
     }
+};
 
 Buffer.prototype.address = function() {
     return mem.addrof(this);
@@ -692,8 +693,7 @@ function performSetup() {
         log("Filling dummy buffer with 0x41");
 	   log("dummyBuffer addr =", hex(dummyBuffer.address()));
 
-        fill(dummyBuffer, 0x41);
-
+      dummyBuffer.fill(0x41);
         
         log("dummy after fill",dummyBuffer.address());
         
@@ -1439,6 +1439,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
