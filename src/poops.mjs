@@ -695,10 +695,14 @@ function performSetup() {
 
         log("Filling dummy buffer with 0x41");
 
-  log("dummyBuffer.addr =", dummyBuffer.addr.toString());
-log("dummyBuffer.addr exists:", dummyBuffer.addr !== undefined);
-log("dummyBuffer.addr.write8 exists:", dummyBuffer.addr?.write8 !== undefined);
-log("dummyBuffer.size():", dummyBuffer.size());
+
+try {
+    let dummyBuffer2 = new Buffer(0x1000);
+    log("dummyBuffer created!");
+    log("dummyBuffer.addr =", dummyBuffer2.addr);
+} catch(e) {
+    log("Failed to create dummyBuffer:", e);
+}
 
 try {
     dummyBuffer.fill(0x41);
@@ -1449,6 +1453,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
