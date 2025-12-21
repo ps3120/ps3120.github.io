@@ -109,12 +109,12 @@ Buffer.prototype.putInt = function(offset, value) {
     this.addr.write32(offset, value);
 };
 
-Buffer.prototype.fill = function(byte) {
+/*Buffer.prototype.fill = function(byte) {
     const fillByte = byte & 0xFF;
     for (let i = 0; i < this.size; i++) {
         this.addr.write8(i, fillByte);
     }
-};
+};*/
 
 Buffer.prototype.address = function() {
     return mem.addrof(this);
@@ -253,24 +253,7 @@ function dup(fd) {
   return sysi("dup", fd);
 }
 function close(fd) {
-    log("[DEBUG] closing fd:", fd);
-
-    if (!Number.isInteger(fd) || fd < 0) {
-        log("[DEBUG] invalid fd, skipping close()");
-        return;
-    }
-
-    if (!chain) {
-        log("[DEBUG] chain not initialized, skipping close()");
-        return;
-    }
-
-    try {
-        let ret = sysi("close", fd);
-        log("[DEBUG] close returned:", ret);
-    } catch(e) {
-        log("[DEBUG] close syscall error:", e, "fd was:", fd);
-    }
+    sysi("close", fd);
 }
 
 function setRealtimePriority(prio) {
@@ -1457,6 +1440,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
