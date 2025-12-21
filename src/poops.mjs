@@ -117,7 +117,7 @@ Buffer.prototype.fill = function(value, max = this.size()) {
 };
 
 Buffer.prototype.address = function() {
-    return this.addr;
+    return mem.addrof(this);
 };
 
  Buffer.prototype.write8 = function(offset, value) {
@@ -1440,6 +1440,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
