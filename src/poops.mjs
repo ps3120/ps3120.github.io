@@ -109,12 +109,11 @@ Buffer.prototype.putInt = function(offset, value) {
     this.addr.write32(offset, value);
 };
 
-Buffer.prototype.fill = function(byte) {
-    const fillByte = byte & 0xFF;
-    for (let i = 0; i < this.size; i++) {
-        this.addr.write8(i, fillByte);
+function fill(buf, value, max = 0x100) {
+    const b = value & 0xFF;
+    for (let i = 0; i < max; i++) {
+        buf.addr.write8(i, b); // usa solo i primi 0x100 byte
     }
-};
 
 Buffer.prototype.address = function() {
     return mem.addrof(this);
@@ -693,9 +692,10 @@ function performSetup() {
         log("Filling dummy buffer with 0x41");
 	   log("dummyBuffer addr =", hex(dummyBuffer.address()));
 
-        dummyBuffer.fill(0x41);
+        fill(dummyBuffer, 0x41);
+
         
-        log(dummyBuffer.address());
+        log("dummy after fill",dummyBuffer.address());
         
         log("Setting up UIO IOV buffers");
         uioIovRead.putLong(0, dummyBuffer.address());
@@ -1439,6 +1439,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
