@@ -697,11 +697,12 @@ function performSetup() {
 
   log("dummyBuffer.addr =", dummyBuffer.addr.toString());
 
-	
-
-       dummyBuffer.fill(0x41);
-        
-        log("dummy after fill",dummyBuffer.addr.toString());
+try {
+    dummyBuffer.fill(0x41);
+    log("dummy after fill", dummyBuffer.addr.toString());
+} catch(e) {
+    log("Exception during dummyBuffer.fill:", e);
+}
         
         log("Setting up UIO IOV buffers");
         uioIovRead.putLong(0, dummyBuffer.address());
@@ -1445,6 +1446,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
