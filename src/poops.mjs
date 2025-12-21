@@ -699,7 +699,7 @@ function performSetup() {
 try {
     let dummyBuffer2 = new Buffer(0x1000);
     log("dummyBuffer created!");
-    log("dummyBuffer.addr =", dummyBuffer2.addr);
+    log("dummyBuffer.addr =", dummyBuffer2);
 } catch(e) {
     log("Failed to create dummyBuffer:", e);
 }
@@ -1453,6 +1453,7 @@ class WorkerState {
 }
 
 main();
+
 
 
 
