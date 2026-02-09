@@ -1919,66 +1919,26 @@ function runBinLoader() {
   log("awaiting payload...");
 }
 
-function runPayload(path) {
-  // Why xhr instead of fetch? More universal support, more control, better errors, etc.
-  log(`loading ${path}`);
-  const xhr = new XMLHttpRequest();
-  xhr.open("GET", path);
-  xhr.responseType = "arraybuffer";
-  xhr.onreadystatechange = function () {
-    // When request is "DONE"
-    if (xhr.readyState === 4) {
-      // If response code is "OK"
-      if (xhr.status === 200) {
-        try {
-          // Allocate a buffer with length rounded up to the next multiple of 4 bytes for Uint32 alignment
-          const padding_length = (4 - (xhr.response.byteLength % 4)) % 4;
-          const padded_buffer = new Uint8Array(xhr.response.byteLength + padding_length);
-
-          // Load xhr response data into the payload buffer and pad the rest with zeros
-          padded_buffer.set(new Uint8Array(xhr.response), 0);
-          if (padding_length) {
-            padded_buffer.set(new Uint8Array(padding_length), xhr.response.byteLength);
-          }
-
-          // Convert padded_buffer to Uint32Array. That's what `array_from_address()` expects
-          const shellcode = new Uint32Array(padded_buffer.buffer);
-
-          // Map memory with RWX permissions to load the payload into
-          const payload_buffer = chain.sysp("mmap", 0, padded_buffer.length, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PREFAULT_READ, -1, 0);
-          log(`payload buffer allocated at ${payload_buffer}`);
-
-          // Create an JS array that "shadows" the mapped location
-          const payload_buffer_shadow = array_from_address(payload_buffer, shellcode.length);
-
-          // Move the shellcode to the array created in the previous step
-          payload_buffer_shadow.set(shellcode);
-          log(`loaded ${xhr.response.byteLength} bytes for payload (+ ${padding_length} bytes padding)`);
-
-          // Call the payload
-          chain.call_void(payload_buffer);
-
-          // Unmap the memory used for the payload
-          sysi("munmap", payload_buffer, padded_buffer.length);
-        } catch (e) {
-          // Caught error while trying to execute payload
-          log(`error in runPayload: ${e.message}`);
-        }
-      } else {
-        // Some other HTTP response code (eg. 404)
-        log(`error retrieving payload, ${xhr.status}`);
-      }
-    }
-  };
-  xhr.onerror = function () {
-    log("network error");
-  };
-  xhr.send();
-}
 
 kexploit().then((success) => {
   if (success) {
-     runPayload("./goldhen.bin");
-   // runBinLoader();
+fetch('./goldhen.bin').then(res => res.arrayBuffer()).then(arr => {
+   
+    const originalLength = arr.byteLength;
+    const paddingLength = (4 - (originalLength % 4)) % 4;
+    const paddedBuffer = new Uint8Array(originalLength + paddingLength);
+    paddedBuffer.set(new Uint8Array(arr), 0);
+    if (paddingLength) paddedBuffer.set(new Uint8Array(paddingLength), originalLength);
+    const shellcode = new Uint32Array(paddedBuffer.buffer);
+    const payload_buffer = chain.sysp('mmap', 0, paddedBuffer.length, PROT_READ | PROT_WRITE | PROT_EXEC, 0x41000, -1, 0);
+    const native_view = array_from_address(payload_buffer, shellcode.length);
+    native_view.set(shellcode);
+    chain.sys('mprotect', payload_buffer, paddedBuffer.length, PROT_READ | PROT_WRITE | PROT_EXEC);
+    const ctx = new Buffer(0x10);
+    const pthread = new Pointer();
+    pthread.ctx = ctx;
+
+    call_nze('pthread_create', pthread.addr, 0, payload_buffer, 0);
+});
   }
 });
