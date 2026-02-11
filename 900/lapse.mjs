@@ -193,7 +193,7 @@ const max_aio_ids = 0x80;
 const rtprio = View2.of(RTP_PRIO_REALTIME, 0x100);
 
 // CONFIG CONSTANTS
-const main_core = 7;
+const main_core = 4;
 const num_grooms = 0x200;
 const num_handles = 0x100;
 const num_sds = 0x100; // max is 0x100 due to max IPV6_TCLASS
