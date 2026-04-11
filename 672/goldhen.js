@@ -1,4 +1,4 @@
-var stagegold = function () {
+Fvar stagegold = function () {
 	p = window.prim;
 	var textArea = document.createElement("textarea");
 	var textAreaVtPtr = p.read8(p.leakval(textArea).add32(0x18));
@@ -175,7 +175,7 @@ var stagegold = function () {
        // var payload_writer = p.arrayFromAddress(payload_buffer, 0x11800);
 
 
-runPayload("./payload.bin");
+runPayload("./goldhen.bin");
 
 
 
