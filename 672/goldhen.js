@@ -1,4 +1,4 @@
-Fvar stagegold = function () {
+var stagegold = function () {
 	p = window.prim;
 	var textArea = document.createElement("textarea");
 	var textAreaVtPtr = p.read8(p.leakval(textArea).add32(0x18));
