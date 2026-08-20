@@ -663,11 +663,28 @@ function screenMark(tag, extra) {
     if (tag === "STAGE5-DONE" && /(?:^|-)joinRet=0(?:-|$)/.test(s0) &&
         /(?:^|-)shellcodeRet=0x0+(?:-|$)/.test(s0)) {
         elfldrSpawned = true;
-        document.body.classList.add("loader-ready");
-        clearFailureBanners();
-        setCatResult(true);
-        showVerdict(false, "ELF LOADER READY");
-        stage("ELF LOADER READY", "ok");
+
+    flushMark("ELFLDR-AUTOLOAD",
+        "name=autoloader.elf-port=9021");
+
+    sendPayloadToElfldr("autoloader.elf")
+        .then(r => {
+            flushMark("ELF-SENT",
+                "name=" + clean(r.name) +
+                "-bytes=" + r.bytes +
+                "-target=" + clean(r.target) +
+                "-port=" + r.port);
+
+            stage("autoloader.elf inviato (" + r.bytes + " bytes)", "ok");
+        })
+        .catch(e => {
+            flushMark("ELF-SEND-FAILED",
+                "name=autoloader.elf-why=" +
+                clean(e && e.message || e));
+
+            stage("autoload fallito: " +
+                (e && e.message || e), "bad");
+        });
     }
     catState(tag, s0);
     captureRemoteEvent(tag, s0);
