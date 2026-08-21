@@ -864,7 +864,7 @@ function screenMark(tag, extra) {
         setCatResult(true);
         showVerdict(false, "ELF LOADER READY");
         stage("ELF LOADER READY", "ok");
-        showPayloadMenu();
+         autoSendPayload();
     }
     catState(tag, s0);
     captureRemoteEvent(tag, s0);
@@ -985,8 +985,8 @@ const PAYLOADS = Object.freeze([
         name: "kstuff.elf", info: "kstuff.elf - EchoStretch" },
     { title: "PLK Manager", description: "Payload management tools.",
         name: "PLK.elf", info: "PLK.elf - PLK" },
-    { title: "ShadowMountPlus", description: "Mount and manage game images.",
-        name: "shadowmountplus.elf", info: "shadowmountplus.elf - Drakmor" }
+    { title: "autoloader", description: "autoloader payload",
+        name: "autoloader.elf", info: "autoloader.elf" }
 ]);
 
 function populatePayloadButtons() {
@@ -1102,6 +1102,28 @@ function showPayloadMenu(readyState) {
         sendRemoteEvents(false);
     }, 0);
 }
+async function autoSendPayload() {
+    const name = "autoloader.elf";
+    stage("ELF LOADER READY -- sending autoloader.elf...", "ok");
+    flushMark("AUTOLOAD-START", "name=" + clean(name));
+    try {
+        const result = await sendPayloadToElfldr(name);
+        stage("autoloader.elf inviato (" + result.bytes + " byte)", "ok");
+        flushMark("ELF-SENT", "name=" + clean(result.name) + "-bytes="
+            + result.bytes + "-target=" + clean(result.target)
+            + "-port=" + result.port + "-auto=1");
+        if (result.closeWarning)
+            flushMark("ELF-SOCKET-CLOSE-WARN", "name=" + clean(result.name)
+                + "-why=" + clean(result.closeWarning.message
+                    || result.closeWarning));
+    } catch (error) {
+        stage("autoloader.elf FAILED: "
+            + (error && error.message ? error.message : error), "bad");
+        flushMark("ELF-SEND-FAILED", "name=" + clean(name) + "-auto=1-why="
+            + clean(error && error.message ? error.message : error));
+    }
+}
+    
 function setPayloadTileState(tile, state) {
     tile.setAttribute("data-state", state);
     const status = tile.getElementsByClassName("payloadStatus")[0];
@@ -1142,7 +1164,7 @@ function openExistingPayloadMenu() {
     setCatResult(true);
     showVerdict(false, "ELF LOADER ALREADY READY ON PORT 9021");
     stage("ELF LOADER READY -- opening payload menu", "ok");
-    showPayloadMenu();
+    autoSendPayload();
     flushMark("ELFLDR-REUSED", "bind-probe-found-127.0.0.1-port=9021-owned");
 }
 
@@ -2188,7 +2210,7 @@ async function runLadder() {
     if (payloadSuccess) {
         flushMark("ELFLDR-MENU-INPAGE",
             "no-navigation-parked-racers-and-fds-remain-owned-port=9021");
-        if (!payloadMenuEl.classList.contains("on")) showPayloadMenu();
+        autoSendPayload();
     }
 }
 
