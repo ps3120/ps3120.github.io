@@ -1,149 +1,133 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en"  >
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title></title>
-    <style>
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        min-height: 100%;
-        background: #0b0d10;
-        color: #c8ced8;
-        font:
-          15px/1.45 "Segoe UI",
-          system-ui,
-          sans-serif;
-      }
-      #brand {
-        text-align: center;
-        padding: 8px 10px;
-        background: #0e1116;
-        border-bottom: 1px solid #1e2732;
-      }
-      #brand img {
-        width: 28px;
-        height: 28px;
-        margin-right: 8px;
-        border-radius: 50%;
-        vertical-align: middle;
-      }
-      #brand b {
-        font-size: 15px;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        color: #e6ebf2;
-        vertical-align: middle;
-      }
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UNPATCH</title>
+<style>
+  html, body { margin:0; padding:0; background:#0b0d10; color:#c8ced8;
+               font:15px/1.45 "Segoe UI", system-ui, sans-serif; }
+  #wrap { padding:16px 18px; }
+  #state { font-size:22px; font-weight:700; margin:0 0 6px; }
+  #det { font-size:13px; color:#8b95a3; margin:0 0 4px; }
+  #det b { color:#c8ced8; font-weight:600; }
+  #cache { font-size:12px; color:#5c6672; margin:0 0 10px; min-height:14px; }
+  #cache.cacheok { color:#7fd0a0; }
+  .ok { color:#7fd0a0; } .bad { color:#d08a7f; } .warn { color:#d8c07f; }
+  #brand { text-align:center; padding:8px 10px; background:#0e1116;
+           border-bottom:1px solid #1e2732; }
+  #brand img { width:28px; height:28px; margin-right:8px; border-radius:50%;
+               vertical-align:middle; }
+  #brand b { font-size:15px; font-weight:700; letter-spacing:.14em;
+             color:#e6ebf2; vertical-align:middle; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="state">detecting firmware...</div>
+  <div id="det"></div>
+  <div id="cache"></div>
+</div>
 
-      /* running: a spinner under the brand. jb.js sets body.done / body.fail / body.log. */
-      #spin {
-        position: fixed;
-        top: calc(50% + 20px);
-        left: 50%;
-        width: 46px;
-        height: 46px;
-        margin: -23px 0 0 -23px;
-        border: 4px solid #1e2732;
-        border-top-color: #7fd0a0;
-        border-radius: 50%;
-        animation: spin 0.9s linear infinite;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
+<script>
+(function () {
+    var stateEl = document.getElementById("state");
+    var detEl = document.getElementById("det");
+    var cacheEl = document.getElementById("cache");
+    function setState(t, c) { stateEl.textContent = t; stateEl.className = c || ""; }
+    function setCache(t, ok) { cacheEl.textContent = t; cacheEl.className = ok ? "cacheok" : ""; }
+    var params = new URLSearchParams(location.search);
+
+    // Firmwares this build has a MEASURED kernel table for. jb.js still runs its
+    // own kernel-table-present gate, so this is UX only -- an unlisted firmware
+    // can still be launched with a tap. KEEP IN SYNC with ps4_offsets.js: add a
+    // fwnum here in the SAME commit that fills that firmware's kernel RVAs.
+    // The PS4 reports its minor as two hex digits in the UA (13.52 -> minor 0x52).
+    var SUPPORTED = { 1302: 1, 1304: 1, 1350: 1, 1352: 1 }; // all measured on hardware
+
+    var key = null, fwnum = null;
+    var m = /PlayStation\s+4[\/ ](\d+)\.(\d+)/.exec(navigator.userAgent);
+    if (m) {
+        var ms = parseInt(m[2], 16).toString(16);
+        if (ms.length < 2) ms = "0" + ms;
+        key = m[1] + "." + ms;
+        fwnum = parseInt(m[1], 10) * 100 + parseInt(ms, 10);
+    }
+
+    var forced = params.get("force") === "1";
+    var supported = forced || (fwnum !== null && SUPPORTED[fwnum] === 1);
+    detEl.innerHTML = "firmware <b>" + (key || "unknown") + "</b>"
+        + (supported ? " &middot; <b>supported</b>"
+                     : " &middot; not in this build's kernel table");
+
+    var target = "jb.html" + location.search;
+    function go() { setState("loading jailbreak...", "warn"); location.replace(target); }
+
+    function waitForTap(msg, action) {
+        setState(msg, "warn");
+        function fire() {
+            window.removeEventListener("click", fire);
+            window.removeEventListener("keydown", fire);
+            action();
         }
-      }
-      #msg {
-        position: fixed;
-        top: 50%;
-        left: 0;
-        right: 0;
-        transform: translateY(-50%);
-        text-align: center;
-        font-size: 16px;
-        letter-spacing: 0.5px;
-        display: none;
-      }
-      #wrap {
-        padding: 0;
-      }
-      #state,
-      #out {
-        display: none;
-      }
+        window.addEventListener("click", fire);
+        window.addEventListener("keydown", fire);
+    }
 
-      body.done #spin {
-        display: none;
-      }
-      body.fail #spin {
-        display: none;
-      }
-      body.fail #msg {
-        display: block;
-      }
+    // Off-target consoles are not launched automatically -- one tap still runs
+    // it, so a user-agent quirk on the real 13.52 console can never lock it out.
+    if (!supported) {
+        setState("UNSUPPORTED FIRMWARE", "bad");
+        waitForTap("UNSUPPORTED (" + (key || "unknown") + ") -- press X or tap to run anyway", go);
+        return;
+    }
 
-      /* ?log=1 -- the full step log, styled like the landing. */
-      body.log #spin,
-      body.log #msg {
-        display: none;
-      }
-      body.log #wrap {
-        padding: 14px 18px;
-      }
-      body.log #state {
-        display: block;
-        font-size: 22px;
-        font-weight: 700;
-        margin: 0 0 8px;
-      }
-      body.log #out {
-        display: block;
-        white-space: pre-wrap;
-        font:
-          12px/1.45 Consolas,
-          monospace;
-        background: #11151b;
-        border: 1px solid #1e2732;
-        border-radius: 5px;
-        padding: 10px 12px;
-        height: calc(100vh - 141px);
-        overflow-y: auto;
-      }
-      .ok {
-        color: #7fd0a0;
-      }
-      .bad {
-        color: #d08a7f;
-      }
-      .warn {
-        color: #d8c07f;
-      }
-      .safe {
-        color: #7fd0a0;
-      }
-      .danger {
-        color: #d08a7f;
-      }
-      code {
-        color: #9fb3d0;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="brand">
-      <b>UNPATCH</b>
-    </div>
-    <div id="spin"></div>
-    <div id="msg">Restart your console</div>
-    <div id="wrap">
-      <div id="state"></div>
-      <div id="out"></div>
-    </div>
-    <script type="module">
-      import "./jb.js?v=10";
-    </script>
-  </body>
+    var ac = window.applicationCache;
+    if (!ac || !document.documentElement.hasAttribute("manifest")) {
+        go();
+    } else if (!navigator.onLine) {
+        setCache("offline -- from cache", true);
+        go();
+    } else if (ac.status === ac.IDLE) {
+        setCache("cached", true);
+        go();
+    } else if (ac.status === ac.UPDATEREADY) {
+        try { ac.swapCache(); } catch (e) {}
+        setCache("update downloaded", true);
+        waitForTap("UPDATE READY -- press X or tap to reload & run",
+                   function () { location.reload(); });
+    } else {
+        setCache("checking cache...");
+        ac.addEventListener("downloading",
+            function () { setCache("caching for offline (first run)..."); }, false);
+        ac.addEventListener("progress", function (e) {
+            if (e && e.total)
+                setCache("caching " + Math.round((e.loaded / e.total) * 100) + "%");
+        }, false);
+        ac.addEventListener("cached", function () {
+            setCache("cached for offline use", true);
+            waitForTap("CACHED (first run) -- press X or tap to run", go);
+        }, false);
+        ac.addEventListener("updateready", function () {
+            try { ac.swapCache(); } catch (e) {}
+            setCache("update downloaded", true);
+            waitForTap("UPDATE READY -- press X or tap to reload & run",
+                       function () { location.reload(); });
+        }, false);
+        ac.addEventListener("noupdate", function () {
+            setCache("cached -- offline ready", true);
+            go();
+        }, false);
+        ac.addEventListener("error", function () {
+            setCache("cache unavailable");
+            waitForTap("CACHE FAILED -- press X or tap to run anyway", go);
+        }, false);
+        ac.addEventListener("obsolete", function () {
+            setCache("cache obsolete");
+            waitForTap("CACHE OBSOLETE -- press X or tap to run", go);
+        }, false);
+    }
+})();
+</script>
+</body>
 </html>
