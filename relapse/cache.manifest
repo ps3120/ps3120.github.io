@@ -1,4 +1,7 @@
 CACHE MANIFEST
+# v1
+
+CACHE:
 index.html
 payloads/kexp_2026_05_25.bin
 payloads/elfldr-ps5-1360.elf
@@ -15,3 +18,6 @@ src/utils/mem.js
 src/utils/rop_slave.js
 src/utils/syscalls.js
 cache.html
+
+NETWORK:
+*
