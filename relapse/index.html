@@ -64,7 +64,7 @@
       ac.addEventListener('updateready', () => {
         statusEl.textContent = 'Cache: aggiornamento pronto, applico...';
         ac.swapCache();
-        statusEl.textContent = 'Cache: 100% completata';
+        setTimeout(function () { location.reload(); }, 1500);
       });
 
       ac.addEventListener('cached', () => {
