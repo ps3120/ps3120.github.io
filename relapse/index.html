@@ -8,11 +8,26 @@
       background: #060606;
       color: #fff;
     }
+    #cache-status {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 0.5rem 1rem;
+      font-family: monospace;
+      font-size: 0.9rem;
+      background: #111;
+      color: #0f0;
+      text-align: center;
+      z-index: 9999;
+    }
   </style>
 </head>
 <body>
 
+  <div id="cache-status">Cache: inizializzazione...</div>
   <div id="console"></div>
+
   <script src="./src/firmware.js"></script>
   <script src="./src/main.js"></script>
   <script src="./src/rop.js"></script>
@@ -23,13 +38,53 @@
     function registerAppCacheEventHandlers() {
       if (!window.applicationCache) {
         console.warn('AppCache API non disponibile su questo WebKit');
+        document.getElementById('cache-status').textContent = 'Cache: API non disponibile';
         return;
       }
       const ac = window.applicationCache;
-      ac.addEventListener('updateready', () => ac.swapCache());
-      ac.addEventListener('error', (e) => console.error('AppCache error', e));
-      ac.addEventListener('cached', () => console.log('AppCache: cached'));
-      ac.addEventListener('noupdate', () => console.log('AppCache: noupdate'));
+      const statusEl = document.getElementById('cache-status');
+
+      ac.addEventListener('checking', () => {
+        statusEl.textContent = 'Cache: verifica manifest...';
+      });
+
+      ac.addEventListener('downloading', () => {
+        statusEl.textContent = 'Cache: download avviato (0%)';
+      });
+
+      ac.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          statusEl.textContent = `Cache: download in corso (${pct}%) [${e.loaded}/${e.total}]`;
+        } else {
+          statusEl.textContent = `Cache: download in corso (${e.loaded} file)`;
+        }
+      });
+
+      ac.addEventListener('updateready', () => {
+        statusEl.textContent = 'Cache: aggiornamento pronto, applico...';
+        ac.swapCache();
+        statusEl.textContent = 'Cache: 100% completata';
+      });
+
+      ac.addEventListener('cached', () => {
+        statusEl.textContent = 'Cache: 100% completata';
+        console.log('AppCache: cached');
+      });
+
+      ac.addEventListener('noupdate', () => {
+        statusEl.textContent = 'Cache: già aggiornata (100%)';
+        console.log('AppCache: noupdate');
+      });
+
+      ac.addEventListener('error', (e) => {
+        statusEl.textContent = 'Cache: ERRORE';
+        console.error('AppCache error', e);
+      });
+
+      ac.addEventListener('obsolete', () => {
+        statusEl.textContent = 'Cache: manifest obsoleto';
+      });
     }
 
     registerAppCacheEventHandlers();
